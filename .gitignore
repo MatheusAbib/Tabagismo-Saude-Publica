@@ -1,0 +1,49 @@
+# ================== FLUTTER ==================
+.build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+pubspec.lock
+
+# ================== ANDROID ==================
+android/.gradle/
+android/local.properties
+android/app/build/
+
+# ================== IOS ==================
+ios/Flutter/ephemeral/
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/Generated.xcconfig
+
+# ================== IDE ==================
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ================== OS ==================
+.DS_Store
+Thumbs.db
+
+# ================== LOGS ==================
+*.log
+
+# ================== NODE BACKEND ==================
+backend/node_modules/
+backend/.env
+backend/dist/
+backend/build/
+
+# ================== MISC ==================
+*.class
+*.pyc
+*.swp
+.history
+.svn/
+.swiftpm/
