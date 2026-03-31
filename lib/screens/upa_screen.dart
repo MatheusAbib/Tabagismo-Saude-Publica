@@ -18,35 +18,29 @@ class UPAScreen extends StatefulWidget {
 class _UPAScreenState extends State<UPAScreen> {
   final _authService = AuthService();
   final _enrollmentService = EnrollmentService();
+  final Color _primaryDark = Color(0xFF0F2B3D);
+  final Color _primaryMedium = Color(0xFF1A4A6F);
+  final Color _accentColor = Color(0xFF2C7DA0);
+  final Color _successColor = Color(0xFF10B981);
+  final Color _warningColor = Color(0xFFF59E0B);
+  final Color _dangerColor = Color(0xFFEF4444);
+  
   List<Map<String, dynamic>> _upaList = [];
   List<Map<String, dynamic>> _paginatedList = [];
   bool _isLoading = false;
   TextEditingController _bairroController = TextEditingController();
   
-  // Paginação
   int _currentPage = 1;
   int _itemsPerPage = 6;
   int _totalPages = 1;
 
   final List<String> _bairrosSugeridos = [
-    'Centro',
-    'Vila Oliveira',
-    'Braz Cubas',
-    'César de Souza',
-    'Jundiapeba',
-    'Alto Ipiranga',
-    'Vila Vitória',
-    'Vila São Francisco',
-    'Jardim Santista',
-    'Vila Lavínia',
-    'Jardim Armênia',
-    'Vila Industrial',
-    'Parque das Varinhas',
-    'Residencial Itapety',
-    'Vila Nova Aparecida',
+    'Centro', 'Vila Oliveira', 'Braz Cubas', 'César de Souza', 'Jundiapeba',
+    'Alto Ipiranga', 'Vila Vitória', 'Vila São Francisco', 'Jardim Santista',
+    'Vila Lavínia', 'Jardim Armênia', 'Vila Industrial', 'Parque das Varinhas',
+    'Residencial Itapety', 'Vila Nova Aparecida',
   ];
 
-  // Opções de turmas
   final List<Map<String, String>> _turmas = [
     {'dia': 'Segunda-feira', 'horario': '08:00 - 10:00'},
     {'dia': 'Terça-feira', 'horario': '14:00 - 16:00'},
@@ -64,7 +58,6 @@ class _UPAScreenState extends State<UPAScreen> {
 
   Future<void> _buscarTodasUPAs() async {
     setState(() => _isLoading = true);
-    
     try {
       final upas = await _authService.searchUPA('');
       setState(() {
@@ -72,9 +65,7 @@ class _UPAScreenState extends State<UPAScreen> {
         _updatePagination();
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao buscar UPAs: $e')),
-      );
+      _showSnackBar('Erro ao buscar UPAs: $e', _dangerColor);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -82,14 +73,10 @@ class _UPAScreenState extends State<UPAScreen> {
 
   Future<void> _buscarPorBairro() async {
     if (_bairroController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Digite o nome do bairro')),
-      );
+      _showSnackBar('Digite o nome do bairro', _warningColor);
       return;
     }
-
     setState(() => _isLoading = true);
-    
     try {
       final upas = await _authService.searchUPA(_bairroController.text);
       setState(() {
@@ -98,9 +85,7 @@ class _UPAScreenState extends State<UPAScreen> {
         _updatePagination();
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao buscar UPAs: $e')),
-      );
+      _showSnackBar('Erro ao buscar UPAs: $e', _dangerColor);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -120,9 +105,7 @@ class _UPAScreenState extends State<UPAScreen> {
   List<Map<String, dynamic>> _getCurrentPageItems() {
     int startIndex = (_currentPage - 1) * _itemsPerPage;
     int endIndex = startIndex + _itemsPerPage;
-    if (endIndex > _upaList.length) {
-      endIndex = _upaList.length;
-    }
+    if (endIndex > _upaList.length) endIndex = _upaList.length;
     return _upaList.sublist(startIndex, endIndex);
   }
 
@@ -133,53 +116,54 @@ class _UPAScreenState extends State<UPAScreen> {
     });
   }
 
-  void _nextPage() {
-    if (_currentPage < _totalPages) {
-      _goToPage(_currentPage + 1);
-    }
-  }
-
-  void _previousPage() {
-    if (_currentPage > 1) {
-      _goToPage(_currentPage - 1);
-    }
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
   Widget _buildPagination() {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 16),
+      padding: EdgeInsets.symmetric(vertical: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: Icon(Icons.chevron_left),
+            icon: Icon(Icons.chevron_left, color: _currentPage > 1 ? _accentColor : Colors.grey.shade400),
             onPressed: _currentPage > 1 ? _previousPage : null,
-            color: _currentPage > 1 ? Colors.blue : Colors.grey,
           ),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(20),
+              color: _accentColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(30),
             ),
             child: Text(
               'Página $_currentPage de $_totalPages',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: Colors.blue.shade700,
+                color: _accentColor,
+                fontFamily: 'Inter',
               ),
             ),
           ),
           IconButton(
-            icon: Icon(Icons.chevron_right),
+            icon: Icon(Icons.chevron_right, color: _currentPage < _totalPages ? _accentColor : Colors.grey.shade400),
             onPressed: _currentPage < _totalPages ? _nextPage : null,
-            color: _currentPage < _totalPages ? Colors.blue : Colors.grey,
           ),
         ],
       ),
     );
   }
+
+  void _nextPage() => _goToPage(_currentPage + 1);
+  void _previousPage() => _goToPage(_currentPage - 1);
 
   void _abrirModalMatricula(Map<String, dynamic> upa) {
     showDialog(
@@ -187,163 +171,457 @@ class _UPAScreenState extends State<UPAScreen> {
       barrierDismissible: false,
       builder: (context) => Dialog(
         insetPadding: EdgeInsets.all(16),
-        child: Container(
-          width: double.maxFinite,
-          height: MediaQuery.of(context).size.height * 0.9,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
           child: EnrollmentModal(upa: upa, turmas: _turmas),
         ),
       ),
     );
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Color(0xFFF8FAFC),
+      body: Column(
+        children: [
+          HeaderWidget(
+            userName: widget.userData?['nomeCompleto'] ?? 'Usuário',
+            userData: widget.userData,
+            onNameUpdated: widget.onNameUpdated,
+            showBackButton: true,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildSearchSection(),
+                  _isLoading
+                      ? Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(48),
+                            child: CircularProgressIndicator(color: _accentColor),
+                          ),
+                        )
+                      : _upaList.isEmpty
+                          ? _buildEmptyWidget()
+                          : Column(
+                              children: [
+                                _buildUPACardsList(),
+                                if (_upaList.length > 6) _buildPagination(),
+                              ],
+                            ),
+                  FooterWidget(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+Widget _buildSearchSection() {
+  return Container(
+    padding: EdgeInsets.symmetric(horizontal: 50),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(top: 20, bottom: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _bairroController,
+                  decoration: InputDecoration(
+                    hintText: 'Digite o nome do bairro',
+                    hintStyle: TextStyle(fontFamily: 'Inter'),
+                    prefixIcon: Icon(Icons.location_on_outlined, color: _accentColor),
+                    suffixIcon: _bairroController.text.isNotEmpty
+                        ? IconButton(icon: Icon(Icons.clear), onPressed: _limparBusca)
+                        : null,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: _accentColor, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                  ),
+                  onSubmitted: (_) => _buscarPorBairro(),
+                ),
+              ),
+              SizedBox(width: 12),
+              Container(
+                height: 56,
+                width: 56,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [_primaryDark, _primaryMedium]),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.search, color: Colors.white),
+                  onPressed: _buscarPorBairro,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Icon(Icons.room, size: 14, color: _accentColor),
+              SizedBox(width: 4),
+              Text(
+                ' Mogi das Cruzes - Encontre a UPA mais próxima do seu bairro',
+                style: TextStyle(fontSize: 12, color: _accentColor, fontFamily: 'Inter'),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(bottom: 16),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _bairrosSugeridos.map((bairro) {
+              return ActionChip(
+                label: Text(bairro, style: TextStyle(fontSize: 12, fontFamily: 'Inter')),
+                onPressed: () {
+                  setState(() => _bairroController.text = bairro);
+                  _buscarPorBairro();
+                },
+                backgroundColor: _accentColor.withValues(alpha: 0.1),
+                labelStyle: TextStyle(color: _accentColor),
+              );
+            }).toList(),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(bottom: 20),
+          child: _buildInfoBanner(),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildInfoBanner() {
+  return Container(
+    child: InkWell(
+      onTap: _mostrarInformacoesGrupos,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.blue.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.blue.shade700, size: 18),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Como funcionam as turmas e grupos de apoio?',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.blue.shade700,
+                  fontWeight: FontWeight.w500,
+                  fontFamily: 'Inter',
+                ),
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: Colors.blue.shade700, size: 14),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+  Widget _buildEmptyWidget() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(48),
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.location_off, size: 64, color: Colors.grey.shade400),
+            ),
+            SizedBox(height: 24),
+            Text('Nenhuma UPA encontrada', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _primaryDark, fontFamily: 'Poppins')),
+            SizedBox(height: 8),
+            Text('Tente buscar por outro bairro', style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontFamily: 'Inter')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUPACardsList() {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.all(20),
+      itemCount: _paginatedList.length,
+      itemBuilder: (context, index) => _buildUPACard(_paginatedList[index]),
+    );
+  }
+
+  Widget _buildUPACard(Map<String, dynamic> upa) {
+    return Container(
+      
+      margin: EdgeInsets.only(bottom: 16, left: 30, right: 30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: Offset(0, 4))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _abrirModalMatricula(upa),
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [_primaryDark, _primaryMedium]),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(Icons.local_hospital_outlined, color: Colors.white, size: 24),
+                    ),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(upa['nome'], style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _primaryDark, fontFamily: 'Poppins')),
+                          SizedBox(height: 4),
+                          Text(upa['endereco'], style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontFamily: 'Inter'), maxLines: 2),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                  ],
+                ),
+                SizedBox(height: 12),
+                Divider(color: Colors.grey.shade200),
+                SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(Icons.phone_outlined, size: 14, color: Colors.grey.shade500),
+                          SizedBox(width: 6),
+                          Expanded(child: Text(upa['telefone'] ?? 'Telefone não informado', style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontFamily: 'Inter'))),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(Icons.access_time_outlined, size: 14, color: Colors.grey.shade500),
+                          SizedBox(width: 6),
+                          Expanded(child: Text(upa['horario'] ?? 'Horário não informado', style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontFamily: 'Inter'))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _mostrarInformacoesGrupos() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        insetPadding: EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: _InfoModal(),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoModal extends StatelessWidget {
+  final Color _primaryDark = Color(0xFF0F2B3D);
+  final Color _accentColor = Color(0xFF2C7DA0);
+  final Color _successColor = Color(0xFF10B981);
+  final Color _warningColor = Color(0xFFF59E0B);
+  final Color _dangerColor = Color(0xFFEF4444);
+
+  
+  Widget _infoItem(IconData icon, String text, Color color) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 @override
 Widget build(BuildContext context) {
   return Scaffold(
+    backgroundColor: Colors.white,
     body: Column(
       children: [
-        HeaderWidget(
-          userName: widget.userData?['nomeCompleto'] ?? 'Usuário',
-          userData: widget.userData,
-          onNameUpdated: widget.onNameUpdated,
-          showBackButton: true,
+        Container(
+          decoration: const BoxDecoration(
+            color: Color.fromARGB(255, 231, 236, 240),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_ios_new,
+                        color: _primaryDark, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Como Funcionam as Turmas',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: _primaryDark,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
         Expanded(
           child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                Container(
-                  padding: EdgeInsets.all(16),
-                  color: Colors.grey.shade50,
-                  child: Column(
+                _buildInfoSection(
+                  icon: Icons.how_to_reg_outlined,
+                  title: 'Processo de Matrícula',
+                  content:
+                      'Após realizar sua matrícula em uma das turmas disponíveis, você entrará na lista de espera. Em até 5 dias úteis, a UPA entrará em contato pelo telefone cadastrado para confirmar sua vaga e fornecer mais informações sobre o início das atividades.',
+                  color: _accentColor,
+                ),
+                const SizedBox(height: 24),
+                _buildInfoSection(
+                  icon: Icons.calendar_today_outlined,
+                  title: 'Frequência dos Encontros',
+                  content:
+                      'O programa de apoio é estruturado da seguinte forma:\n\n• Primeiro mês: Encontros SEMANAIS (1 vez por semana)\n• Meses seguintes: Encontros QUINZENAIS (a cada 15 dias)\n\nCada encontro tem duração aproximada de 2 horas.',
+                  color: _successColor,
+                ),
+                const SizedBox(height: 24),
+                _buildInfoSection(
+                  icon: Icons.group_outlined,
+                  title: 'Dinâmica dos Grupos',
+                  color: _warningColor,
+                  contentWidget: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _bairroController,
-                              decoration: InputDecoration(
-                                hintText: 'Digite o nome do bairro',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                prefixIcon: Icon(Icons.location_on),
-                                suffixIcon: _bairroController.text.isNotEmpty
-                                    ? IconButton(
-                                        icon: Icon(Icons.clear),
-                                        onPressed: _limparBusca,
-                                      )
-                                    : null,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 10),
-                          ElevatedButton(
-                            onPressed: _buscarPorBairro,
-                            style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.all(16),
-                              shape: CircleBorder(),
-                            ),
-                            child: Icon(Icons.search),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        '📍 Mogi das Cruzes - Encontre a UPA mais próxima do seu bairro',
+                      const Text(
+                        'Os grupos são espaços acolhedores e sigilosos onde você encontrará apoio para sua jornada de abandono do tabagismo.\n',
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue.shade700,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                          height: 1.5,
+                          color: Color(0xFF475569),
+                          fontFamily: 'Inter',
                         ),
                       ),
-                      SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _bairrosSugeridos.map((bairro) {
-                          return ActionChip(
-                            label: Text(bairro),
-                            onPressed: () {
-                              setState(() {
-                                _bairroController.text = bairro;
-                                _buscarPorBairro();
-                              });
-                            },
-                            backgroundColor: Colors.blue.shade100,
-                            labelStyle: TextStyle(fontSize: 12),
-                          );
-                        }).toList(),
-                      ),
-                      SizedBox(height: 12),
-                      InkWell(
-                        onTap: _mostrarInformacoesGrupos,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue.shade200),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.info_outline, color: Colors.blue.shade700, size: 18),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Como funcionam as turmas e grupos de apoio?',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.blue.shade700,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              Icon(Icons.arrow_forward_ios, color: Colors.blue.shade700, size: 14),
-                            ],
-                          ),
-                        ),
-                      ),
+                      _infoItem(Icons.chat_bubble_outline, 'Roda de Conversa', _warningColor),
+                      _infoItem(Icons.health_and_safety_outlined, 'Educação em Saúde', _warningColor),
+                      _infoItem(Icons.psychology_outlined, 'Estratégias de Enfrentamento', _warningColor),
+                      _infoItem(Icons.fitness_center_outlined, 'Atividades Práticas', _warningColor),
+                      _infoItem(Icons.person_outline, 'Acompanhamento Individual', _warningColor),
+                      _infoItem(Icons.people_outline, 'Rede de Apoio', _warningColor),
                     ],
                   ),
                 ),
-                _isLoading
-                    ? Center(child: CircularProgressIndicator())
-                    : _upaList.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.location_off, size: 80, color: Colors.grey),
-                                SizedBox(height: 16),
-                                Text(
-                                  'Nenhuma UPA encontrada neste bairro',
-                                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Tente buscar por outro bairro',
-                                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                          )
-                        : Column(
-                            children: [
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: NeverScrollableScrollPhysics(),
-                            padding: EdgeInsets.all(16),
-                            itemCount: _paginatedList.length,
-                            itemBuilder: (context, index) {
-                              final upa = _paginatedList[index];
-                              return _buildUPACard(upa);
-                            },
-                          ),
-                              if (_upaList.length > 6) _buildPagination(),
-                            ],
-                          ),
-                FooterWidget(),
+                const SizedBox(height: 24),
+                _buildInfoSection(
+                  icon: Icons.medical_services_outlined,
+                  title: 'Acompanhamento Profissional',
+                  content:
+                      'Os grupos são coordenados por uma equipe multidisciplinar composta por:\n\n• Médicos especialistas em tabagismo\n• Psicólogos\n• Enfermeiros\n• Educadores físicos',
+                  color: const Color(0xFF8B5CF6),
+                ),
+                const SizedBox(height: 24),
+                _buildInfoSection(
+                  icon: Icons.phone_android_outlined,
+                  title: 'Comunicação e Suporte',
+                  content:
+                      'Além dos encontros presenciais, você receberá:\n\n✓ Mensagens de apoio via WhatsApp\n✓ Material informativo complementar\n✓ Acompanhamento telefônico\n✓ Grupo de suporte online',
+                  color: const Color(0xFF14B8A6),
+                ),
+                const SizedBox(height: 32),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _accentColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Entendi',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -353,166 +631,26 @@ Widget build(BuildContext context) {
   );
 }
 
-void _mostrarInformacoesGrupos() {
-  showDialog(
-    context: context,
-    builder: (context) => Dialog(
-      insetPadding: EdgeInsets.all(16),
-      child: Container(
-        width: double.maxFinite,
-        height: MediaQuery.of(context).size.height * 0.85,
-        child: Scaffold(
-          appBar: AppBar(
-            title: Text('Como Funcionam as Turmas'),
-            backgroundColor: Colors.blue.shade700,
-            actions: [
-              IconButton(
-                icon: Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          body: SingleChildScrollView(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildInfoSection(
-                  icon: Icons.how_to_reg,
-                  title: 'Processo de Matrícula',
-                  content: 'Após realizar sua matrícula em uma das turmas disponíveis, você entrará na lista de espera. Em até 5 dias úteis, a UPA entrará em contato pelo telefone cadastrado para confirmar sua vaga e fornecer mais informações sobre o início das atividades.',
-                  color: Colors.blue,
-                ),
-                SizedBox(height: 24),
-                _buildInfoSection(
-                  icon: Icons.calendar_today,
-                  title: 'Frequência dos Encontros',
-                  content: 'O programa de apoio é estruturado da seguinte forma:\n\n'
-                      '• Primeiro mês: Encontros SEMANAIS (1 vez por semana)\n'
-                      '• Meses seguintes: Encontros QUINZENAIS (a cada 15 dias)\n\n'
-                      'Cada encontro tem duração aproximada de 2 horas e é conduzido por profissionais de saúde especializados.',
-                  color: Colors.green,
-                ),
-                SizedBox(height: 24),
-                _buildInfoSection(
-                  icon: Icons.group_work,
-                  title: 'Dinâmica dos Grupos',
-                  content: 'Os grupos são espaços acolhedores e sigilosos onde você encontrará apoio para sua jornada de abandono do tabagismo. A dinâmica inclui:\n\n'
-                      '📌 Roda de Conversa: Compartilhamento de experiências e desafios com outros participantes\n\n'
-                      '📌 Educação em Saúde: Informações sobre os efeitos do tabagismo e benefícios de parar de fumar\n\n'
-                      '📌 Estratégias de Enfrentamento: Técnicas para lidar com a fissura, ansiedade e sintomas de abstinência\n\n'
-                      '📌 Atividades Práticas: Exercícios respiratórios, relaxamento e mindfulness\n\n'
-                      '📌 Acompanhamento Individual: Profissionais disponíveis para orientação personalizada\n\n'
-                      '📌 Material de Apoio: Recebimento de materiais educativos e folders informativos\n\n'
-                      '📌 Rede de Apoio: Criação de vínculos com outras pessoas que estão na mesma jornada',
-                  color: Colors.orange,
-                ),
-                SizedBox(height: 24),
-                _buildInfoSection(
-                  icon: Icons.medical_services,
-                  title: 'Acompanhamento Profissional',
-                  content: 'Os grupos são coordenados por uma equipe multidisciplinar composta por:\n\n'
-                      '• Médicos especialistas em tabagismo\n'
-                      '• Psicólogos\n'
-                      '• Enfermeiros\n'
-                      '• Educadores físicos\n\n'
-                      'Todos os profissionais são capacitados para oferecer o melhor suporte durante todo o processo.',
-                  color: Colors.purple,
-                ),
-                SizedBox(height: 24),
-                _buildInfoSection(
-                  icon: Icons.phone_android,
-                  title: 'Comunicação e Suporte',
-                  content: 'Além dos encontros presenciais, você receberá:\n\n'
-                      '✓ Mensagens de apoio e lembretes dos encontros via WhatsApp\n'
-                      '✓ Material informativo complementar\n'
-                      '✓ Acompanhamento via telefone nos intervalos entre encontros\n'
-                      '✓ Grupo de suporte online para troca de experiências',
-                  color: Colors.teal,
-                ),
-                SizedBox(height: 24),
-                _buildInfoSection(
-                  icon: Icons.emoji_events,
-                  title: 'Benefícios do Programa',
-                  content: 'Participar do programa oferece:\n\n'
-                      '🏆 Aumento significativo nas chances de parar de fumar\n'
-                      '🏆 Redução dos sintomas de abstinência\n'
-                      '🏆 Melhora na qualidade de vida e saúde\n'
-                      '🏆 Economia financeira significativa\n'
-                      '🏆 Rede de apoio e novas amizades\n'
-                      '🏆 Acompanhamento profissional contínuo',
-                  color: Colors.amber,
-                ),
-                SizedBox(height: 16),
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.favorite, color: Colors.red, size: 24),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Lembre-se: cada passo dado é uma vitória! Você não está sozinho nessa jornada.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.blue.shade700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 24),
-                Center(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                      backgroundColor: Colors.blue.shade700,
-                    ),
-                    child: Text(
-                      'Entendi',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
 Widget _buildInfoSection({
   required IconData icon,
   required String title,
-  required String content,
+  String? content,
+  Widget? contentWidget,
   required Color color,
 }) {
   return Container(
     decoration: BoxDecoration(
-      border: Border(
-        left: BorderSide(color: color, width: 4),
-      ),
+      border: Border(left: BorderSide(color: color, width: 4)),
     ),
     child: Padding(
-      padding: EdgeInsets.only(left: 12),
+      padding: const EdgeInsets.only(left: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Icon(icon, color: color, size: 24),
-              SizedBox(width: 8),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
@@ -520,128 +658,26 @@ Widget _buildInfoSection({
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: color,
+                    fontFamily: 'Poppins',
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 8),
-          Text(
-            content,
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.5,
-              color: Colors.grey.shade800,
+          const SizedBox(height: 12),
+          if (contentWidget != null)
+            contentWidget
+          else if (content != null)
+            Text(
+              content,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: Color(0xFF475569),
+                fontFamily: 'Inter',
+              ),
             ),
-          ),
         ],
-      ),
-    ),
-  );
-}
-
-
-Widget _buildUPACard(Map<String, dynamic> upa) {
-  return Card(
-    margin: EdgeInsets.only(bottom: 12),
-    elevation: 2,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: InkWell(
-      onTap: () => _abrirModalMatricula(upa),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.local_hospital, color: Colors.blue.shade700),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        upa['nome'],
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        upa['endereco'],
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right, color: Colors.grey),
-              ],
-            ),
-            SizedBox(height: 12),
-            Divider(height: 1, color: Colors.grey.shade200),
-            SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Icon(Icons.phone, size: 14, color: Colors.grey.shade600),
-                      SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          upa['telefone'] ?? 'Telefone não informado',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Icon(Icons.access_time, size: 14, color: Colors.grey.shade600),
-                      SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          upa['horario'] ?? 'Horário não informado',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     ),
   );
@@ -663,16 +699,20 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
   final _enrollmentService = EnrollmentService();
   final _authService = AuthService();
   
+  final Color _primaryDark = Color(0xFF0F2B3D);
+  final Color _accentColor = Color(0xFF2C7DA0);
+  final Color _successColor = Color(0xFF10B981);
+  final Color _warningColor = Color(0xFFF59E0B);
+  final Color _dangerColor = Color(0xFFEF4444);
+  
   String? _turmaSelecionada;
   String? _segundaOpcaoTurma;  
   String? _escolaridade;
   int? _scoreFagestrom;
   String? _medicamento;
   bool _isLoadingScore = true;
+  bool _isSubmitting = false;
   
-  // ... resto das variáveis
-  
-  // Comorbidades
   Map<String, List<Map<String, dynamic>>> _comorbidades = {
     'cancer': [],
     'cardiovascular': [],
@@ -681,41 +721,15 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
     'respiratorio': [],
   };
 
-  bool _isSubmitting = false;
-
-  final List<String> _escolaridades = [
-    'Fundamental',
-    'Médio',
-    'Superior',
-    'Pós-graduação'
-  ];
-
-  final List<String> _medicamentos = [
-    'Nenhum',
-    'Adesivo de nicotina',
-    'Goma de nicotina',
-    'Pastilha de nicotina',
-    'Outro'
-  ];
+  final List<String> _escolaridades = ['Fundamental', 'Médio', 'Superior', 'Pós-graduação'];
+  final List<String> _medicamentos = ['Nenhum', 'Adesivo de nicotina', 'Goma de nicotina', 'Pastilha de nicotina', 'Outro'];
 
   final Map<String, List<String>> _opcoesComorbidades = {
-    'cancer': [
-      'bexiga', 'útero', 'esôfago', 'estomago', 'faringe', 
-      'fígado', 'laringe', 'leucemia', 'pâncreas', 'pulmão', 
-      'rim', 'outros', 'nenhum'
-    ],
-    'cardiovascular': [
-      'angina', 'avc', 'HÁ', 'trombose', 'outros', 'nenhum'
-    ],
-    'metabolico': [
-      'DM 1', 'DM 2'
-    ],
-    'psiquiatrico': [
-      'depressão', 'esquizofrenia', 'bipolar', 'ansiedade', 'outro', 'nenhum'
-    ],
-    'respiratorio': [
-      'asma', 'bronquite', 'enfisema', 'infecção respiratória', 'covid', 'outro', 'nenhum'
-    ],
+    'cancer': ['bexiga', 'útero', 'esôfago', 'estomago', 'faringe', 'fígado', 'laringe', 'leucemia', 'pâncreas', 'pulmão', 'rim', 'outros', 'nenhum'],
+    'cardiovascular': ['angina', 'avc', 'HÁ', 'trombose', 'outros', 'nenhum'],
+    'metabolico': ['DM 1', 'DM 2'],
+    'psiquiatrico': ['depressão', 'esquizofrenia', 'bipolar', 'ansiedade', 'outro', 'nenhum'],
+    'respiratorio': ['asma', 'bronquite', 'enfisema', 'infecção respiratória', 'covid', 'outro', 'nenhum'],
   };
 
   @override
@@ -726,15 +740,11 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
 
   Future<void> _carregarScoreUsuario() async {
     setState(() => _isLoadingScore = true);
-    
     try {
       final response = await _authService.getUserData();
       final userData = response['user'];
-      
       if (userData['scoreFagestrom'] != null && userData['scoreFagestrom'] > 0) {
-        setState(() {
-          _scoreFagestrom = userData['scoreFagestrom'];
-        });
+        setState(() => _scoreFagestrom = userData['scoreFagestrom']);
       }
     } catch (e) {
       print('Erro ao carregar score: $e');
@@ -756,9 +766,7 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
         }
       } else {
         final hasNenhum = lista.any((item) => item['valor'] == 'nenhum');
-        if (hasNenhum) {
-          _comorbidades[categoria] = [];
-        }
+        if (hasNenhum) _comorbidades[categoria] = [];
         
         if (index == -1) {
           lista.add({'valor': valor, 'outroTexto': valor == 'outro' || valor == 'outros' ? '' : null});
@@ -772,343 +780,102 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
   void _updateOutroTexto(String categoria, String valor, String texto) {
     setState(() {
       final index = _comorbidades[categoria]!.indexWhere((item) => item['valor'] == valor);
-      if (index != -1) {
-        _comorbidades[categoria]![index]['outroTexto'] = texto;
-      }
+      if (index != -1) _comorbidades[categoria]![index]['outroTexto'] = texto;
     });
   }
 
-  bool _isSelected(String categoria, String valor) {
-    return _comorbidades[categoria]!.any((item) => item['valor'] == valor);
-  }
+  bool _isSelected(String categoria, String valor) => _comorbidades[categoria]!.any((item) => item['valor'] == valor);
+  bool _isNenhumSelected(String categoria) => _comorbidades[categoria]!.any((item) => item['valor'] == 'nenhum');
 
-  bool _isNenhumSelected(String categoria) {
-    return _comorbidades[categoria]!.any((item) => item['valor'] == 'nenhum');
-  }
+  Future<void> _submitEnrollment() async {
+    if (_formKey.currentState!.validate()) {
+      if (_turmaSelecionada == null) {
+        _showSnackBar('Selecione uma turma', _warningColor);
+        return;
+      }
+      if (_scoreFagestrom == null || _scoreFagestrom == 0) {
+        _showSnackBar('Faça o teste de Fagerström no menu principal primeiro', _warningColor);
+        return;
+      }
 
-Future<void> _submitEnrollment() async {
-  if (_formKey.currentState!.validate()) {
-    if (_turmaSelecionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Selecione uma turma')),
-      );
-      return;
-    }
-    
-    if (_scoreFagestrom == null || _scoreFagestrom == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Por favor, faça o teste de Fagerström no menu principal primeiro')),
-      );
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
-
-    try {
-final data = {
-  'upaId': widget.upa['id'],
-  'upaNome': widget.upa['nome'],
-  'turmaHorario': _turmaSelecionada,
-  'segundaOpcaoTurma': _segundaOpcaoTurma,  
-  'escolaridade': _escolaridade,
-  'scoreFagestrom': _scoreFagestrom,
-  'medicamento': _medicamento,
-  'comorbidades': _comorbidades,
-};
-
-      await _enrollmentService.enroll(data);
-      
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Matrícula realizada com sucesso! Você está na lista de espera.')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao realizar matrícula: $e')),
-      );
-    } finally {
-      setState(() => _isSubmitting = false);
+      setState(() => _isSubmitting = true);
+      try {
+        final data = {
+          'upaId': widget.upa['id'],
+          'upaNome': widget.upa['nome'],
+          'turmaHorario': _turmaSelecionada,
+          'segundaOpcaoTurma': _segundaOpcaoTurma,  
+          'escolaridade': _escolaridade,
+          'scoreFagestrom': _scoreFagestrom,
+          'medicamento': _medicamento,
+          'comorbidades': _comorbidades,
+        };
+        await _enrollmentService.enroll(data);
+        Navigator.pop(context);
+        _showSnackBar('Matrícula realizada com sucesso! Você está na lista de espera.', _successColor);
+      } catch (e) {
+        _showSnackBar('Erro ao realizar matrícula: $e', _dangerColor);
+      } finally {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
-}
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      title: Text('Matrícula - ${widget.upa['nome']}'),
-      backgroundColor: Colors.blue.shade700,
-      actions: [
-        IconButton(
-          icon: Icon(Icons.close),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ],
-    ),
-    body: SingleChildScrollView(
-      padding: EdgeInsets.all(16),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Seção de turmas - Primeira opção
-            Text(
-              'Selecione a turma (primeira opção)',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Escolha o dia e horário que prefere participar',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
-            SizedBox(height: 12),
-            ...widget.turmas.map((turma) {
-              String turmaTexto = '${turma['dia']} - ${turma['horario']}';
-              return Card(
-                margin: EdgeInsets.only(bottom: 8),
-                child: RadioListTile<String>(
-                  title: Text(turmaTexto),
-                  value: turmaTexto,
-                  groupValue: _turmaSelecionada,
-                  onChanged: (value) {
-                    setState(() {
-                      _turmaSelecionada = value;
-                    });
-                  },
-                ),
-              );
-            }).toList(),
-            
-            SizedBox(height: 24),
-            Divider(),
-            SizedBox(height: 16),
-            
-            // Seção de segunda opção
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.orange.shade700, size: 18),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Segunda opção (opcional)',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.orange.shade700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Caso sua primeira opção não tenha vagas disponíveis, você será alocado para esta turma.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.orange.shade600,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  ...widget.turmas.map((turma) {
-                    String turmaTexto = '${turma['dia']} - ${turma['horario']}';
-                    return Card(
-                      margin: EdgeInsets.only(bottom: 8),
-                      child: RadioListTile<String>(
-                        title: Text(turmaTexto),
-                        value: turmaTexto,
-                        groupValue: _segundaOpcaoTurma,
-                        onChanged: (value) {
-                          setState(() {
-                            _segundaOpcaoTurma = value;
-                          });
-                        },
-                      ),
-                    );
-                  }).toList(),
-                ],
-              ),
-            ),
-            
-            SizedBox(height: 24),
-            Divider(),
-            SizedBox(height: 16),
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+    );
+  }
 
-              Text(
-                'Escolaridade',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-                value: _escolaridade,
-                items: _escolaridades.map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _escolaridade = value;
-                  });
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return 'Selecione a escolaridade';
-                  }
-                  return null;
-                },
-              ),
-              
-              SizedBox(height: 16),
-              
-              Text(
-                'Score no teste de Fagestrom',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              if (_isLoadingScore)
-                Center(child: CircularProgressIndicator())
-              else if (_scoreFagestrom != null && _scoreFagestrom! > 0)
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.green),
-                    borderRadius: BorderRadius.circular(12),
-                    color: Colors.green.shade50,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Score já registrado:',
-                              style: TextStyle(fontSize: 12, color: Colors.green),
-                            ),
-                            Text(
-                              '$_scoreFagestrom pontos',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                TextFormField(
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Digite o score (0-10)',
-                    helperText: 'Você ainda não fez o teste de Fagerström',
-                    errorText: 'Score é obrigatório. Faça o teste de Fagerström no menu.',
-                  ),
-                  onChanged: (value) {
-                    _scoreFagestrom = int.tryParse(value);
-                  },
-                  validator: (value) {
-                    if (_scoreFagestrom == null || _scoreFagestrom == 0) {
-                      return 'Por favor, faça o teste de Fagerström no menu principal';
-                    }
-                    return null;
-                  },
-                ),
-              
-              SizedBox(height: 16),
-              
-              Text(
-                'Faz uso de medicamento para tratamento de tabagismo?',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-                value: _medicamento,
-                items: _medicamentos.map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _medicamento = value;
-                  });
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return 'Selecione uma opção';
-                  }
-                  return null;
-                },
-              ),
-              
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text('Matrícula', style: TextStyle(fontWeight: FontWeight.w600, fontFamily: 'Poppins', color: Colors.white)),
+        backgroundColor: _primaryDark,
+        elevation: 0,
+        leading: IconButton(icon: Icon(Icons.arrow_back_ios_new, color: Colors.white), onPressed: () => Navigator.pop(context)),
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionHeader(Icons.local_hospital_outlined, widget.upa['nome'] ?? 'UPA'),
+              SizedBox(height: 20),
+              _buildTurmaSection('Primeira opção', widget.turmas, _turmaSelecionada, (value) => setState(() => _turmaSelecionada = value)),
+              SizedBox(height: 20),
+              _buildTurmaSection('Segunda opção (opcional)', widget.turmas, _segundaOpcaoTurma, (value) => setState(() => _segundaOpcaoTurma = value), isOptional: true),
               SizedBox(height: 24),
-              
-              Text(
-                'Comorbidades',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+              _buildDropdownField('Escolaridade', _escolaridades, _escolaridade, (value) => setState(() => _escolaridade = value)),
               SizedBox(height: 16),
-              
+              _buildScoreField(),
+              SizedBox(height: 16),
+              _buildDropdownField('Medicamento para tabagismo', _medicamentos, _medicamento, (value) => setState(() => _medicamento = value)),
+              SizedBox(height: 24),
+              Text('Comorbidades', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _primaryDark, fontFamily: 'Poppins')),
+              SizedBox(height: 16),
               _buildComorbidadeSection('Câncer', 'cancer', _opcoesComorbidades['cancer']!),
-              SizedBox(height: 16),
               _buildComorbidadeSection('Cardiovascular', 'cardiovascular', _opcoesComorbidades['cardiovascular']!),
-              SizedBox(height: 16),
               _buildComorbidadeSection('Metabólico', 'metabolico', _opcoesComorbidades['metabolico']!),
-              SizedBox(height: 16),
               _buildComorbidadeSection('Psiquiátrico', 'psiquiatrico', _opcoesComorbidades['psiquiatrico']!),
-              SizedBox(height: 16),
               _buildComorbidadeSection('Respiratório', 'respiratorio', _opcoesComorbidades['respiratorio']!),
-              
               SizedBox(height: 24),
-              
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _submitEnrollment,
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: _successColor,
                     padding: EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.green,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: _isSubmitting
-                      ? CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                          'Se matricular nessa turma',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
-                        ),
+                  child: _isSubmitting ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text('Confirmar Matrícula', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
-              
               SizedBox(height: 16),
             ],
           ),
@@ -1117,14 +884,112 @@ Widget build(BuildContext context) {
     );
   }
 
+  Widget _buildSectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        Container(padding: EdgeInsets.all(10), decoration: BoxDecoration(color: _accentColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: _accentColor, size: 24)),
+        SizedBox(width: 12),
+        Expanded(child: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _primaryDark, fontFamily: 'Poppins'))),
+      ],
+    );
+  }
+
+  Widget _buildTurmaSection(String title, List<Map<String, String>> turmas, String? selected, Function(String?) onChanged, {bool isOptional = false}) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isOptional ? _warningColor.withValues(alpha: 0.05) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isOptional ? _warningColor.withValues(alpha: 0.3) : Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [if (isOptional) Icon(Icons.info_outline, color: _warningColor, size: 16), SizedBox(width: 8), Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isOptional ? _warningColor : _primaryDark))]),
+          if (isOptional) SizedBox(height: 4),
+          if (isOptional) Text('Caso sua primeira opção não tenha vagas', style: TextStyle(fontSize: 11, color: _warningColor)),
+          SizedBox(height: 12),
+          ...turmas.map((turma) {
+            String turmaTexto = '${turma['dia']} - ${turma['horario']}';
+            return Container(
+              margin: EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: selected == turmaTexto ? _accentColor.withValues(alpha: 0.1) : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: selected == turmaTexto ? _accentColor : Colors.grey.shade200),
+              ),
+              child: RadioListTile<String>(
+                title: Text(turmaTexto, style: TextStyle(fontFamily: 'Inter')),
+                value: turmaTexto,
+                groupValue: selected,
+                onChanged: onChanged,
+                activeColor: _accentColor,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12),
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownField(String label, List<String> items, String? value, Function(String?) onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _primaryDark)),
+        SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: value,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+          ),
+          items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+          onChanged: onChanged,
+          validator: (v) => v == null ? 'Selecione $label' : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScoreField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Score Fagerström', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _primaryDark)),
+        SizedBox(height: 8),
+        if (_isLoadingScore)
+          Center(child: CircularProgressIndicator(color: _accentColor))
+        else if (_scoreFagestrom != null && _scoreFagestrom! > 0)
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(color: _successColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: _successColor.withValues(alpha: 0.3))),
+            child: Row(children: [Icon(Icons.check_circle, color: _successColor), SizedBox(width: 12), Text('Score registrado: $_scoreFagestrom pontos', style: TextStyle(fontWeight: FontWeight.bold, color: _successColor))]),
+          )
+        else
+          TextFormField(
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              hintText: 'Digite o score (0-10)',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+            ),
+            onChanged: (value) => _scoreFagestrom = int.tryParse(value),
+            validator: (v) => _scoreFagestrom == null || _scoreFagestrom == 0 ? 'Faça o teste de Fagerström no menu principal' : null,
+          ),
+      ],
+    );
+  }
+
   Widget _buildComorbidadeSection(String titulo, String categoria, List<String> opcoes) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          titulo,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+        Text(titulo, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _primaryDark, fontFamily: 'Poppins')),
         SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -1132,40 +997,35 @@ Widget build(BuildContext context) {
           children: opcoes.map((opcao) {
             bool isSelected = _isSelected(categoria, opcao);
             bool isDisabled = _isNenhumSelected(categoria) && opcao != 'nenhum';
-            
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 FilterChip(
-                  label: Text(opcao),
+                  label: Text(opcao, style: TextStyle(fontSize: 12)),
                   selected: isSelected,
-                  onSelected: isDisabled ? null : (selected) {
-                    _toggleComorbidade(categoria, opcao);
-                  },
-                  backgroundColor: Colors.grey.shade200,
-                  selectedColor: Colors.blue.shade100,
-                  checkmarkColor: Colors.blue,
+                  onSelected: isDisabled ? null : (selected) => _toggleComorbidade(categoria, opcao),
+                  backgroundColor: Colors.grey.shade100,
+                  selectedColor: _accentColor.withValues(alpha: 0.2),
+                  checkmarkColor: _accentColor,
                 ),
                 if (isSelected && (opcao == 'outro' || opcao == 'outros'))
                   Padding(
                     padding: EdgeInsets.only(left: 12, top: 8),
                     child: TextFormField(
-                      initialValue: _comorbidades[categoria]!
-                          .firstWhere((item) => item['valor'] == opcao)['outroTexto'] as String?,
+                      initialValue: _comorbidades[categoria]!.firstWhere((item) => item['valor'] == opcao)['outroTexto'] as String?,
                       decoration: InputDecoration(
                         hintText: 'Especifique "$opcao"',
-                        border: OutlineInputBorder(),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
-                      onChanged: (text) {
-                        _updateOutroTexto(categoria, opcao, text);
-                      },
+                      onChanged: (text) => _updateOutroTexto(categoria, opcao, text),
                     ),
                   ),
               ],
             );
           }).toList(),
         ),
+        SizedBox(height: 12),
       ],
     );
   }

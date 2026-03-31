@@ -11,11 +11,29 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Tabagismo App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
+      title: 'Desfumar',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+
+          dialogTheme: const DialogThemeData(
+            backgroundColor: Colors.white,
+          ),
+
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              foregroundColor: Color(0xFF2C7DA0),
+              textStyle: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              foregroundColor: Colors.white,
+              textStyle: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
       home: FutureBuilder(
         future: AuthService().getSavedUser(),
         builder: (context, snapshot) {

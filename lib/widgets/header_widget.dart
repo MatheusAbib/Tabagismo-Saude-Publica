@@ -28,6 +28,9 @@ class HeaderWidget extends StatefulWidget {
 
 class _HeaderWidgetState extends State<HeaderWidget> {
   final _authService = AuthService();
+  final Color _primaryColor = Color(0xFF0F2B3D);
+  final Color _accentColor = Color(0xFF2C7DA0);
+  final Color _grayColor = Color(0xFF9E9E9E);
 
   void _logout() async {
     await _authService.logout();
@@ -50,42 +53,122 @@ class _HeaderWidgetState extends State<HeaderWidget> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: Text('Alterar Senha'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
+            insetPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+            contentPadding: EdgeInsets.fromLTRB(24, 20, 24, 8),
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
               children: [
-                TextField(
-                  controller: currentPasswordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Senha Atual',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 16),
-                TextField(
-                  controller: newPasswordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Nova Senha',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 16),
-                TextField(
-                  controller: confirmPasswordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Confirmar Nova Senha',
-                    border: OutlineInputBorder(),
+                Icon(Icons.lock_outline, color: _accentColor, size: 26),
+                SizedBox(width: 10),
+                Text(
+                  'Alterar Senha',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: _primaryColor,
+                    fontSize: 20,
                   ),
                 ),
               ],
             ),
+            content: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.20,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FocusScope(
+                    child: Focus(
+                      onFocusChange: (hasFocus) {
+                        setState(() {});
+                      },
+                      child: TextField(
+                        controller: currentPasswordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: 'Senha Atual',
+                          labelStyle: TextStyle(color: _grayColor),
+                          prefixIcon: Icon(Icons.lock_outline, color: _grayColor),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: _grayColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: _grayColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: _accentColor, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  FocusScope(
+                    child: Focus(
+                      onFocusChange: (hasFocus) {
+                        setState(() {});
+                      },
+                      child: TextField(
+                        controller: newPasswordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: 'Nova Senha',
+                          labelStyle: TextStyle(color: _grayColor),
+                          prefixIcon: Icon(Icons.lock_reset_outlined, color: _grayColor),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: _grayColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: _grayColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: _accentColor, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  FocusScope(
+                    child: Focus(
+                      onFocusChange: (hasFocus) {
+                        setState(() {});
+                      },
+                      child: TextField(
+                        controller: confirmPasswordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: 'Confirmar Nova Senha',
+                          labelStyle: TextStyle(color: _grayColor),
+                          prefixIcon: Icon(Icons.verified_user_outlined, color: _grayColor),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: _grayColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: _grayColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: _accentColor, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('Cancelar'),
+                child: Text('Cancelar', style: TextStyle(color: Colors.grey.shade600)),
               ),
               ElevatedButton(
                 onPressed: isLoading
@@ -118,11 +201,17 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                           setState(() => isLoading = false);
                         }
                       },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accentColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
                 child: isLoading
                     ? SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
                     : Text('Alterar'),
               ),
@@ -155,115 +244,214 @@ class _HeaderWidgetState extends State<HeaderWidget> {
         builder: (context) => StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Editar Dados'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nomeController,
-                      decoration: InputDecoration(
-                        labelText: 'Nome Completo',
-                        border: OutlineInputBorder(),
-                      ),
+              insetPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+              contentPadding: EdgeInsets.fromLTRB(24, 20, 24, 8),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Row(
+                children: [
+                  Icon(Icons.edit_outlined, color: _accentColor, size: 26),
+                  SizedBox(width: 10),
+                  Text(
+                    'Editar Dados',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: _primaryColor,
+                      fontSize: 20,
                     ),
-                    SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: sexoSelecionado,
-                      decoration: InputDecoration(
-                        labelText: 'Sexo',
-                        border: OutlineInputBorder(),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.2,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FocusScope(
+                        child: Focus(
+                          onFocusChange: (hasFocus) {
+                            setState(() {});
+                          },
+                          child: TextField(
+                            controller: nomeController,
+                            decoration: InputDecoration(
+                              labelText: 'Nome Completo',
+                              labelStyle: TextStyle(color: _grayColor),
+                              prefixIcon: Icon(Icons.person_outline, color: _grayColor),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: _grayColor),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: _grayColor),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: _accentColor, width: 1.5),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      items: ['Masculino', 'Feminino', 'Outro'].map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          sexoSelecionado = newValue;
-                        });
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
+                      SizedBox(height: 16),
+                      FocusScope(
+                        child: Focus(
+                          onFocusChange: (hasFocus) {
+                            setState(() {});
+                          },
+                          child: DropdownButtonFormField<String>(
+                            value: sexoSelecionado,
+                            decoration: InputDecoration(
+                              labelText: 'Sexo',
+                              labelStyle: TextStyle(color: _grayColor),
+                              prefixIcon: Icon(Icons.wc_outlined, color: _grayColor),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: _grayColor),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: _grayColor),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: _accentColor, width: 1.5),
+                              ),
+                            ),
+                            items: ['Masculino', 'Feminino', 'Outro'].map((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                sexoSelecionado = newValue;
+                              });
+                            },
+                          ),
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 16),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade400),
-                        borderRadius: BorderRadius.circular(8),
+                      SizedBox(height: 16),
+                      FocusScope(
+                        child: Focus(
+                          onFocusChange: (hasFocus) {
+                            setState(() {});
+                          },
+                          child: TextField(
+                            controller: emailController,
+                            decoration: InputDecoration(
+                              labelText: 'Email',
+                              labelStyle: TextStyle(color: _grayColor),
+                              prefixIcon: Icon(Icons.email_outlined, color: _grayColor),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: _grayColor),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: _grayColor),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: _accentColor, width: 1.5),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.assignment_ind, color: Colors.grey.shade600),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'CPF',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
+                      SizedBox(height: 16),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical:8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: _grayColor),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.assignment_ind, color: _grayColor, size: 20),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'CPF',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: _grayColor,
+                                    ),
                                   ),
+                                  Text(
+                                    cpf,
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FocusScope(
+                            child: Focus(
+                              onFocusChange: (hasFocus) {
+                                setState(() {});
+                              },
+                              child: TextField(
+                                controller: telefoneController,
+                                keyboardType: TextInputType.phone,
+                                decoration: InputDecoration(
+                                  labelText: 'Telefone Celular',
+                                  labelStyle: TextStyle(color: _grayColor),
+                                  prefixIcon: Icon(Icons.phone_iphone_outlined, color: _grayColor),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: _grayColor),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: _grayColor),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: _accentColor, width: 1.5),
+                                  ),
+                                  helperText: 'Formato: (DDD) 99999-9999',
+                                  errorText: telefoneError,
                                 ),
-                                Text(
-                                  cpf,
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                              ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    if (value.isNotEmpty) {
+                                      String telefoneLimpo = value.replaceAll(RegExp(r'[^\d]'), '');
+                                      if (telefoneLimpo.length != 11) {
+                                        telefoneError = 'Telefone inválido (DDD + 9 dígitos)';
+                                      } else {
+                                        telefoneError = null;
+                                      }
+                                    } else {
+                                      telefoneError = 'Telefone é obrigatório';
+                                    }
+                                  });
+                                },
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    SizedBox(height: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextField(
-                          controller: telefoneController,
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            labelText: 'Telefone Celular',
-                            prefixIcon: Icon(Icons.phone),
-                            border: OutlineInputBorder(),
-                            helperText: 'Formato: (DDD) 99999-9999',
-                            errorText: telefoneError,
-                          ),
-                          onChanged: (value) {
-                            setState(() {
-                              if (value.isNotEmpty) {
-                                String telefoneLimpo = value.replaceAll(RegExp(r'[^\d]'), '');
-                                if (telefoneLimpo.length != 11) {
-                                  telefoneError = 'Telefone inválido (DDD + 9 dígitos)';
-                                } else {
-                                  telefoneError = null;
-                                }
-                              } else {
-                                telefoneError = 'Telefone é obrigatório';
-                              }
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Cancelar'),
+                  child: Text('Cancelar', style: TextStyle(color: Colors.grey.shade600)),
                 ),
                 ElevatedButton(
                   onPressed: isLoading
@@ -313,11 +501,16 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                             setState(() => isLoading = false);
                           }
                         },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _accentColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
                   child: isLoading
                       ? SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : Text('Salvar'),
                 ),
@@ -359,17 +552,17 @@ class _HeaderWidgetState extends State<HeaderWidget> {
     );
   }
 
-void _openMyEnrollments() {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => MyEnrollmentsScreen(
-        userData: widget.userData,
-        onNameUpdated: widget.onNameUpdated,
+  void _openMyEnrollments() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MyEnrollmentsScreen(
+          userData: widget.userData,
+          onNameUpdated: widget.onNameUpdated,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   void _openFagerstromTest() {
     Navigator.push(
@@ -389,11 +582,27 @@ void _openMyEnrollments() {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.blue.shade700,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            _primaryColor,
+            Color(0xFF1A4A6F),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top,
-        left: 16,
-        right: 16,
+        top: MediaQuery.of(context).padding.top + 12,
+        left: 50,
+        right: 50,
         bottom: 12,
       ),
       child: Row(
@@ -402,126 +611,192 @@ void _openMyEnrollments() {
           Row(
             children: [
               if (widget.showBackButton)
-                IconButton(
-                  icon: Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: widget.onBackPressed ?? () => Navigator.pop(context),
-                  padding: EdgeInsets.zero,
-                  constraints: BoxConstraints(),
+                Container(
+                  margin: EdgeInsets.only(right: 5),
+                  child: IconButton(
+                    icon: Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+                    onPressed: widget.onBackPressed ?? () => Navigator.pop(context),
+                    padding: EdgeInsets.all(10),
+                    constraints: BoxConstraints(),
+                  ),
                 ),
-              SizedBox(width: widget.showBackButton ? 12 : 0),
-              Text(
-                'Tabagismo App',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(14),
                 ),
+                child: Icon(Icons.smoking_rooms_outlined, color: Colors.white, size: 28),
+              ),
+              SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Desfumo',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 23,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+ 
+                ],
               ),
             ],
           ),
           Row(
             children: [
               Container(
-                margin: EdgeInsets.only(right: 12),
-                child: InkWell(
-                  onTap: _openUPAScreen,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.location_on, color: Colors.white, size: 18),
-                        SizedBox(width: 6),
-                        Text(
-                          'Encontrar UPAs',
-                          style: TextStyle(color: Colors.white, fontSize: 14),
+                margin: EdgeInsets.only(right: 16),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _openUPAScreen,
+                    borderRadius: BorderRadius.circular(30),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1,
                         ),
-                      ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
+                          SizedBox(width: 6),
+                          Text(
+                            'Encontrar UPAs',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-              PopupMenuButton<String>(
-                offset: Offset(0, 45),
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.person, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text(
-                        widget.userName.split(' ').first,
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      Icon(
-                        Icons.arrow_drop_down,
-                        color: Colors.white,
-                      ),
-                    ],
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
                   ),
                 ),
-                onSelected: (String value) {
-                  if (value == 'teste_fagerstrom') {
-                    _openFagerstromTest();
-                  } else if (value == 'minhas_matriculas') {
-                    _openMyEnrollments();
-                  } else if (value == 'alterar_senha') {
-                    _changePassword();
-                  } else if (value == 'editar_dados') {
-                    _editData();
-                  } else if (value == 'sair') {
-                    _logout();
-                  }
-                },
-                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                  PopupMenuItem<String>(
-                    value: 'teste_fagerstrom',
-                    child: ListTile(
-                      leading: Icon(Icons.assessment),
-                      title: Text('Teste de Fagerström'),
-                      contentPadding: EdgeInsets.zero,
-                    ),
+                child: PopupMenuButton<String>(
+                  offset: Offset(0, 52),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  PopupMenuItem<String>(
-                    value: 'minhas_matriculas',
-                    child: ListTile(
-                      leading: Icon(Icons.list_alt),
-                      title: Text('Minhas Matrículas'),
-                      contentPadding: EdgeInsets.zero,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.person_outline, color: Colors.white, size: 16),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Bem-vindo, ${widget.userName.split(' ').first}',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          SizedBox(width: 6),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            color: Colors.white.withOpacity(0.9),
+                            size: 20,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  PopupMenuItem<String>(
-                    value: 'alterar_senha',
-                    child: ListTile(
-                      leading: Icon(Icons.lock),
-                      title: Text('Alterar Senha'),
-                      contentPadding: EdgeInsets.zero,
+                  onSelected: (String value) {
+                    if (value == 'teste_fagerstrom') {
+                      _openFagerstromTest();
+                    } else if (value == 'minhas_matriculas') {
+                      _openMyEnrollments();
+                    } else if (value == 'alterar_senha') {
+                      _changePassword();
+                    } else if (value == 'editar_dados') {
+                      _editData();
+                    } else if (value == 'sair') {
+                      _logout();
+                    }
+                  },
+                  itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                    PopupMenuItem<String>(
+                      value: 'teste_fagerstrom',
+                      child: Row(
+                        children: [
+                          Icon(Icons.assessment_outlined, size: 20, color: _primaryColor),
+                          SizedBox(width: 12),
+                          Text('Teste de Fagerström', style: TextStyle(fontSize: 14)),
+                        ],
+                      ),
                     ),
-                  ),
-                  PopupMenuItem<String>(
-                    value: 'editar_dados',
-                    child: ListTile(
-                      leading: Icon(Icons.edit),
-                      title: Text('Editar Dados'),
-                      contentPadding: EdgeInsets.zero,
+                    PopupMenuItem<String>(
+                      value: 'minhas_matriculas',
+                      child: Row(
+                        children: [
+                          Icon(Icons.list_alt_outlined, size: 20, color: _primaryColor),
+                          SizedBox(width: 12),
+                          Text('Minhas Matrículas', style: TextStyle(fontSize: 14)),
+                        ],
+                      ),
                     ),
-                  ),
-                  PopupMenuItem<String>(
-                    value: 'sair',
-                    child: ListTile(
-                      leading: Icon(Icons.exit_to_app),
-                      title: Text('Sair'),
-                      contentPadding: EdgeInsets.zero,
+                    PopupMenuDivider(),
+                    PopupMenuItem<String>(
+                      value: 'alterar_senha',
+                      child: Row(
+                        children: [
+                          Icon(Icons.lock_outline, size: 20, color: _primaryColor),
+                          SizedBox(width: 12),
+                          Text('Alterar Senha', style: TextStyle(fontSize: 14)),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    PopupMenuItem<String>(
+                      value: 'editar_dados',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 20, color: _primaryColor),
+                          SizedBox(width: 12),
+                          Text('Editar Dados', style: TextStyle(fontSize: 14)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuDivider(),
+                    PopupMenuItem<String>(
+                      value: 'sair',
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout_outlined, size: 20, color: Colors.red.shade400),
+                          SizedBox(width: 12),
+                          Text('Sair', style: TextStyle(fontSize: 14, color: Colors.red.shade400)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
