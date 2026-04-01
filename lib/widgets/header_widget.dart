@@ -12,14 +12,20 @@ class HeaderWidget extends StatefulWidget {
   final Function(String)? onNameUpdated;
   final bool showBackButton;
   final VoidCallback? onBackPressed;
-  
+  final VoidCallback? onSintomasPressed;
+  final VoidCallback? onSintomasGraficoPressed;
+  final VoidCallback? onLogoutPressed;
+
   const HeaderWidget({
-    Key? key, 
-    required this.userName, 
+    Key? key,
+    required this.userName,
     this.userData,
     this.onNameUpdated,
     this.showBackButton = false,
     this.onBackPressed,
+    this.onLogoutPressed,
+    this.onSintomasPressed,
+    this.onSintomasGraficoPressed,
   }) : super(key: key);
 
   @override
@@ -32,13 +38,10 @@ class _HeaderWidgetState extends State<HeaderWidget> {
   final Color _accentColor = Color(0xFF2C7DA0);
   final Color _grayColor = Color(0xFF9E9E9E);
 
-  void _logout() async {
-    await _authService.logout();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-      (route) => false,
-    );
+  void _logout() {
+    if (widget.onLogoutPressed != null) {
+      widget.onLogoutPressed!();
+    }
   }
 
   void _changePassword() async {
@@ -180,15 +183,15 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                           );
                           return;
                         }
-                        
+
                         setState(() => isLoading = true);
-                        
+
                         try {
                           await _authService.changeUserPassword(
                             currentPasswordController.text,
                             newPasswordController.text,
                           );
-                          
+
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Senha alterada com sucesso!')),
@@ -226,7 +229,7 @@ class _HeaderWidgetState extends State<HeaderWidget> {
     try {
       final response = await _authService.getUserData();
       final userData = response['user'];
-      
+
       final nomeController = TextEditingController(text: userData['nomeCompleto']);
       String? sexoSelecionado = userData['sexo'];
       final emailController = TextEditingController(text: userData['email']);
@@ -364,7 +367,7 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                       ),
                       SizedBox(height: 16),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical:8),
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           border: Border.all(color: _grayColor),
                           borderRadius: BorderRadius.circular(12),
@@ -463,7 +466,7 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                             );
                             return;
                           }
-                          
+
                           String telefoneLimpo = telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
                           if (telefoneLimpo.length != 11) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -471,9 +474,9 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                             );
                             return;
                           }
-                          
+
                           setState(() => isLoading = true);
-                          
+
                           try {
                             await _authService.updateUserData({
                               'nomeCompleto': nomeController.text,
@@ -481,17 +484,17 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                               'email': emailController.text,
                               'telefone': telefoneLimpo,
                             });
-                            
+
                             Navigator.pop(context);
-                            
+
                             if (widget.onNameUpdated != null) {
                               widget.onNameUpdated!(nomeController.text);
                             }
-                            
+
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('Dados atualizados com sucesso!')),
                             );
-                            
+
                             setState(() {});
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -624,9 +627,9 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                 padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(35),
                 ),
-                child: Icon(Icons.smoking_rooms_outlined, color: Colors.white, size: 28),
+                child: Icon(Icons.smoking_rooms_outlined, color: Colors.white, size: 29),
               ),
               SizedBox(width: 14),
               Column(
@@ -642,7 +645,6 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                       fontFamily: 'Poppins',
                     ),
                   ),
- 
                 ],
               ),
             ],
@@ -699,38 +701,42 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(Icons.person_outline, color: Colors.white, size: 16),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
                           ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Bem-vindo, ${widget.userName.split(' ').first}',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
+                          child: Icon(Icons.person_outline, color: Colors.white, size: 16),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Bem-vindo, ${widget.userName.split(' ').first}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
                           ),
-                          SizedBox(width: 6),
-                          Icon(
-                            Icons.arrow_drop_down,
-                            color: Colors.white.withOpacity(0.9),
-                            size: 20,
-                          ),
-                        ],
-                      ),
+                        ),
+                        SizedBox(width: 6),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          color: Colors.white.withOpacity(0.9),
+                          size: 20,
+                        ),
+                      ],
                     ),
+                  ),
                   onSelected: (String value) {
-                    if (value == 'teste_fagerstrom') {
+                    if (value == 'diario') {
+                      widget.onSintomasPressed?.call();
+                    } else if (value == 'grafico') {
+                      widget.onSintomasGraficoPressed?.call();
+                    } else if (value == 'teste_fagerstrom') {
                       _openFagerstromTest();
                     } else if (value == 'minhas_matriculas') {
                       _openMyEnrollments();
@@ -743,6 +749,27 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                     }
                   },
                   itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                    PopupMenuItem<String>(
+                      value: 'diario',
+                      child: Row(
+                        children: [
+                          Icon(Icons.monitor_heart_outlined, size: 20, color: _primaryColor),
+                          SizedBox(width: 12),
+                          Text('Diário de Sintomas', style: TextStyle(fontSize: 14)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'grafico',
+                      child: Row(
+                        children: [
+                          Icon(Icons.show_chart, size: 20, color: _primaryColor),
+                          SizedBox(width: 12),
+                          Text('Gráfico de Sintomas', style: TextStyle(fontSize: 14)),
+                        ],
+                      ),
+                    ),
+                    PopupMenuDivider(),
                     PopupMenuItem<String>(
                       value: 'teste_fagerstrom',
                       child: Row(

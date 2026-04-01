@@ -24,10 +24,9 @@ static async create(userData) {
 
 static async findById(id) {
   const [rows] = await pool.execute(
-    'SELECT id, nome_completo, sexo, data_nascimento, idade, email, cpf, telefone, score_fagestrom FROM usuarios WHERE id = ?',
+    'SELECT id, nome_completo, sexo, data_nascimento, idade, email, cpf, telefone, score_fagestrom, stop_date, target_days, cigarros_por_dia, valor_carteira, created_at FROM usuarios WHERE id = ?',
     [id]
   );
-  
   return rows[0];
 }
 

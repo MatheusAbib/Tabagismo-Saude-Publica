@@ -34,12 +34,12 @@ class FooterWidget extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(10),
+                padding: EdgeInsets.all(15),
                 decoration: BoxDecoration(
                   color: accentColor.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(35),
                 ),
-                child: Icon(Icons.smoking_rooms_outlined, color: Colors.white, size: 28),
+                child: Icon(Icons.smoking_rooms_outlined, color: Colors.white, size: 32),
               ),
               SizedBox(width: 14),
               Column(
@@ -56,7 +56,7 @@ class FooterWidget extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Sua jornada para uma vida sem cigarro',
+                    'O lugar onde o fumo deixa de existir',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
                       fontSize: 12,

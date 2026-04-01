@@ -74,7 +74,18 @@ Future<List<Map<String, dynamic>>> searchUPA(String bairro) async {
   }
 }
 
-
+Future<void> updateGoal(String stopDate, int targetDays, int? cigarrosPorDia, double? valorCarteira) async {
+  try {
+    await _api.put('/user/goal', {
+      'stopDate': stopDate,
+      'targetDays': targetDays,
+      'cigarrosPorDia': cigarrosPorDia,
+      'valorCarteira': valorCarteira,
+    });
+  } catch (e) {
+    throw Exception('Erro ao atualizar meta: $e');
+  }
+}
 
   Future<void> _saveUserData(String token, Map<String, dynamic> user) async {
     final prefs = await SharedPreferences.getInstance();

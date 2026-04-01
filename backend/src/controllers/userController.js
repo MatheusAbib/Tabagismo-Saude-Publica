@@ -23,6 +23,10 @@ exports.getUserData = async (req, res) => {
         cpf: user.cpf || '',
         telefone: user.telefone || '',
         scoreFagestrom: user.score_fagestrom,
+        stop_date: user.stop_date,
+        target_days: user.target_days,
+        cigarros_por_dia: user.cigarros_por_dia,
+        valor_carteira: user.valor_carteira,
       }
     });
   } catch (error) {
@@ -78,6 +82,21 @@ exports.updateUser = async (req, res) => {
     console.error('Erro no updateUser:', error);
     console.error('Stack trace:', error.stack);
     res.status(500).json({ message: 'Erro ao atualizar dados: ' + error.message });
+  }
+};
+
+
+exports.updateGoal = async (req, res) => {
+  const userId = req.userId;
+  const { stopDate, targetDays, cigarrosPorDia, valorCarteira } = req.body;
+  
+  try {
+    const query = 'UPDATE usuarios SET stop_date = ?, target_days = ?, cigarros_por_dia = ?, valor_carteira = ? WHERE id = ?';
+    await pool.execute(query, [stopDate, targetDays, cigarrosPorDia, valorCarteira, userId]);
+    res.json({ message: 'Meta atualizada com sucesso' });
+  } catch (error) {
+    console.error('Erro em updateGoal:', error);
+    res.status(500).json({ error: error.message });
   }
 };
 
