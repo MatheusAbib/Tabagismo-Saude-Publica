@@ -7,24 +7,24 @@ static async create(userData) {
   const hashedPassword = await bcrypt.hash(senha, 10);
   
   const [result] = await pool.execute(
-    'INSERT INTO usuarios (nome_completo, sexo, data_nascimento, idade, email, senha, cpf, telefone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO usuarios (nome_completo, sexo, data_nascimento, idade, email, senha, cpf, telefone, tipo_usuario) VALUES (?, ?, ?, ?, ?, ?, ?, ?, "comum")',
     [nomeCompleto, sexo, dataNascimento, idade, email, hashedPassword, cpf, telefone]
   );
   
   return result.insertId;
 }
-  static async findByEmail(email) {
-    const [rows] = await pool.execute(
-      'SELECT * FROM usuarios WHERE email = ?',
-      [email]
-    );
-    
-    return rows[0];
-  }
+
+static async findByEmail(email) {
+  const [rows] = await pool.execute(
+    'SELECT * FROM usuarios WHERE email = ?',
+    [email]
+  );
+  return rows[0];
+}
 
 static async findById(id) {
   const [rows] = await pool.execute(
-    'SELECT id, nome_completo, sexo, data_nascimento, idade, email, cpf, telefone, score_fagestrom, stop_date, target_days, cigarros_por_dia, valor_carteira, created_at FROM usuarios WHERE id = ?',
+    'SELECT id, nome_completo, sexo, data_nascimento, idade, email, cpf, telefone, score_fagestrom, stop_date, target_days, cigarros_por_dia, valor_carteira, is_admin, tipo_usuario, upa_id, created_at FROM usuarios WHERE id = ?',
     [id]
   );
   return rows[0];
@@ -40,15 +40,23 @@ static async update(id, userData) {
   return result.affectedRows;
 }
 
-  static async updatePassword(id, newPassword) {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    const [result] = await pool.execute(
-      'UPDATE usuarios SET senha = ? WHERE id = ?',
-      [hashedPassword, id]
-    );
-    
-    return result.affectedRows;
-  }
+static async updatePassword(id, newPassword) {
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  const [result] = await pool.execute(
+    'UPDATE usuarios SET senha = ? WHERE id = ?',
+    [hashedPassword, id]
+  );
+  
+  return result.affectedRows;
+}
+
+static async updateTipoUsuario(id, tipoUsuario, upaId = null) {
+  const [result] = await pool.execute(
+    'UPDATE usuarios SET tipo_usuario = ?, upa_id = ? WHERE id = ?',
+    [tipoUsuario, upaId, id]
+  );
+  return result.affectedRows;
+}
 }
 
 module.exports = User;

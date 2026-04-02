@@ -27,6 +27,9 @@ exports.getUserData = async (req, res) => {
         target_days: user.target_days,
         cigarros_por_dia: user.cigarros_por_dia,
         valor_carteira: user.valor_carteira,
+        is_admin: user.is_admin || 0,
+        tipo_usuario: user.tipo_usuario || 'comum',
+        upa_id: user.upa_id,
       }
     });
   } catch (error) {

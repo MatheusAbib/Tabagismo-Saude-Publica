@@ -44,15 +44,25 @@ exports.login = async (req, res) => {
       { expiresIn: '7d' }
     );
     
-    const userData = {
-      id: user.id,
-      nomeCompleto: user.nome_completo,
-      sexo: user.sexo,
-      dataNascimento: user.data_nascimento,
-      idade: user.idade,
-      email: user.email
-    };
-    
+const userData = {
+  id: user.id,
+  nomeCompleto: user.nome_completo,
+  sexo: user.sexo,
+  dataNascimento: user.data_nascimento,
+  idade: user.idade,
+  email: user.email,
+  cpf: user.cpf,
+  telefone: user.telefone,
+  score_fagestrom: user.score_fagestrom,
+  stop_date: user.stop_date,
+  target_days: user.target_days,
+  cigarros_por_dia: user.cigarros_por_dia,
+  valor_carteira: user.valor_carteira,
+  is_admin: user.is_admin || 0,
+  tipo_usuario: user.tipo_usuario || 'comum',
+  upa_id: user.upa_id,
+};
+        
     res.json({ 
       message: 'Login realizado com sucesso',
       token,
