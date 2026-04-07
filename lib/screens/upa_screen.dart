@@ -4,6 +4,7 @@ import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/services/enrollment_service.dart';
 import 'package:tabagismo_app/widgets/footer_widget.dart';
 import 'package:tabagismo_app/widgets/header_widget.dart';
+import 'package:tabagismo_app/screens/fagerstrom_test_screen.dart';
 
 class UPAScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -49,6 +50,10 @@ class _UPAScreenState extends State<UPAScreen> {
     {'dia': 'Sexta-feira', 'horario': '15:00 - 17:00'},
     {'dia': 'Sábado', 'horario': '09:00 - 11:00'},
   ];
+
+  List<Map<String, dynamic>> _turmasComVagas = [];
+  bool _carregandoTurmas = true;
+
 
   @override
   void initState() {
@@ -165,20 +170,20 @@ class _UPAScreenState extends State<UPAScreen> {
   void _nextPage() => _goToPage(_currentPage + 1);
   void _previousPage() => _goToPage(_currentPage - 1);
 
-  void _abrirModalMatricula(Map<String, dynamic> upa) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        insetPadding: EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: EnrollmentModal(upa: upa, turmas: _turmas),
-        ),
+void _abrirModalMatricula(Map<String, dynamic> upa) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => Dialog(
+      insetPadding: EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: EnrollmentModal(upa: upa), 
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -331,7 +336,7 @@ Widget _buildInfoBanner() {
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Como funcionam as turmas e grupos de apoio?',
+                'Como funcionam as turmas de apoio?',
                 style: TextStyle(
                   fontSize: 13,
                   color: Colors.blue.shade700,
@@ -382,81 +387,144 @@ Widget _buildInfoBanner() {
     );
   }
 
-  Widget _buildUPACard(Map<String, dynamic> upa) {
-    return Container(
-      
-      margin: EdgeInsets.only(bottom: 16, left: 30, right: 30),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: Offset(0, 4))],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _abrirModalMatricula(upa),
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [_primaryDark, _primaryMedium]),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Icon(Icons.local_hospital_outlined, color: Colors.white, size: 24),
-                    ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(upa['nome'], style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _primaryDark, fontFamily: 'Poppins')),
-                          SizedBox(height: 4),
-                          Text(upa['endereco'], style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontFamily: 'Inter'), maxLines: 2),
-                        ],
-                      ),
-                    ),
-                    Icon(Icons.chevron_right, color: Colors.grey.shade400),
-                  ],
+Widget _buildUPACard(Map<String, dynamic> upa) {
+  final telefoneFormatado = _formatarTelefone(upa['telefone'] ?? '');
+  
+  return Container(
+    margin: EdgeInsets.only(bottom: 16, left: 30, right: 30),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: Offset(0, 4))],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _primaryDark.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                SizedBox(height: 12),
-                Divider(color: Colors.grey.shade200),
-                SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Icon(Icons.phone_outlined, size: 14, color: Colors.grey.shade500),
-                          SizedBox(width: 6),
-                          Expanded(child: Text(upa['telefone'] ?? 'Telefone não informado', style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontFamily: 'Inter'))),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Icon(Icons.access_time_outlined, size: 14, color: Colors.grey.shade500),
-                          SizedBox(width: 6),
-                          Expanded(child: Text(upa['horario'] ?? 'Horário não informado', style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontFamily: 'Inter'))),
-                        ],
-                      ),
-                    ),
-                  ],
+                child: Icon(Icons.local_hospital_outlined, color: _primaryDark, size: 20),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  upa['nome'] ?? 'UPA não identificada',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _primaryDark,
+                    fontFamily: 'Poppins',
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      ),
-    );
+        Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.location_on, size: 16, color: Colors.grey.shade500),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      upa['endereco'] ?? 'Endereço não informado',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF475569),
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(Icons.phone_outlined, size: 16, color: Colors.grey.shade500),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      telefoneFormatado,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF475569),
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(Icons.access_time_outlined, size: 16, color: Colors.grey.shade500),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      upa['horario'] ?? 'Horário não informado',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF475569),
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Divider(color: Colors.grey.shade200),
+              SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _abrirModalMatricula(upa),
+                    icon: Icon(Icons.school_outlined, size: 18, color: _successColor),
+                    label: Text(
+                      'Matricular-se',
+                      style: TextStyle(color: _successColor, fontWeight: FontWeight.w500),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: _successColor),
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+String _formatarTelefone(String telefone) {
+  if (telefone.isEmpty) return 'Telefone não informado';
+  String apenasNumeros = telefone.replaceAll(RegExp(r'[^\d]'), '');
+  if (apenasNumeros.length == 10) {
+    return '(${apenasNumeros.substring(0, 2)}) ${apenasNumeros.substring(2, 6)}-${apenasNumeros.substring(6)}';
+  } else if (apenasNumeros.length == 11) {
+    return '(${apenasNumeros.substring(0, 2)}) ${apenasNumeros.substring(2, 7)}-${apenasNumeros.substring(7)}';
   }
+  return telefone;
+}
 
   void _mostrarInformacoesGrupos() {
     showDialog(
@@ -686,13 +754,13 @@ Widget _buildInfoSection({
 
 class EnrollmentModal extends StatefulWidget {
   final Map<String, dynamic> upa;
-  final List<Map<String, String>> turmas;
 
-  const EnrollmentModal({Key? key, required this.upa, required this.turmas}) : super(key: key);
+  const EnrollmentModal({Key? key, required this.upa}) : super(key: key);
 
   @override
   _EnrollmentModalState createState() => _EnrollmentModalState();
 }
+
 
 class _EnrollmentModalState extends State<EnrollmentModal> {
   final _formKey = GlobalKey<FormState>();
@@ -712,7 +780,31 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
   String? _medicamento;
   bool _isLoadingScore = true;
   bool _isSubmitting = false;
+  bool _carregandoTurmas = true;
+  
+  List<Map<String, dynamic>> _turmasComVagas = [];
 
+  @override
+  void initState() {
+    super.initState();
+    _carregarScoreUsuario();
+    _carregarTurmasComVagas();
+  }
+
+  Future<void> _carregarTurmasComVagas() async {
+    setState(() => _carregandoTurmas = true);
+    try {
+      final response = await _enrollmentService.getTurmasPorUPA(widget.upa['id']);
+      setState(() {
+        _turmasComVagas = List<Map<String, dynamic>>.from(response['turmas']);
+        _carregandoTurmas = false;
+      });
+    } catch (e) {
+      print('Erro ao carregar turmas: $e');
+      setState(() => _carregandoTurmas = false);
+      _showSnackBar('Erro ao carregar turmas: $e', _dangerColor);
+    }
+  }
 
   void _showConfirmationDialog() {
   showDialog(
@@ -763,7 +855,7 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Deseja realmente se matricular na UPA ${widget.upa['nome']}?\n\nApós a confirmação, você entrará na lista de espera e receberá contato em até 5 dias úteis.',
+                'Deseja realmente se matricular em ${widget.upa['nome']}?\n\nApós a confirmação, você entrará na lista de espera e receberá contato em até 5 dias úteis.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15,
@@ -848,11 +940,6 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
     'respiratorio': ['asma', 'bronquite', 'enfisema', 'infecção respiratória', 'covid', 'outro', 'nenhum'],
   };
 
-  @override
-  void initState() {
-    super.initState();
-    _carregarScoreUsuario();
-  }
 
   Future<void> _carregarScoreUsuario() async {
     setState(() => _isLoadingScore = true);
@@ -903,39 +990,39 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
   bool _isSelected(String categoria, String valor) => _comorbidades[categoria]!.any((item) => item['valor'] == valor);
   bool _isNenhumSelected(String categoria) => _comorbidades[categoria]!.any((item) => item['valor'] == 'nenhum');
 
-  Future<void> _submitEnrollment() async {
-    if (_formKey.currentState!.validate()) {
-      if (_turmaSelecionada == null) {
-        _showSnackBar('Selecione uma turma', _warningColor);
-        return;
-      }
-      if (_scoreFagestrom == null || _scoreFagestrom == 0) {
-        _showSnackBar('Faça o teste de Fagerström no menu principal primeiro', _warningColor);
-        return;
-      }
+Future<void> _submitEnrollment() async {
+  if (_formKey.currentState!.validate()) {
+    if (_turmaSelecionada == null) {
+      _showSnackBar('Selecione uma turma', _warningColor);
+      return;
+    }
+    if ((_scoreFagestrom == null || _scoreFagestrom == 0) && !_isLoadingScore) {
+      _showSnackBar('Você precisa fazer o teste de Fagerström antes de se matricular', _warningColor);
+      return;
+    }
 
-      setState(() => _isSubmitting = true);
-      try {
-        final data = {
-          'upaId': widget.upa['id'],
-          'upaNome': widget.upa['nome'],
-          'turmaHorario': _turmaSelecionada,
-          'segundaOpcaoTurma': _segundaOpcaoTurma,  
-          'escolaridade': _escolaridade,
-          'scoreFagestrom': _scoreFagestrom,
-          'medicamento': _medicamento,
-          'comorbidades': _comorbidades,
-        };
-        await _enrollmentService.enroll(data);
-        Navigator.pop(context);
-        _showSnackBar('Matrícula realizada com sucesso! Você está na lista de espera.', _successColor);
-      } catch (e) {
-        _showSnackBar('Erro ao realizar matrícula: $e', _dangerColor);
-      } finally {
-        setState(() => _isSubmitting = false);
-      }
+    setState(() => _isSubmitting = true);
+    try {
+      final data = {
+        'upaId': widget.upa['id'],
+        'upaNome': widget.upa['nome'],
+        'turmaHorario': _turmaSelecionada,
+        'segundaOpcaoTurma': _segundaOpcaoTurma,
+        'escolaridade': _escolaridade,
+        'scoreFagestrom': _scoreFagestrom,
+        'medicamento': _medicamento,
+        'comorbidades': _comorbidades,
+      };
+      await _enrollmentService.enroll(data);
+      Navigator.pop(context);
+      _showSnackBar('Matrícula realizada com sucesso! Você está na lista de espera.', _successColor);
+    } catch (e) {
+      _showSnackBar('Erro ao realizar matrícula: $e', _dangerColor);
+    } finally {
+      setState(() => _isSubmitting = false);
     }
   }
+}
 
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -943,74 +1030,315 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text('Matrícula', style: TextStyle(fontWeight: FontWeight.w600, fontFamily: 'Poppins', color: Colors.white)),
-        backgroundColor: _primaryDark,
-        elevation: 0,
-        leading: IconButton(icon: Icon(Icons.arrow_back_ios_new, color: Colors.white), onPressed: () => Navigator.pop(context)),
+@override
+Widget build(BuildContext context) {
+  bool isFormValid = _turmaSelecionada != null &&
+      _escolaridade != null &&
+      _medicamento != null &&
+      (_scoreFagestrom != null && _scoreFagestrom! > 0);
+
+  return Scaffold(
+    backgroundColor: Colors.white,
+appBar: AppBar(
+title: Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    Text(
+      'Matrícula',
+      style: TextStyle(fontWeight: FontWeight.w600, fontFamily: 'Poppins', color: _primaryDark, fontSize: 18),
+    ),
+    Text(
+      widget.upa['nome'] ?? 'UPA',
+      style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontFamily: 'Inter'),
+    ),
+  ],
+),
+  backgroundColor: Colors.white,
+  elevation: 0,
+  leading: IconButton(
+    icon: Icon(Icons.arrow_back_ios_new, color: _primaryDark, size: 20),
+    onPressed: () => Navigator.pop(context),
+  ),
+  actions: [
+    Padding(
+      padding: const EdgeInsets.only(right: 16),
+      child: ElevatedButton.icon(
+        onPressed: isFormValid && !_isSubmitting ? _showConfirmationDialog : null,
+        icon: Icon(Icons.check_circle_outline, size: 18),
+        label: Text('Confirmar Matrícula'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _accentColor,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionHeader(Icons.local_hospital_outlined, widget.upa['nome'] ?? 'UPA'),
-              SizedBox(height: 20),
-              _buildTurmaSection('Primeira opção', widget.turmas, _turmaSelecionada, (value) => setState(() => _turmaSelecionada = value)),
-              SizedBox(height: 20),
-              _buildTurmaSection('Segunda opção (opcional)', widget.turmas, _segundaOpcaoTurma, (value) => setState(() => _segundaOpcaoTurma = value), isOptional: true),
-              SizedBox(height: 24),
-              _buildDropdownField('Escolaridade', _escolaridades, _escolaridade, (value) => setState(() => _escolaridade = value)),
-              SizedBox(height: 16),
-              _buildScoreField(),
-              SizedBox(height: 16),
-              _buildDropdownField('Medicamento para tabagismo', _medicamentos, _medicamento, (value) => setState(() => _medicamento = value)),
-              SizedBox(height: 24),
-              Text('Comorbidades', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _primaryDark, fontFamily: 'Poppins')),
-              SizedBox(height: 16),
-              _buildComorbidadeSection('Câncer', 'cancer', _opcoesComorbidades['cancer']!),
-              _buildComorbidadeSection('Cardiovascular', 'cardiovascular', _opcoesComorbidades['cardiovascular']!),
-              _buildComorbidadeSection('Metabólico', 'metabolico', _opcoesComorbidades['metabolico']!),
-              _buildComorbidadeSection('Psiquiátrico', 'psiquiatrico', _opcoesComorbidades['psiquiatrico']!),
-              _buildComorbidadeSection('Respiratório', 'respiratorio', _opcoesComorbidades['respiratorio']!),
-              SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _showConfirmationDialog,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _successColor,
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+  ],
+),
+    body: SingleChildScrollView(
+      padding: EdgeInsets.all(20),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            SizedBox(height: 24),
+            _buildTurmaSection('Primeira opção', _turmaSelecionada, (value) => setState(() => _turmaSelecionada = value)),
+            SizedBox(height: 20),
+            _buildTurmaSection('Segunda opção', _segundaOpcaoTurma, (value) => setState(() => _segundaOpcaoTurma = value), isOptional: true),
+            SizedBox(height: 24),
+            Container(height: 1, color: Colors.grey.shade200),
+            SizedBox(height: 20),
+            Text(
+              'Informações Pessoais',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _primaryDark, fontFamily: 'Poppins'),
+            ),
+            SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _buildDropdownField('Escolaridade', _escolaridades, _escolaridade, (value) => setState(() => _escolaridade = value))),
+                SizedBox(width: 12),
+                Expanded(child: _buildDropdownField('Medicamento', _medicamentos, _medicamento, (value) => setState(() => _medicamento = value))),
+              ],
+            ),
+            SizedBox(height: 16),
+            _buildScoreFieldCompact(),
+            SizedBox(height: 24),
+            Container(height: 1, color: Colors.grey.shade200),
+            SizedBox(height: 20),
+            Row(
+              children: [
+                Text(
+                  'Comorbidades',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _primaryDark, fontFamily: 'Poppins'),
+                ),
+                SizedBox(width: 8),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  child: _isSubmitting ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text('Confirmar Matrícula', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  child: Text(
+                    'Opcional',
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Selecione as condições de saúde existentes',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontFamily: 'Inter'),
+            ),
+            SizedBox(height: 16),
+            _buildComorbidadesGrid(),
+            SizedBox(height: 32),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _buildComorbidadesGrid() {
+  final List<Map<String, dynamic>> categorias = [
+    {'titulo': 'Câncer', 'categoria': 'cancer', 'opcoes': _opcoesComorbidades['cancer']!},
+    {'titulo': 'Cardiovascular', 'categoria': 'cardiovascular', 'opcoes': _opcoesComorbidades['cardiovascular']!},
+    {'titulo': 'Metabólico', 'categoria': 'metabolico', 'opcoes': _opcoesComorbidades['metabolico']!},
+    {'titulo': 'Psiquiátrico', 'categoria': 'psiquiatrico', 'opcoes': _opcoesComorbidades['psiquiatrico']!},
+    {'titulo': 'Respiratório', 'categoria': 'respiratorio', 'opcoes': _opcoesComorbidades['respiratorio']!},
+  ];
+  
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: categorias.map((cat) {
+      bool temOutroSelecionado = _comorbidades[cat['categoria']]!.any((item) => 
+        item['valor'] == 'outro' || item['valor'] == 'outros');
+      
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              cat['titulo'],
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _primaryDark),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: (cat['opcoes'] as List<String>).map((opcao) {
+                bool isSelected = _isSelected(cat['categoria'], opcao);
+                bool isDisabled = _isNenhumSelected(cat['categoria']) && opcao != 'nenhum';
+                return FilterChip(
+                  label: Text(opcao, style: const TextStyle(fontSize: 12)),
+                  selected: isSelected,
+                  onSelected: isDisabled ? null : (selected) => _toggleComorbidade(cat['categoria'], opcao),
+                  backgroundColor: Colors.grey.shade100,
+                  selectedColor: _accentColor.withOpacity(0.2),
+                  checkmarkColor: _accentColor,
+                );
+              }).toList(),
+            ),
+            if (temOutroSelecionado)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    hintText: 'Especifique',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    isDense: true,
+                  ),
+                  onChanged: (text) {
+                    final item = _comorbidades[cat['categoria']]!.firstWhere(
+                      (item) => item['valor'] == 'outro' || item['valor'] == 'outros');
+                    item['outroTexto'] = text;
+                    setState(() {});
+                  },
                 ),
               ),
-              SizedBox(height: 16),
+          ],
+        ),
+      );
+    }).toList(),
+  );
+}
+
+
+Widget _buildScoreFieldCompact() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Score Fagerström', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _primaryDark)),
+      SizedBox(height: 8),
+      if (_isLoadingScore)
+        Container(
+          height: 56,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Center(child: CircularProgressIndicator(color: _accentColor, strokeWidth: 2)),
+        )
+      else if (_scoreFagestrom != null && _scoreFagestrom! > 0)
+        Container(
+          height: 56,
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: _successColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _successColor.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.check_circle, color: _successColor, size: 20),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '$_scoreFagestrom pontos',
+                  style: TextStyle(fontWeight: FontWeight.w600, color: _successColor, fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        )
+      else
+        Container(
+          height: 56,
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: _warningColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _warningColor.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber, color: _warningColor, size: 20),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Não registrado',
+                  style: TextStyle(fontWeight: FontWeight.w500, color: _warningColor, fontSize: 12),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FagerstromTestScreen(
+                        onScoreUpdated: (score) {
+                          _scoreFagestrom = score;
+                          setState(() {});
+                        },
+                      ),
+                    ),
+                  );
+                  if (result != null && mounted) {
+                    setState(() => _scoreFagestrom = result);
+                  }
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: _warningColor,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text('Fazer teste', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+              ),
             ],
           ),
         ),
-      ),
-    );
-  }
+    ],
+  );
+}
 
-  Widget _buildSectionHeader(IconData icon, String title) {
-    return Row(
-      children: [
-        Container(padding: EdgeInsets.all(10), decoration: BoxDecoration(color: _accentColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: _accentColor, size: 24)),
-        SizedBox(width: 12),
-        Expanded(child: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _primaryDark, fontFamily: 'Poppins'))),
-      ],
-    );
-  }
 
-  Widget _buildTurmaSection(String title, List<Map<String, String>> turmas, String? selected, Function(String?) onChanged, {bool isOptional = false}) {
+
+ Widget _buildTurmaSection(String title, String? selected, Function(String?) onChanged, {bool isOptional = false}) {
+    if (_carregandoTurmas) {
+      return Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isOptional ? _warningColor.withValues(alpha: 0.05) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isOptional ? _warningColor.withValues(alpha: 0.3) : Colors.grey.shade200),
+        ),
+        child: Center(child: CircularProgressIndicator(color: _accentColor)),
+      );
+    }
+
+    if (_turmasComVagas.isEmpty) {
+      return Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isOptional ? _warningColor.withValues(alpha: 0.05) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isOptional ? _warningColor.withValues(alpha: 0.3) : Colors.grey.shade200),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.warning_amber, color: _warningColor, size: 40),
+            SizedBox(height: 12),
+            Text(
+              'Nenhuma turma disponível no momento',
+              style: TextStyle(fontSize: 14, color: _warningColor),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1021,24 +1349,69 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [if (isOptional) Icon(Icons.info_outline, color: _warningColor, size: 16), SizedBox(width: 8), Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isOptional ? _warningColor : _primaryDark))]),
+          Row(children: [
+            if (isOptional) Icon(Icons.info_outline, color: _warningColor, size: 16),
+            SizedBox(width: 8),
+            Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isOptional ? _warningColor : _primaryDark)),
+          ]),
           if (isOptional) SizedBox(height: 4),
           if (isOptional) Text('Caso sua primeira opção não tenha vagas', style: TextStyle(fontSize: 11, color: _warningColor)),
           SizedBox(height: 12),
-          ...turmas.map((turma) {
-            String turmaTexto = '${turma['dia']} - ${turma['horario']}';
+          ..._turmasComVagas.map((turma) {
+            String turmaTexto = '${turma['dia_semana']} - ${turma['horario']}';
+            int vagasDisponiveis = turma['vagas_disponiveis'] ?? 0;
+            int vagasTotais = turma['vagas_totais'] ?? 4;
+            bool estaLotado = turma['status'] == 'lotado' || vagasDisponiveis <= 0;
+            
             return Container(
               margin: EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
                 color: selected == turmaTexto ? _accentColor.withValues(alpha: 0.1) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: selected == turmaTexto ? _accentColor : Colors.grey.shade200),
+                border: Border.all(
+                  color: selected == turmaTexto 
+                    ? _accentColor 
+                    : (estaLotado ? _dangerColor.withValues(alpha: 0.3) : Colors.grey.shade200),
+                ),
               ),
               child: RadioListTile<String>(
-                title: Text(turmaTexto, style: TextStyle(fontFamily: 'Inter')),
+                title: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        turmaTexto,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          color: estaLotado ? Colors.grey.shade500 : null,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: estaLotado 
+                          ? _dangerColor.withValues(alpha: 0.1)
+                          : (vagasDisponiveis <= 2 ? _warningColor.withValues(alpha: 0.1) : _successColor.withValues(alpha: 0.1)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        estaLotado 
+                          ? 'Lotado' 
+                          : '$vagasDisponiveis/$vagasTotais vagas',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: estaLotado 
+                            ? _dangerColor
+                            : (vagasDisponiveis <= 2 ? _warningColor : _successColor),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 value: turmaTexto,
                 groupValue: selected,
-                onChanged: onChanged,
+                onChanged: estaLotado ? null : onChanged,
                 activeColor: _accentColor,
                 contentPadding: EdgeInsets.symmetric(horizontal: 12),
               ),
@@ -1050,56 +1423,30 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
   }
 
   Widget _buildDropdownField(String label, List<String> items, String? value, Function(String?) onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _primaryDark)),
-        SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: value,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            filled: true,
-            fillColor: Colors.grey.shade50,
-          ),
-          items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
-          onChanged: onChanged,
-          validator: (v) => v == null ? 'Selecione $label' : null,
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _primaryDark)),
+      SizedBox(height: 8),
+      DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _accentColor, width: 2)),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          filled: true,
+          fillColor: Colors.white,
         ),
-      ],
-    );
-  }
+        icon: Icon(Icons.arrow_drop_down, color: _accentColor),
+        items: items.map((item) => DropdownMenuItem(value: item, child: Text(item, style: TextStyle(fontFamily: 'Inter')))).toList(),
+        onChanged: onChanged,
+        validator: (v) => v == null ? 'Selecione $label' : null,
+      ),
+    ],
+  );
+}
 
-  Widget _buildScoreField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Score Fagerström', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _primaryDark)),
-        SizedBox(height: 8),
-        if (_isLoadingScore)
-          Center(child: CircularProgressIndicator(color: _accentColor))
-        else if (_scoreFagestrom != null && _scoreFagestrom! > 0)
-          Container(
-            padding: EdgeInsets.all(12),
-            decoration: BoxDecoration(color: _successColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: _successColor.withValues(alpha: 0.3))),
-            child: Row(children: [Icon(Icons.check_circle, color: _successColor), SizedBox(width: 12), Text('Score registrado: $_scoreFagestrom pontos', style: TextStyle(fontWeight: FontWeight.bold, color: _successColor))]),
-          )
-        else
-          TextFormField(
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              hintText: 'Digite o score (0-10)',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              filled: true,
-              fillColor: Colors.grey.shade50,
-            ),
-            onChanged: (value) => _scoreFagestrom = int.tryParse(value),
-            validator: (v) => _scoreFagestrom == null || _scoreFagestrom == 0 ? 'Faça o teste de Fagerström no menu principal' : null,
-          ),
-      ],
-    );
-  }
 
   Widget _buildComorbidadeSection(String titulo, String categoria, List<String> opcoes) {
     return Column(

@@ -5,7 +5,7 @@ exports.getUsuariosEmEspera = async (req, res) => {
     const enfermeiraId = req.userId;
     
     const [enfermeira] = await pool.execute(
-      'SELECT u.upa_id, up.nome as upa_nome FROM usuarios u LEFT JOIN upas up ON u.upa_id = up.id WHERE u.id = ? AND u.tipo_usuario = "enfermeira"',
+      'SELECT upa_id, (SELECT nome FROM upas WHERE id = upa_id) as upa_nome FROM enfermeiros WHERE id = ?',
       [enfermeiraId]
     );
     
@@ -51,6 +51,893 @@ exports.atualizarStatusMatricula = async (req, res) => {
     res.json({ message: 'Status atualizado com sucesso' });
   } catch (error) {
     console.error('Erro ao atualizar status:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getDashboardStats = async (req, res) => {
+  try {
+    const enfermeiraId = req.userId;
+    
+    const [enfermeira] = await pool.execute(
+      'SELECT upa_id FROM enfermeiros WHERE id = ?',
+      [enfermeiraId]
+    );
+    
+    if (enfermeira.length === 0 || !enfermeira[0].upa_id) {
+      return res.json({ error: 'UPA não encontrada' });
+    }
+    
+    const upaId = enfermeira[0].upa_id;
+    
+    const [totalUsuarios] = await pool.execute(
+      'SELECT COUNT(DISTINCT u.id) as total FROM usuarios u INNER JOIN matriculas m ON u.id = m.usuario_id WHERE m.upa_id = ?',
+      [upaId]
+    );
+    
+    const [totalEmEspera] = await pool.execute(
+      'SELECT COUNT(*) as total FROM matriculas WHERE upa_id = ? AND status = "em_espera"',
+      [upaId]
+    );
+    
+    const [totalMatriculados] = await pool.execute(
+      'SELECT COUNT(*) as total FROM matriculas WHERE upa_id = ? AND status = "matriculado"',
+      [upaId]
+    );
+    
+    const [totalCancelados] = await pool.execute(
+      'SELECT COUNT(*) as total FROM matriculas WHERE upa_id = ? AND status = "cancelada"',
+      [upaId]
+    );
+    
+    const [maiores18] = await pool.execute(
+      'SELECT COUNT(DISTINCT u.id) as total FROM usuarios u INNER JOIN matriculas m ON u.id = m.usuario_id WHERE m.upa_id = ? AND u.idade >= 18',
+      [upaId]
+    );
+    
+    const [menores18] = await pool.execute(
+      'SELECT COUNT(DISTINCT u.id) as total FROM usuarios u INNER JOIN matriculas m ON u.id = m.usuario_id WHERE m.upa_id = ? AND u.idade < 18',
+      [upaId]
+    );
+    
+    const [usuariosComCancer] = await pool.execute(
+      'SELECT COUNT(DISTINCT u.id) as total FROM usuarios u INNER JOIN matriculas m ON u.id = m.usuario_id WHERE m.upa_id = ? AND m.comorbidades LIKE "%cancer%" AND m.comorbidades NOT LIKE "%nenhum%"',
+      [upaId]
+    );
+    
+    const [usuariosComCardiovascular] = await pool.execute(
+      'SELECT COUNT(DISTINCT u.id) as total FROM usuarios u INNER JOIN matriculas m ON u.id = m.usuario_id WHERE m.upa_id = ? AND m.comorbidades LIKE "%cardiovascular%" AND m.comorbidades NOT LIKE "%nenhum%"',
+      [upaId]
+    );
+    
+    const [mediaScoreFagestrom] = await pool.execute(
+      'SELECT AVG(m.score_fagestrom) as media FROM matriculas m WHERE m.upa_id = ?',
+      [upaId]
+    );
+    
+    const [distribuicaoSexo] = await pool.execute(
+      'SELECT u.sexo, COUNT(DISTINCT u.id) as total FROM usuarios u INNER JOIN matriculas m ON u.id = m.usuario_id WHERE m.upa_id = ? GROUP BY u.sexo',
+      [upaId]
+    );
+    
+    const [distribuicaoEscolaridade] = await pool.execute(
+      'SELECT m.escolaridade, COUNT(*) as total FROM matriculas m WHERE m.upa_id = ? GROUP BY m.escolaridade',
+      [upaId]
+    );
+    
+    const [usuariosPorMes] = await pool.execute(
+      'SELECT DATE_FORMAT(m.created_at, "%Y-%m") as mes, COUNT(*) as total FROM matriculas m WHERE m.upa_id = ? GROUP BY DATE_FORMAT(m.created_at, "%Y-%m") ORDER BY mes DESC LIMIT 6',
+      [upaId]
+    );
+    
+    res.json({
+      totalUsuarios: totalUsuarios[0].total,
+      totalEmEspera: totalEmEspera[0].total,
+      totalMatriculados: totalMatriculados[0].total,
+      totalCancelados: totalCancelados[0].total,
+      maiores18: maiores18[0].total,
+      menores18: menores18[0].total,
+      usuariosComCancer: usuariosComCancer[0].total,
+      usuariosComCardiovascular: usuariosComCardiovascular[0].total,
+      mediaScoreFagestrom: mediaScoreFagestrom[0].media || 0,
+      distribuicaoSexo: distribuicaoSexo,
+      distribuicaoEscolaridade: distribuicaoEscolaridade,
+      usuariosPorMes: usuariosPorMes,
+    });
+  } catch (error) {
+    console.error('Erro ao buscar estatísticas:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.registrarPresenca = async (req, res) => {
+  try {
+    const { matriculaId, data, status, observacoes } = req.body;
+    
+    const [existing] = await pool.execute(
+      'SELECT id FROM presencas WHERE matricula_id = ? AND data = ?',
+      [matriculaId, data]
+    );
+    
+    if (existing.length > 0) {
+      await pool.execute(
+        'UPDATE presencas SET status = ?, observacoes = ? WHERE matricula_id = ? AND data = ?',
+        [status, observacoes, matriculaId, data]
+      );
+    } else {
+      await pool.execute(
+        'INSERT INTO presencas (matricula_id, data, status, observacoes) VALUES (?, ?, ?, ?)',
+        [matriculaId, data, status, observacoes]
+      );
+    }
+    
+    res.json({ message: 'Presença registrada com sucesso' });
+  } catch (error) {
+    console.error('Erro ao registrar presença:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getPresencasPorMatricula = async (req, res) => {
+  try {
+    const { matriculaId } = req.params;
+    
+    const [presencas] = await pool.execute(
+      `SELECT p.*, o.observacao_semanal 
+       FROM presencas p
+       LEFT JOIN observacoes_semanais o ON p.matricula_id = o.matricula_id AND p.data = o.data
+       WHERE p.matricula_id = ? 
+       ORDER BY p.data DESC`,
+      [matriculaId]
+    );
+    
+    res.json({ presencas });
+  } catch (error) {
+    console.error('Erro ao buscar presenças:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.encerrarTurma = async (req, res) => {
+  try {
+    const { upaId, turmaHorario } = req.body;
+    const enfermeiraId = req.userId;
+    
+    const [enfermeira] = await pool.execute(
+      'SELECT upa_id FROM enfermeiros WHERE id = ?',
+      [enfermeiraId]
+    );
+    
+    if (enfermeira.length === 0 || enfermeira[0].upa_id !== upaId) {
+      return res.status(403).json({ error: 'Você não tem permissão para encerrar esta turma' });
+    }
+    
+    const [upa] = await pool.execute('SELECT nome FROM upas WHERE id = ?', [upaId]);
+    const upaNome = upa[0].nome;
+    
+    const [alunos] = await pool.execute(
+      `SELECT m.id as matricula_id, m.usuario_id, u.nome_completo, u.email, u.telefone
+       FROM matriculas m
+       JOIN usuarios u ON m.usuario_id = u.id
+       WHERE m.upa_id = ? AND m.turma_horario = ? AND m.status = 'matriculado'`,
+      [upaId, turmaHorario]
+    );
+    
+    if (alunos.length === 0) {
+      return res.status(404).json({ error: 'Nenhum aluno matriculado nesta turma' });
+    }
+    
+    let totalPresencasGeral = 0;
+    let totalAulasGeral = 0;
+    
+    for (let aluno of alunos) {
+      const [stats] = await pool.execute(
+        `SELECT 
+          COUNT(CASE WHEN status = 'presente' THEN 1 END) as presentes,
+          COUNT(*) as total
+         FROM presencas 
+         WHERE matricula_id = ?`,
+        [aluno.matricula_id]
+      );
+      
+      aluno.presentes = stats[0].presentes || 0;
+      aluno.total_aulas = stats[0].total || 0;
+      aluno.percentual = aluno.total_aulas > 0 ? (aluno.presentes / aluno.total_aulas * 100).toFixed(2) : 0;
+      
+      totalPresencasGeral += aluno.presentes;
+      totalAulasGeral += aluno.total_aulas;
+    }
+    
+    const percentualMedio = totalAulasGeral > 0 ? (totalPresencasGeral / totalAulasGeral * 100).toFixed(2) : 0;
+    const dataFim = new Date().toISOString().split('T')[0];
+    
+    const [primeiraAula] = await pool.execute(
+      `SELECT MIN(data) as data_inicio FROM presencas p
+       JOIN matriculas m ON p.matricula_id = m.id
+       WHERE m.upa_id = ? AND m.turma_horario = ?`,
+      [upaId, turmaHorario]
+    );
+    
+    const dataInicio = primeiraAula[0].data_inicio || dataFim;
+    
+    const [result] = await pool.execute(
+      `INSERT INTO turmas_concluidas 
+       (upa_id, upa_nome, turma_horario, data_inicio, data_fim, total_alunos, total_presencas, percentual_medio_presenca)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [upaId, upaNome, turmaHorario, dataInicio, dataFim, alunos.length, totalPresencasGeral, percentualMedio]
+    );
+    
+    const turmaConcluidaId = result.insertId;
+    
+    for (let aluno of alunos) {
+      const evolucao = await getEvolucaoAluno(aluno.matricula_id);
+      
+      await pool.execute(
+        `INSERT INTO alunos_concluidos 
+         (turma_concluida_id, usuario_id, nome_completo, email, telefone, percentual_presenca, total_presencas, total_faltas, evolucao)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [turmaConcluidaId, aluno.usuario_id, aluno.nome_completo, aluno.email, aluno.telefone, 
+         aluno.percentual, aluno.presentes, aluno.total_aulas - aluno.presentes, JSON.stringify(evolucao)]
+      );
+    }
+    
+    await pool.execute(
+      `DELETE FROM observacoes_semanais 
+       WHERE matricula_id IN (SELECT id FROM matriculas WHERE upa_id = ? AND turma_horario = ? AND status = 'matriculado')`,
+      [upaId, turmaHorario]
+    );
+    
+    await pool.execute(
+      `DELETE FROM presencas 
+       WHERE matricula_id IN (SELECT id FROM matriculas WHERE upa_id = ? AND turma_horario = ? AND status = 'matriculado')`,
+      [upaId, turmaHorario]
+    );
+    
+    await pool.execute(
+      `DELETE FROM matriculas 
+       WHERE upa_id = ? AND turma_horario = ? AND status = 'matriculado'`,
+      [upaId, turmaHorario]
+    );
+    
+    res.json({ 
+      message: 'Turma encerrada com sucesso',
+      total_alunos: alunos.length,
+      turma_concluida_id: turmaConcluidaId
+    });
+    
+  } catch (error) {
+    console.error('Erro ao encerrar turma:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+async function getEvolucaoAluno(matriculaId) {
+  const [observacoes] = await pool.execute(
+    `SELECT data, observacao_semanal 
+     FROM observacoes_semanais 
+     WHERE matricula_id = ? 
+     ORDER BY data ASC`,
+    [matriculaId]
+  );
+  
+  const evolucao = [];
+  let fumandoCount = 0;
+  let semFumarCount = 0;
+  
+  for (let obs of observacoes) {
+    if (obs.observacao_semanal === '1- Está fumando') {
+      fumandoCount++;
+    } else if (obs.observacao_semanal === '2- Sem fumar') {
+      semFumarCount++;
+    }
+    evolucao.push({
+      data: obs.data,
+      status: obs.observacao_semanal
+    });
+  }
+  
+  return {
+    historico: evolucao,
+    total_semanas: observacoes.length,
+    semanas_fumando: fumandoCount,
+    semanas_sem_fumar: semFumarCount,
+    taxa_sucesso: observacoes.length > 0 ? (semFumarCount / observacoes.length * 100).toFixed(2) : 0
+  };
+}
+
+
+exports.getEvolucaoGeral = async (req, res) => {
+  try {
+    const enfermeiraId = req.userId;
+    
+    const [enfermeira] = await pool.execute(
+      'SELECT upa_id FROM enfermeiros WHERE id = ?',
+      [enfermeiraId]
+    );
+    
+    if (enfermeira.length === 0 || !enfermeira[0].upa_id) {
+      return res.json({ 
+        alunos_ativos: { total: 0, fumando: 0, sem_fumar: 0, taxa_sucesso: 0 },
+        alunos_concluidos: { total: 0, fumando: 0, sem_fumar: 0, taxa_sucesso: 0 },
+        evolucao_mensal_ativos: [],
+        evolucao_mensal_concluidos: [],
+        alunos_detalhados: []
+      });
+    }
+    
+    const upaId = enfermeira[0].upa_id;
+    
+    const [alunosAtivos] = await pool.execute(
+      `SELECT COUNT(DISTINCT u.id) as total
+       FROM usuarios u
+       INNER JOIN matriculas m ON u.id = m.usuario_id
+       WHERE m.upa_id = ? AND m.status = 'matriculado'`,
+      [upaId]
+    );
+    
+    const [alunosConcluidos] = await pool.execute(
+      `SELECT IFNULL(SUM(total_alunos), 0) as total FROM turmas_concluidas WHERE upa_id = ?`,
+      [upaId]
+    );
+    
+    let fumandoAtivos = 0;
+    let semFumarAtivos = 0;
+    
+    if (alunosAtivos[0].total > 0) {
+      const [fumandoResult] = await pool.execute(
+        `SELECT COUNT(DISTINCT o.matricula_id) as total
+         FROM observacoes_semanais o
+         INNER JOIN matriculas m ON o.matricula_id = m.id
+         WHERE m.upa_id = ? AND m.status = 'matriculado' 
+         AND o.observacao_semanal = '1- Está fumando'
+         AND o.data = (SELECT MAX(data) FROM observacoes_semanais WHERE matricula_id = o.matricula_id)`,
+        [upaId]
+      );
+      fumandoAtivos = fumandoResult[0].total || 0;
+      
+      const [semFumarResult] = await pool.execute(
+        `SELECT COUNT(DISTINCT o.matricula_id) as total
+         FROM observacoes_semanais o
+         INNER JOIN matriculas m ON o.matricula_id = m.id
+         WHERE m.upa_id = ? AND m.status = 'matriculado' 
+         AND o.observacao_semanal = '2- Sem fumar'
+         AND o.data = (SELECT MAX(data) FROM observacoes_semanais WHERE matricula_id = o.matricula_id)`,
+        [upaId]
+      );
+      semFumarAtivos = semFumarResult[0].total || 0;
+    }
+    
+    let fumandoConcluidos = 0;
+    let semFumarConcluidos = 0;
+    
+    if (alunosConcluidos[0].total > 0) {
+      const [fumandoConcluidosResult] = await pool.execute(
+        `SELECT COUNT(*) as total
+         FROM alunos_concluidos ac
+         INNER JOIN turmas_concluidas tc ON ac.turma_concluida_id = tc.id
+         WHERE tc.upa_id = ? AND ac.evolucao LIKE '%1- Está fumando%'`,
+        [upaId]
+      );
+      fumandoConcluidos = fumandoConcluidosResult[0].total || 0;
+      
+      const [semFumarConcluidosResult] = await pool.execute(
+        `SELECT COUNT(*) as total
+         FROM alunos_concluidos ac
+         INNER JOIN turmas_concluidas tc ON ac.turma_concluida_id = tc.id
+         WHERE tc.upa_id = ? AND ac.evolucao LIKE '%2- Sem fumar%'`,
+        [upaId]
+      );
+      semFumarConcluidos = semFumarConcluidosResult[0].total || 0;
+    }
+    
+    const [evolucaoMensal] = await pool.execute(
+      `SELECT 
+        DATE_FORMAT(o.data, '%Y-%m') as mes,
+        SUM(CASE WHEN o.observacao_semanal = '1- Está fumando' THEN 1 ELSE 0 END) as fumando,
+        SUM(CASE WHEN o.observacao_semanal = '2- Sem fumar' THEN 1 ELSE 0 END) as sem_fumar
+       FROM observacoes_semanais o
+       INNER JOIN matriculas m ON o.matricula_id = m.id
+       WHERE m.upa_id = ? AND m.status = 'matriculado'
+       GROUP BY DATE_FORMAT(o.data, '%Y-%m')
+       ORDER BY mes ASC
+       LIMIT 12`,
+      [upaId]
+    );
+    
+    const [evolucaoConcluidosMensal] = await pool.execute(
+      `SELECT 
+        DATE_FORMAT(tc.data_fim, '%Y-%m') as mes,
+        COUNT(*) as total
+       FROM alunos_concluidos ac
+       INNER JOIN turmas_concluidas tc ON ac.turma_concluida_id = tc.id
+       WHERE tc.upa_id = ?
+       GROUP BY DATE_FORMAT(tc.data_fim, '%Y-%m')
+       ORDER BY mes ASC
+       LIMIT 12`,
+      [upaId]
+    );
+    
+    const evolucaoMensalConcluidosFormatada = evolucaoConcluidosMensal.map(item => ({
+      mes: item.mes,
+      sucesso: 0,
+      insucesso: item.total
+    }));
+    
+    const [alunosDetalhados] = await pool.execute(
+      `SELECT u.id, u.nome_completo, m.turma_horario,
+        (SELECT observacao_semanal FROM observacoes_semanais 
+         WHERE matricula_id = m.id AND data = (SELECT MAX(data) FROM observacoes_semanais WHERE matricula_id = m.id) LIMIT 1) as ultima_observacao,
+        IFNULL((SELECT COUNT(*) FROM observacoes_semanais WHERE matricula_id = m.id AND observacao_semanal = '1- Está fumando'), 0) as semanas_fumando,
+        IFNULL((SELECT COUNT(*) FROM observacoes_semanais WHERE matricula_id = m.id AND observacao_semanal = '2- Sem fumar'), 0) as semanas_sem_fumar
+       FROM usuarios u
+       INNER JOIN matriculas m ON u.id = m.usuario_id
+       WHERE m.upa_id = ? AND m.status = 'matriculado'
+       ORDER BY u.nome_completo ASC`,
+      [upaId]
+    );
+    
+    const totalAtivos = alunosAtivos[0].total || 0;
+    const totalConcluidos = alunosConcluidos[0].total || 0;
+    
+    const taxaSucessoAtivos = totalAtivos > 0 ? ((semFumarAtivos / totalAtivos) * 100).toFixed(1) : 0;
+    const taxaSucessoConcluidos = totalConcluidos > 0 ? ((semFumarConcluidos / totalConcluidos) * 100).toFixed(1) : 0;
+    
+    res.json({
+      alunos_ativos: {
+        total: totalAtivos,
+        fumando: fumandoAtivos,
+        sem_fumar: semFumarAtivos,
+        taxa_sucesso: parseFloat(taxaSucessoAtivos)
+      },
+      alunos_concluidos: {
+        total: totalConcluidos,
+        fumando: fumandoConcluidos,
+        sem_fumar: semFumarConcluidos,
+        taxa_sucesso: parseFloat(taxaSucessoConcluidos)
+      },
+      evolucao_mensal_ativos: evolucaoMensal,
+      evolucao_mensal_concluidos: evolucaoMensalConcluidosFormatada,
+      alunos_detalhados: alunosDetalhados
+    });
+    
+  } catch (error) {
+    console.error('Erro ao buscar evolução geral:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getPresencasDaUPA = async (req, res) => {
+  try {
+    const enfermeiraId = req.userId;
+    const { data } = req.query;
+    
+    const [enfermeira] = await pool.execute(
+      'SELECT upa_id FROM enfermeiros WHERE id = ?',
+      [enfermeiraId]
+    );
+    
+    if (enfermeira.length === 0 || !enfermeira[0].upa_id) {
+      return res.json({ presencas: [] });
+    }
+    
+    const upaId = enfermeira[0].upa_id;
+    
+    const query = `
+      SELECT p.*, m.id as matricula_id, u.nome_completo, u.email, m.turma_horario
+      FROM presencas p
+      JOIN matriculas m ON p.matricula_id = m.id
+      JOIN usuarios u ON m.usuario_id = u.id
+      WHERE m.upa_id = ? ${data ? 'AND p.data = ?' : ''}
+      ORDER BY p.data DESC, u.nome_completo ASC
+    `;
+    
+    const params = data ? [upaId, data] : [upaId];
+    const [presencas] = await pool.execute(query, params);
+    
+    res.json({ presencas });
+  } catch (error) {
+    console.error('Erro ao buscar presenças da UPA:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getEstatisticasPresenca = async (req, res) => {
+  try {
+    const { matriculaId } = req.params;
+    
+    const [total] = await pool.execute(
+      'SELECT COUNT(*) as total FROM presencas WHERE matricula_id = ?',
+      [matriculaId]
+    );
+    
+    const [presentes] = await pool.execute(
+      'SELECT COUNT(*) as total FROM presencas WHERE matricula_id = ? AND status = "presente"',
+      [matriculaId]
+    );
+    
+    const [faltas] = await pool.execute(
+      'SELECT COUNT(*) as total FROM presencas WHERE matricula_id = ? AND status = "falta"',
+      [matriculaId]
+    );
+    
+    res.json({
+      total: total[0].total,
+      presentes: presentes[0].total,
+      faltas: faltas[0].total,
+    });
+  } catch (error) {
+    console.error('Erro ao buscar estatísticas:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getUsuariosMatriculadosComPresencas = async (req, res) => {
+  try {
+    const enfermeiraId = req.userId;
+    const { data } = req.query;
+    const dataAtual = data || new Date().toISOString().split('T')[0];
+    
+    const [enfermeira] = await pool.execute(
+      'SELECT upa_id FROM enfermeiros WHERE id = ?',
+      [enfermeiraId]
+    );
+    
+    if (enfermeira.length === 0 || !enfermeira[0].upa_id) {
+      return res.json({ usuarios: [], dataAtual });
+    }
+    
+    const upaId = enfermeira[0].upa_id;
+    
+    const [usuarios] = await pool.execute(
+      `SELECT u.id, u.nome_completo, u.email, m.id as matricula_id, m.turma_horario
+       FROM usuarios u
+       INNER JOIN matriculas m ON u.id = m.usuario_id
+       WHERE m.upa_id = ? AND m.status = 'matriculado'
+       ORDER BY m.turma_horario ASC, u.nome_completo ASC`,
+      [upaId]
+    );
+    
+    const turmasMap = {};
+    
+    for (let usuario of usuarios) {
+      const turma = usuario.turma_horario;
+      if (!turmasMap[turma]) {
+        turmasMap[turma] = [];
+      }
+      
+      const [presenca] = await pool.execute(
+        'SELECT status, observacoes FROM presencas WHERE matricula_id = ? AND data = ?',
+        [usuario.matricula_id, dataAtual]
+      );
+      
+      const [observacao] = await pool.execute(
+        'SELECT observacao_semanal FROM observacoes_semanais WHERE matricula_id = ? AND data = ?',
+        [usuario.matricula_id, dataAtual]
+      );
+      
+      usuario.presenca_status = presenca.length > 0 ? presenca[0].status : null;
+      usuario.presenca_observacoes = presenca.length > 0 ? presenca[0].observacoes : null;
+      usuario.observacao_semanal = observacao.length > 0 ? observacao[0].observacao_semanal : null;
+      
+      turmasMap[turma].push(usuario);
+    }
+    
+    const turmas = Object.keys(turmasMap).map(turma => ({
+      nome: turma,
+      usuarios: turmasMap[turma]
+    }));
+    
+    res.json({ turmas, dataAtual });
+  } catch (error) {
+    console.error('Erro ao buscar usuários matriculados:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.salvarPresencasEmLote = async (req, res) => {
+  try {
+    const { presencas, observacoes_semanais, data } = req.body;
+    
+    for (let item of presencas) {
+      const [existing] = await pool.execute(
+        'SELECT id FROM presencas WHERE matricula_id = ? AND data = ?',
+        [item.matriculaId, data]
+      );
+      
+      if (existing.length > 0) {
+        await pool.execute(
+          'UPDATE presencas SET status = ?, observacoes = ? WHERE matricula_id = ? AND data = ?',
+          [item.status, item.observacoes || null, item.matriculaId, data]
+        );
+      } else {
+        await pool.execute(
+          'INSERT INTO presencas (matricula_id, data, status, observacoes) VALUES (?, ?, ?, ?)',
+          [item.matriculaId, data, item.status, item.observacoes || null]
+        );
+      }
+    }
+    
+    if (observacoes_semanais && observacoes_semanais.length > 0) {
+      for (let obs of observacoes_semanais) {
+        const [existing] = await pool.execute(
+          'SELECT id FROM observacoes_semanais WHERE matricula_id = ? AND data = ?',
+          [obs.matriculaId, data]
+        );
+        
+        if (existing.length > 0) {
+          await pool.execute(
+            'UPDATE observacoes_semanais SET observacao_semanal = ? WHERE matricula_id = ? AND data = ?',
+            [obs.observacao, obs.matriculaId, data]
+          );
+        } else {
+          await pool.execute(
+            'INSERT INTO observacoes_semanais (matricula_id, data, observacao_semanal) VALUES (?, ?, ?)',
+            [obs.matriculaId, data, obs.observacao]
+          );
+        }
+      }
+    }
+    
+    res.json({ message: 'Presenças e observações salvas com sucesso' });
+  } catch (error) {
+    console.error('Erro ao salvar presenças:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getHistoricoDetalhado = async (req, res) => {
+  try {
+    const enfermeiraId = req.userId;
+    
+    const [enfermeira] = await pool.execute(
+      'SELECT upa_id FROM enfermeiros WHERE id = ?',
+      [enfermeiraId]
+    );
+    
+    if (enfermeira.length === 0 || !enfermeira[0].upa_id) {
+      return res.json({ turmas: [] });
+    }
+    
+    const upaId = enfermeira[0].upa_id;
+    
+    const [turmas] = await pool.execute(
+      `SELECT DISTINCT m.turma_horario
+       FROM matriculas m
+       WHERE m.upa_id = ? AND m.status = 'matriculado'
+       ORDER BY m.turma_horario ASC`,
+      [upaId]
+    );
+    
+    const resultado = [];
+    
+    for (let turma of turmas) {
+      const [usuarios] = await pool.execute(
+        `SELECT u.id, u.nome_completo, m.id as matricula_id
+         FROM usuarios u
+         INNER JOIN matriculas m ON u.id = m.usuario_id
+         WHERE m.upa_id = ? AND m.turma_horario = ? AND m.status = 'matriculado'
+         ORDER BY u.nome_completo ASC`,
+        [upaId, turma.turma_horario]
+      );
+      
+      const [datas] = await pool.execute(
+        `SELECT DISTINCT p.data, 
+                DATE_FORMAT(p.data, '%d/%m/%Y') as data_formatada
+         FROM presencas p
+         JOIN matriculas m ON p.matricula_id = m.id
+         WHERE m.upa_id = ? AND m.turma_horario = ?
+         ORDER BY p.data ASC`,
+        [upaId, turma.turma_horario]
+      );
+      
+      const usuariosComPresencas = [];
+      
+      for (let usuario of usuarios) {
+        const presencasPorData = {};
+        const observacoesPorData = {};
+        
+        for (let data of datas) {
+          const [presenca] = await pool.execute(
+            'SELECT status FROM presencas WHERE matricula_id = ? AND data = ?',
+            [usuario.matricula_id, data.data]
+          );
+          presencasPorData[data.data_formatada] = presenca.length > 0 ? presenca[0].status : null;
+          
+          const [observacao] = await pool.execute(
+            'SELECT observacao_semanal FROM observacoes_semanais WHERE matricula_id = ? AND data = ?',
+            [usuario.matricula_id, data.data]
+          );
+          observacoesPorData[data.data_formatada] = observacao.length > 0 ? observacao[0].observacao_semanal : null;
+        }
+        
+        usuariosComPresencas.push({
+          id: usuario.id,
+          nome: usuario.nome_completo,
+          presencas: presencasPorData,
+          observacoes: observacoesPorData
+        });
+      }
+      
+      resultado.push({
+        turma: turma.turma_horario,
+        datas: datas.map(d => d.data_formatada),
+        usuarios: usuariosComPresencas
+      });
+    }
+    
+    res.json({ turmas: resultado });
+  } catch (error) {
+    console.error('Erro ao buscar histórico detalhado:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getHistoricoPorUsuario = async (req, res) => {
+  try {
+    const enfermeiraId = req.userId;
+    
+    const [enfermeira] = await pool.execute(
+      'SELECT upa_id FROM enfermeiros WHERE id = ?',
+      [enfermeiraId]
+    );
+    
+    if (enfermeira.length === 0 || !enfermeira[0].upa_id) {
+      return res.json({ turmas: [] });
+    }
+    
+    const upaId = enfermeira[0].upa_id;
+    
+    const [usuarios] = await pool.execute(
+      `SELECT u.id, u.nome_completo, u.email, m.id as matricula_id, m.turma_horario
+       FROM usuarios u
+       INNER JOIN matriculas m ON u.id = m.usuario_id
+       WHERE m.upa_id = ? AND m.status = 'matriculado'
+       ORDER BY m.turma_horario ASC, u.nome_completo ASC`,
+      [upaId]
+    );
+    
+    const turmasMap = {};
+    
+    for (let usuario of usuarios) {
+      const turma = usuario.turma_horario;
+      if (!turmasMap[turma]) {
+        turmasMap[turma] = [];
+      }
+      
+      const [stats] = await pool.execute(
+        `SELECT 
+          COUNT(CASE WHEN status = 'presente' THEN 1 END) as presentes,
+          COUNT(CASE WHEN status = 'falta' THEN 1 END) as faltas,
+          COUNT(*) as total
+         FROM presencas 
+         WHERE matricula_id = ?`,
+        [usuario.matricula_id]
+      );
+      
+      usuario.presentes = stats[0].presentes || 0;
+      usuario.faltas = stats[0].faltas || 0;
+      usuario.total_presencas = stats[0].total || 0;
+      
+      const percentual = usuario.total_presencas > 0 
+        ? (usuario.presentes / usuario.total_presencas) * 100 
+        : 0;
+      usuario.percentual_presenca = percentual.toFixed(1);
+      
+      turmasMap[turma].push(usuario);
+    }
+    
+    const turmas = Object.keys(turmasMap).map(turma => ({
+      nome: turma,
+      usuarios: turmasMap[turma]
+    }));
+    
+    res.json({ turmas });
+  } catch (error) {
+    console.error('Erro ao buscar histórico por usuário:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getHistoricoPresencas = async (req, res) => {
+  try {
+    const enfermeiraId = req.userId;
+    
+    const [enfermeira] = await pool.execute(
+      'SELECT upa_id FROM enfermeiros WHERE id = ?',
+      [enfermeiraId]
+    );
+    
+    if (enfermeira.length === 0 || !enfermeira[0].upa_id) {
+      return res.json({ historico: [] });
+    }
+    
+    const upaId = enfermeira[0].upa_id;
+    
+    const [historico] = await pool.execute(
+      `SELECT p.data, 
+              COUNT(CASE WHEN p.status = 'presente' THEN 1 END) as presentes,
+              COUNT(CASE WHEN p.status = 'falta' THEN 1 END) as faltas,
+              COUNT(p.id) as total
+       FROM presencas p
+       JOIN matriculas m ON p.matricula_id = m.id
+       WHERE m.upa_id = ?
+       GROUP BY p.data
+       ORDER BY p.data DESC
+       LIMIT 30`,
+      [upaId]
+    );
+    
+    res.json({ historico });
+  } catch (error) {
+    console.error('Erro ao buscar histórico:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getUsuariosDaUPA = async (req, res) => {
+  try {
+    const enfermeiraId = req.userId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || '';
+    const status = req.query.status || '';
+    
+    const offset = (page - 1) * limit;
+    
+    const [enfermeira] = await pool.execute(
+      'SELECT upa_id FROM enfermeiros WHERE id = ?',
+      [enfermeiraId]
+    );
+    
+    if (enfermeira.length === 0 || !enfermeira[0].upa_id) {
+      return res.json({ usuarios: [], total: 0, totalPages: 0 });
+    }
+    
+    const upaId = enfermeira[0].upa_id;
+    
+    let query = `SELECT u.id, u.nome_completo, u.email, u.telefone, u.cpf, u.created_at,
+                        m.id as matricula_id, m.turma_horario, m.segunda_opcao_turma, m.status, m.escolaridade, m.score_fagestrom, m.medicamento, m.comorbidades
+                 FROM usuarios u
+                 INNER JOIN matriculas m ON u.id = m.usuario_id
+                 WHERE m.upa_id = ?`;
+    
+    let countQuery = `SELECT COUNT(*) as total
+                      FROM usuarios u
+                      INNER JOIN matriculas m ON u.id = m.usuario_id
+                      WHERE m.upa_id = ?`;
+    
+    let params = [upaId];
+    let countParams = [upaId];
+    
+    if (status) {
+      query += ` AND m.status = ?`;
+      countQuery += ` AND m.status = ?`;
+      params.push(status);
+      countParams.push(status);
+    }
+    
+    if (search) {
+      query += ` AND (u.nome_completo LIKE ? OR u.email LIKE ?)`;
+      countQuery += ` AND (u.nome_completo LIKE ? OR u.email LIKE ?)`;
+      const searchParam = `%${search}%`;
+      params.push(searchParam, searchParam);
+      countParams.push(searchParam, searchParam);
+    }
+    
+    query += ' ORDER BY u.id DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+    
+    const [usuarios] = await pool.execute(query, params);
+    const [totalResult] = await pool.execute(countQuery, countParams);
+    
+    res.json({
+      usuarios,
+      total: totalResult[0].total,
+      page,
+      totalPages: Math.ceil(totalResult[0].total / limit)
+    });
+  } catch (error) {
+    console.error('Erro ao buscar usuários da UPA:', error);
     res.status(500).json({ error: error.message });
   }
 };

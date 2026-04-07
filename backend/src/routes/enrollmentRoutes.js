@@ -10,4 +10,9 @@ router.get('/my-enrollments', enrollmentController.getUserEnrollments);
 router.put('/:enrollmentId/status', enrollmentController.updateEnrollmentStatus);
 router.delete('/:enrollmentId/cancel', enrollmentController.cancelEnrollment); 
 
+router.get('/minhas-presencas', enrollmentController.getMinhasPresencas);
+router.get('/minhas-presencas/:matriculaId', enrollmentController.getMinhasPresencasPorMatricula);
+
+router.get('/cronograma/:matriculaId', enrollmentController.getCronograma);
+
 module.exports = router;

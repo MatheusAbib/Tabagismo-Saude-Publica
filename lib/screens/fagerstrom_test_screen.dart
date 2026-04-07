@@ -112,20 +112,6 @@ class _FagerstromTestScreenState extends State<FagerstromTestScreen> {
     }
   }
 
-  void _calcularScore() {
-    int score = 0;
-    if (_pergunta1 != null) score += _pergunta1!;
-    if (_pergunta2 != null) score += _pergunta2!;
-    if (_pergunta3 != null) score += _pergunta3!;
-    if (_pergunta4 != null) score += _pergunta4!;
-    if (_pergunta5 != null) score += _pergunta5!;
-    if (_pergunta6 != null) score += _pergunta6!;
-    
-    setState(() {
-      _score = score;
-      _testeRealizado = true;
-    });
-  }
 
   Future<void> _salvarScore() async {
     setState(() => _isSaving = true);
@@ -415,16 +401,6 @@ class _FagerstromTestScreenState extends State<FagerstromTestScreen> {
                 SizedBox(height: 16),
                 Row(
                   children: [
-                    Icon(Icons.refresh, color: _accentColor, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'Deseja refazer o teste?',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF64748B),
-                        fontFamily: 'Inter',
-                      ),
-                    ),
                     Spacer(),
                     ElevatedButton.icon(
                       onPressed: _reiniciarTeste,
@@ -449,65 +425,87 @@ class _FagerstromTestScreenState extends State<FagerstromTestScreen> {
     );
   }
 
-  Widget _buildQuestionsList() {
-    return Column(
-      children: [
-        ..._perguntas.asMap().entries.map((entry) {
-          int index = entry.key;
-          var pergunta = entry.value;
-          return _buildPerguntaCard(
-            numero: index + 1,
-            icon: pergunta['icon'],
-            texto: pergunta['texto'],
-            opcoes: pergunta['opcoes'],
-            valorSelecionado: _getValorSelecionado(index),
-            onChanged: (valor) {
-              setState(() {
-                _setValorSelecionado(index, valor);
-                _calcularScore();
-              });
-            },
-          );
-        }).toList(),
-        
-        if (_testeRealizado) ...[
-          SizedBox(height: 24),
-          _buildScorePreview(),
-          SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isSaving ? null : _salvarScore,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _successColor,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                elevation: 0,
+Widget _buildQuestionsList() {
+  return Column(
+    children: [
+      ..._perguntas.asMap().entries.map((entry) {
+        int index = entry.key;
+        var pergunta = entry.value;
+        return _buildPerguntaCard(
+          numero: index + 1,
+          icon: pergunta['icon'],
+          texto: pergunta['texto'],
+          opcoes: pergunta['opcoes'],
+          valorSelecionado: _getValorSelecionado(index),
+          onChanged: (valor) {
+            setState(() {
+              _setValorSelecionado(index, valor);
+              _calcularScorePreview();
+            });
+          },
+        );
+      }).toList(),
+      
+      if (_todasPerguntasRespondidas()) ...[
+        SizedBox(height: 24),
+        _buildScorePreview(),
+        SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isSaving ? null : _salvarScore,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _successColor,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: _isSaving
-                  ? SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : Text(
-                      'Salvar Resultado',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
+              elevation: 0,
             ),
+            child: _isSaving
+                ? SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : Text(
+                    'Salvar Resultado',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
           ),
-        ],
+        ),
       ],
-    );
-  }
+    ],
+  );
+}
 
+bool _todasPerguntasRespondidas() {
+  return _pergunta1 != null &&
+      _pergunta2 != null &&
+      _pergunta3 != null &&
+      _pergunta4 != null &&
+      _pergunta5 != null &&
+      _pergunta6 != null;
+}
+
+void _calcularScorePreview() {
+  int score = 0;
+  if (_pergunta1 != null) score += _pergunta1!;
+  if (_pergunta2 != null) score += _pergunta2!;
+  if (_pergunta3 != null) score += _pergunta3!;
+  if (_pergunta4 != null) score += _pergunta4!;
+  if (_pergunta5 != null) score += _pergunta5!;
+  if (_pergunta6 != null) score += _pergunta6!;
+  
+  setState(() {
+    _score = score;
+  });
+}
   Widget _buildPerguntaCard({
     required int numero,
     required IconData icon,

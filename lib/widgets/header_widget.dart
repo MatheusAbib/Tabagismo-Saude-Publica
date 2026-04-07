@@ -14,7 +14,6 @@ class HeaderWidget extends StatefulWidget {
   final VoidCallback? onBackPressed;
   final VoidCallback? onSintomasPressed;
   final VoidCallback? onSintomasGraficoPressed;
-  final VoidCallback? onLogoutPressed;
 
   const HeaderWidget({
     Key? key,
@@ -23,7 +22,6 @@ class HeaderWidget extends StatefulWidget {
     this.onNameUpdated,
     this.showBackButton = false,
     this.onBackPressed,
-    this.onLogoutPressed,
     this.onSintomasPressed,
     this.onSintomasGraficoPressed,
   }) : super(key: key);
@@ -38,10 +36,133 @@ class _HeaderWidgetState extends State<HeaderWidget> {
   final Color _accentColor = Color(0xFF2C7DA0);
   final Color _grayColor = Color(0xFF9E9E9E);
 
+  void _showLogoutConfirmationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: 420,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.logout_rounded,
+                    size: 48,
+                    color: Color(0xFFEF4444),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Sair da conta',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Tem certeza que deseja sair?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF475569),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _performLogout();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEF4444),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          'Sair',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _performLogout() async {
+    final authService = AuthService();
+    await authService.logout();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+      (route) => false,
+    );
+  }
+
   void _logout() {
-    if (widget.onLogoutPressed != null) {
-      widget.onLogoutPressed!();
-    }
+    _showLogoutConfirmationDialog();
   }
 
   void _changePassword() async {
@@ -649,88 +770,91 @@ class _HeaderWidgetState extends State<HeaderWidget> {
               ),
             ],
           ),
-          Row(
+Row(
+  children: [
+    Container(
+      height: 40, // Altura fixa adicionada
+      margin: EdgeInsets.only(right: 10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _openUPAScreen,
+          borderRadius: BorderRadius.circular(30),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0), 
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
+                SizedBox(width: 6),
+                Text(
+                  'Turmas de Apoio',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+    Container(
+      height: 40, // Mesma altura fixa adicionada
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: PopupMenuButton<String>(
+        offset: Offset(0, 52),
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          child: Row(
             children: [
               Container(
-                margin: EdgeInsets.only(right: 16),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: _openUPAScreen,
-                    borderRadius: BorderRadius.circular(30),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
-                          SizedBox(width: 6),
-                          Text(
-                            'Encontrar UPAs',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                padding: EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.person_outline, color: Colors.white, size: 16),
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Bem-vindo, ${widget.userName.split(' ').first}',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
-                    width: 1,
-                  ),
-                ),
-                child: PopupMenuButton<String>(
-                  offset: Offset(0, 52),
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.person_outline, color: Colors.white, size: 16),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Bem-vindo, ${widget.userName.split(' ').first}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        SizedBox(width: 6),
-                        Icon(
-                          Icons.arrow_drop_down,
-                          color: Colors.white.withOpacity(0.9),
-                          size: 20,
-                        ),
-                      ],
-                    ),
-                  ),
+              SizedBox(width: 6),
+              Icon(
+                Icons.arrow_drop_down,
+                color: Colors.white.withOpacity(0.9),
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+
                   onSelected: (String value) {
                     if (value == 'diario') {
                       widget.onSintomasPressed?.call();

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:tabagismo_app/services/enrollment_service.dart';
 import 'package:tabagismo_app/widgets/footer_widget.dart';
 import 'package:tabagismo_app/widgets/header_widget.dart';
+import 'package:tabagismo_app/services/auth_service.dart';
+import 'package:tabagismo_app/screens/cronograma_screen.dart';
 
 class MyEnrollmentsScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -32,6 +34,241 @@ class _MyEnrollmentsScreenState extends State<MyEnrollmentsScreen> {
     super.initState();
     _loadEnrollments();
   }
+
+Future<void> _verHistoricoPresencas(int matriculaId) async {
+  try {
+    final authService = AuthService();
+    final response = await authService.getMinhasPresencasPorMatricula(matriculaId);
+    
+    print('RESPOSTA COMPLETA: $response');
+    
+    final presencas = response['presencas'] as List? ?? [];
+    final estatisticas = response['estatisticas'] as Map<String, dynamic>? ?? {
+      'percentual': '0',
+      'presentes': 0,
+      'faltas': 0,
+      'total': 0
+    };
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          width: 600,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.history, color: Color(0xFF8B5CF6), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Meu Histórico de Presenças',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _buildEstatisticasPresenca(estatisticas),
+              const SizedBox(height: 20),
+              const Divider(),
+              const SizedBox(height: 12),
+              const Text(
+                'Registros',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 12),
+              _buildListaPresencas(presencas),
+            ],
+          ),
+        ),
+      ),
+    );
+  } catch (e) {
+    print('ERRO: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erro ao carregar histórico: $e'), backgroundColor: Colors.red.shade400),
+    );
+  }
+}
+
+Widget _buildEstatisticasPresenca(Map<String, dynamic> stats) {
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF8FAFC),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Column(
+            children: [
+              Text(
+                stats['percentual'].toString(),
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Color(0xFF10B981)),
+              ),
+              const Text('Presença', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+            ],
+          ),
+        ),
+        Container(width: 1, height: 40, color: const Color(0xFFE2E8F0)),
+        Expanded(
+          child: Column(
+            children: [
+              Text(
+                stats['presentes'].toString(),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF10B981)),
+              ),
+              const Text('Presentes', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+            ],
+          ),
+        ),
+        Container(width: 1, height: 40, color: const Color(0xFFE2E8F0)),
+        Expanded(
+          child: Column(
+            children: [
+              Text(
+                stats['faltas'].toString(),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFFEF4444)),
+              ),
+              const Text('Faltas', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildListaPresencas(List<dynamic> presencas) {
+  if (presencas.isEmpty) {
+    return const Center(
+      child: Text('Nenhum registro de presença encontrado', style: TextStyle(color: Color(0xFF64748B))),
+    );
+  }
+  
+  Map<String, Color> statusColors = {
+    'presente': const Color(0xFF10B981),
+    'falta': const Color(0xFFEF4444),
+  };
+  
+  String getStatusText(String status) {
+    switch (status) {
+      case 'presente': return 'Presente';
+      case 'falta': return 'Falta';
+      default: return status;
+    }
+  }
+  
+  String getObservacaoText(String? observacao) {
+    if (observacao == '1- Está fumando') return 'Fumando';
+    if (observacao == '2- Sem fumar') return 'Sem fumar';
+    return '-';
+  }
+  
+  Color getObservacaoColor(String? observacao) {
+    if (observacao == '1- Está fumando') return const Color(0xFFF59E0B);
+    if (observacao == '2- Sem fumar') return const Color(0xFF3B82F6);
+    return const Color(0xFF94A3B8);
+  }
+  
+  return Container(
+    constraints: BoxConstraints(maxHeight: 300),
+    child: ListView.separated(
+      shrinkWrap: true,
+      itemCount: presencas.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final p = presencas[index];
+        final status = p['status'];
+        final observacao = p['observacao_semanal'];
+        final color = statusColors[status] ?? Colors.grey;
+        
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _formatarData(p['data']),
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  getStatusText(status),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: color),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (observacao != null && observacao.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: getObservacaoColor(observacao).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: getObservacaoColor(observacao),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        getObservacaoText(observacao),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: getObservacaoColor(observacao),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    ),
+  );
+}
+
 
   Future<void> _loadEnrollments() async {
     setState(() {
@@ -160,44 +397,50 @@ void _verDetalhes(Map<String, dynamic> enrollment) {
     }
   }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'em_espera':
-        return _warningColor;
-      case 'confirmada':
-        return _successColor;
-      case 'cancelada':
-        return _dangerColor;
-      default:
-        return Colors.grey;
-    }
+Color _getStatusColor(String status) {
+  switch (status) {
+    case 'em_espera':
+      return Color(0xFFF59E0B);
+    case 'confirmada':
+      return Color(0xFF10B981);
+    case 'matriculado':
+      return Color(0xFF8B5CF6);
+    case 'cancelada':
+      return Color(0xFFEF4444);
+    default:
+      return Colors.grey;
   }
+}
 
-  IconData _getStatusIcon(String status) {
-    switch (status) {
-      case 'em_espera':
-        return Icons.hourglass_empty;
-      case 'confirmada':
-        return Icons.check_circle;
-      case 'cancelada':
-        return Icons.cancel;
-      default:
-        return Icons.help_outline;
-    }
+IconData _getStatusIcon(String status) {
+  switch (status) {
+    case 'em_espera':
+      return Icons.hourglass_empty;
+    case 'confirmada':
+      return Icons.check_circle;
+    case 'matriculado':
+      return Icons.verified;
+    case 'cancelada':
+      return Icons.cancel;
+    default:
+      return Icons.help_outline;
   }
+}
 
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'em_espera':
-        return 'Em Espera';
-      case 'confirmada':
-        return 'Confirmada';
-      case 'cancelada':
-        return 'Cancelada';
-      default:
-        return status;
-    }
+String _getStatusText(String status) {
+  switch (status) {
+    case 'em_espera':
+      return 'Em Espera';
+    case 'confirmada':
+      return 'Confirmada';
+    case 'matriculado':
+      return 'Matriculado';
+    case 'cancelada':
+      return 'Cancelada';
+    default:
+      return status;
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -265,7 +508,7 @@ Widget _buildInfoBanner() {
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Como funcionam as turmas e grupos de apoio?',
+                'Como funcionam as turmas de apoio?',
                 style: TextStyle(
                   fontSize: 13,
                   color: Colors.blue.shade700,
@@ -510,38 +753,52 @@ Container(
                 SizedBox(height: 16),
                 Divider(color: Colors.grey.shade200),
                 SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (enrollment['status'] == 'em_espera')
-                      TextButton.icon(
-                        onPressed: () => _confirmarCancelamento(enrollment),
-                        icon: Icon(Icons.delete_outline, size: 18, color: _dangerColor),
-                        label: Text(
-                          'Cancelar',
-                          style: TextStyle(color: _dangerColor, fontWeight: FontWeight.w500),
-                        ),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.symmetric(horizontal: 12),
-                        ),
-                      ),
-                    SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: () => _verDetalhes(enrollment),
-                      icon: Icon(Icons.visibility_outlined, size: 18),
-                      label: Text('Ver detalhes'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _accentColor,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                   Row(
+  mainAxisAlignment: MainAxisAlignment.end,
+  children: [
+    if (enrollment['status'] == 'em_espera')
+      TextButton.icon(
+        onPressed: () => _confirmarCancelamento(enrollment),
+        icon: Icon(Icons.delete_outline, size: 18, color: _dangerColor),
+        label: Text('Cancelar', style: TextStyle(color: _dangerColor, fontWeight: FontWeight.w500)),
+      ),
+SizedBox(width: 8),
+OutlinedButton.icon(
+  onPressed: () => _verCronograma(enrollment['id'], enrollment['turma_horario']),
+  icon: Icon(Icons.calendar_month, size: 18, color: const Color(0xFF10B981)),
+  label: Text('Ver Cronograma', style: TextStyle(color: const Color(0xFF10B981))),
+  style: OutlinedButton.styleFrom(
+    side: const BorderSide(color: Color(0xFF10B981)),
+    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  ),
+),
+    SizedBox(width: 8),
+    ElevatedButton.icon(
+      onPressed: () => _verDetalhes(enrollment),
+      icon: Icon(Icons.visibility_outlined, size: 18),
+      label: Text('Ver detalhes'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _accentColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    ),
+    SizedBox(width: 8),
+    OutlinedButton.icon(
+      onPressed: () => _verHistoricoPresencas(enrollment['id']),
+      icon: Icon(Icons.history, size: 18, color: const Color(0xFF8B5CF6)),
+      label: Text('Lista de presença', style: TextStyle(color: const Color(0xFF8B5CF6))),
+      style: OutlinedButton.styleFrom(
+        side: const BorderSide(color: Color(0xFF8B5CF6)),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    ),
+  ],
+),
               ],
             ),
           ),
@@ -549,6 +806,28 @@ Container(
       ),
     );
   }
+
+String _formatarData(String dataStr) {
+  try {
+    DateTime date = DateTime.parse(dataStr);
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  } catch (e) {
+    return dataStr;
+  }
+}
+
+
+void _verCronograma(int matriculaId, String turmaHorario) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => CronogramaScreen(
+        matriculaId: matriculaId,
+        turmaHorario: turmaHorario,
+      ),
+    ),
+  );
+}
 
   Widget _buildStatusMessage(String status) {
     if (status == 'em_espera') {
@@ -962,12 +1241,12 @@ Container(
             SizedBox(height: 12),
             _buildDetailCard('Data da Matrícula', _formatDate(enrollment['created_at']), Icons.calendar_today_outlined),
             SizedBox(height: 12),
-            _buildDetailCard(
-              'Status', 
-              _getStatusText(enrollment['status'] ?? 'em_espera'),
-              _getStatusIcon(enrollment['status'] ?? 'em_espera'),
-              color: _getStatusColor(enrollment['status'] ?? 'em_espera'),
-            ),
+_buildDetailCard(
+  'Status', 
+  _getStatusText(enrollment['status'] ?? 'em_espera'),
+  _getStatusIcon(enrollment['status'] ?? 'em_espera'),
+  color: _getStatusColor(enrollment['status'] ?? 'em_espera'),
+),
             SizedBox(height: 24),
             Divider(color: Colors.grey.shade200),
             SizedBox(height: 16),
@@ -1016,55 +1295,56 @@ Container(
 );
   }
 
-  Widget _buildDetailCard(String label, String value, IconData icon, {Color? color}) {
-    return Container(
-      padding: EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: (_accentColor).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 20, color: _accentColor),
+Widget _buildDetailCard(String label, String value, IconData icon, {Color? color}) {
+  final isStatusCard = label == 'Status';
+  
+  return Container(
+    padding: EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: Colors.grey.shade50,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: Colors.grey.shade200),
+    ),
+    child: Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: (isStatusCard && color != null ? color : _accentColor).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
           ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontFamily: 'Inter',
-                  ),
+          child: Icon(icon, size: 20, color: isStatusCard && color != null ? color : _accentColor),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  fontFamily: 'Inter',
                 ),
-                SizedBox(height: 2),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: color ?? Colors.black87,
-                    fontFamily: 'Inter',
-                  ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: color ?? Colors.black87,
+                  fontFamily: 'Inter',
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
+        ),
+      ],
+    ),
+  );
+}
   Widget _buildComorbidadesSection(String titulo, List<dynamic> comorbidades) {
     if (comorbidades.isEmpty) {
       return SizedBox.shrink();
@@ -1149,42 +1429,49 @@ Container(
     }
   }
 
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'em_espera':
-        return 'Em Espera';
-      case 'confirmada':
-        return 'Confirmada';
-      case 'cancelada':
-        return 'Cancelada';
-      default:
-        return status;
-    }
+String _getStatusText(String status) {
+  switch (status) {
+    case 'em_espera':
+      return 'Em Espera';
+    case 'confirmada':
+      return 'Confirmada';
+    case 'matriculado':    
+      return 'Matriculado';
+    case 'cancelada':
+      return 'Cancelada';
+    default:
+      return status;
   }
+}
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'em_espera':
-        return Color(0xFFF59E0B);
-      case 'confirmada':
-        return Color(0xFF10B981);
-      case 'cancelada':
-        return Color(0xFFEF4444);
-      default:
-        return Colors.grey;
-    }
+Color _getStatusColor(String status) {
+  switch (status) {
+    case 'em_espera':
+      return Color(0xFFF59E0B);
+    case 'confirmada':
+      return Color(0xFF10B981);
+    case 'matriculado':     
+      return Color(0xFF8B5CF6);
+    case 'cancelada':
+      return Color(0xFFEF4444);
+    default:
+      return Colors.grey;
   }
+}
 
-  IconData _getStatusIcon(String status) {
-    switch (status) {
-      case 'em_espera':
-        return Icons.hourglass_empty;
-      case 'confirmada':
-        return Icons.check_circle;
-      case 'cancelada':
-        return Icons.cancel;
-      default:
-        return Icons.help_outline;
-    }
+IconData _getStatusIcon(String status) {
+  switch (status) {
+    case 'em_espera':
+      return Icons.hourglass_empty;
+    case 'confirmada':
+      return Icons.check_circle;
+    case 'matriculado':     
+      return Icons.verified;
+    case 'cancelada':
+      return Icons.cancel;
+    default:
+      return Icons.help_outline;
   }
+}
+
 }

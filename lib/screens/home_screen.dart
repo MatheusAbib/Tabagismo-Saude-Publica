@@ -5,6 +5,7 @@ import 'package:tabagismo_app/widgets/header_widget.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/screens/login_screen.dart';
 import 'package:tabagismo_app/services/sintoma_service.dart';
+import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'dart:html' as html;
 import 'dart:async';
 
@@ -21,120 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late Map<String, dynamic> _userData;
   int _currentBannerIndex = 0;
 
-  void _showLogoutConfirmationDialog() {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return Dialog(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        child: Container(
-          width: 420,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.logout_rounded,
-                  size: 48,
-                  color: Color(0xFFEF4444),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Sair da conta',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Tem certeza que deseja sair?',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Color(0xFF475569),
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _performLogout();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEF4444),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        'Sair',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
+
 
 Future<void> _showSintomasGrafico() async {
   try {
@@ -657,9 +545,20 @@ void _showGoalModal() {
   double? existingValorCarteira;
   
   if (_userData.containsKey('stopDate') && _userData['stopDate'] != null) {
-    final stopDateStr = _userData['stopDate'];
-    if (stopDateStr is String && stopDateStr.isNotEmpty) {
-      existingStopDate = DateTime.parse(stopDateStr);
+    final stopDateStr = _userData['stopDate'].toString();
+    if (stopDateStr.isNotEmpty && stopDateStr != 'null') {
+      try {
+        existingStopDate = DateTime.parse(stopDateStr);
+      } catch (e) {
+        final parts = stopDateStr.split('-');
+        if (parts.length == 3) {
+          existingStopDate = DateTime(
+            int.parse(parts[0]), 
+            int.parse(parts[1]), 
+            int.parse(parts[2])
+          );
+        }
+      }
     }
   }
   if (_userData.containsKey('targetDays') && _userData['targetDays'] != null) {
@@ -785,19 +684,32 @@ void _showGoalModal() {
                                 ),
                               ),
                               TextButton(
-                                onPressed: () async {
-                                  final picked = await showDatePicker(
-                                    context: context,
-                                    initialDate: stopDate ?? DateTime.now(),
-                                    firstDate: DateTime(2020),
-                                    lastDate: DateTime.now(),
-                                  );
-                                  if (picked != null) {
-                                    setState(() {
-                                      stopDate = DateTime(picked.year, picked.month, picked.day);
-                                    });
-                                  }
-                                },
+                            onPressed: () async {
+                              final results = await showCalendarDatePicker2Dialog(
+                                context: context,
+                                config: CalendarDatePicker2WithActionButtonsConfig(
+                                  calendarType: CalendarDatePicker2Type.single,
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime.now(),
+                                  currentDate: DateTime.now(),
+                                  selectedDayHighlightColor: const Color(0xFF3B82F6),
+                                  selectedDayTextStyle: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  cancelButton: const Text('Cancelar'),
+                                  okButton: const Text('Confirmar'),
+                                ),
+                                dialogSize: const Size(350, 450),
+                                value: [stopDate ?? DateTime.now()],
+                              );
+                              
+                              if (results != null && results.isNotEmpty) {
+                                setState(() {
+                                  stopDate = results.first;
+                                });
+                              }
+                            },
                                 style: TextButton.styleFrom(
                                   backgroundColor: const Color(0xFFF1F5F9),
                                   shape: RoundedRectangleBorder(
@@ -1165,13 +1077,14 @@ String _formatDate(DateTime date) {
 void _saveGoal(DateTime stopDate, int targetDays, {int? cigarrosPorDia, double? valorCarteira}) async {
   try {
     final authService = AuthService();
+    
     final formattedDate = '${stopDate.year}-${stopDate.month.toString().padLeft(2, '0')}-${stopDate.day.toString().padLeft(2, '0')}';
     
     await authService.updateGoal(formattedDate, targetDays, cigarrosPorDia, valorCarteira);
     
     if (mounted) {
       setState(() {
-        _userData['stopDate'] = stopDate.toIso8601String();
+        _userData['stopDate'] = formattedDate; 
         _userData['targetDays'] = targetDays;
         if (cigarrosPorDia != null) _userData['cigarrosPorDia'] = cigarrosPorDia;
         if (valorCarteira != null) _userData['valorCarteira'] = valorCarteira;
@@ -1331,6 +1244,7 @@ Timer? _updateTimer;
 void initState() {
   super.initState();
   _userData = widget.userData;
+  print('Nome do usuário: ${_userData['nomeCompleto']}');
   _startAutoCarousel();
   _loadGoalData();
   _startRealtimeUpdate();
@@ -1356,13 +1270,17 @@ void _loadGoalData() async {
     final response = await authService.getUserData();
     final userData = response['user'];
     
-    print('cigarros_por_dia do banco: ${userData['cigarros_por_dia']}');
-    print('valor_carteira do banco: ${userData['valor_carteira']}');
+    print('=== DADOS COMPLETOS DO BACKEND ===');
+    print(userData);
+    print('stop_date: ${userData['stop_date']}');
+    print('target_days: ${userData['target_days']}');
+    print('cigarros_por_dia: ${userData['cigarros_por_dia']}');
+    print('valor_carteira: ${userData['valor_carteira']}');
     
     if (mounted) {
       setState(() {
-        if (userData['stop_date'] != null && userData['stop_date'] != '') {
-          _userData['stopDate'] = userData['stop_date'];
+        if (userData['stop_date'] != null && userData['stop_date'] != '' && userData['stop_date'] != 'null') {
+          _userData['stopDate'] = userData['stop_date'].toString();
         }
         if (userData['target_days'] != null && userData['target_days'] > 0) {
           _userData['targetDays'] = userData['target_days'];
@@ -1385,7 +1303,6 @@ void _loadGoalData() async {
     print('Erro ao carregar meta: $e');
   }
 }
-
   void _startAutoCarousel() {
     Future.delayed(Duration(seconds: 6), () {
       if (mounted) {
@@ -1422,15 +1339,14 @@ void _loadGoalData() async {
         color: Color(0xFFF8FAFC),
         child: Column(
           children: [
-              HeaderWidget(
-                userName: _userData['nomeCompleto'],
-                userData: _userData,
-                onNameUpdated: _updateUserName,
-                showBackButton: false,
-                onLogoutPressed: _showLogoutConfirmationDialog,
-                onSintomasPressed: _showSintomasModal,
-                onSintomasGraficoPressed: _showSintomasGrafico,
-              ),
+HeaderWidget(
+  userName: _userData['nomeCompleto']?.toString() ?? 'Usuário',
+  userData: _userData,
+  onNameUpdated: _updateUserName,
+  showBackButton: false,
+  onSintomasPressed: _showSintomasModal,
+  onSintomasGraficoPressed: _showSintomasGrafico,
+),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -1559,7 +1475,7 @@ Widget _buildHeroBanner() {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            banner['title'],
+                            banner['title']?.toString() ?? '',
                             style: const TextStyle(
                               fontSize: 56,
                               fontWeight: FontWeight.w800,
@@ -1580,7 +1496,7 @@ Widget _buildHeroBanner() {
                           ),
                           const SizedBox(height: 24),
                           Text(
-                            banner['subtitle'],
+                            banner['subtitle']?.toString() ?? '',
                             style: TextStyle(
                               fontSize: 18,
                               color: Colors.white.withValues(alpha: 0.9),
@@ -1605,22 +1521,34 @@ Widget _buildHeroBanner() {
 }
 
   Widget _buildProfileCard() {
-  String memberSince = '';
-  if (_userData.containsKey('created_at') && _userData['created_at'] != null) {
-    DateTime createdDate = DateTime.parse(_userData['created_at']);
+String memberSince = '';
+if (_userData.containsKey('created_at') && _userData['created_at'] != null) {
+  try {
+    DateTime createdDate = DateTime.parse(_userData['created_at'].toString());
     memberSince = '${createdDate.day}/${createdDate.month}/${createdDate.year}';
-  } else {
+  } catch (e) {
     memberSince = '${DateTime.now().year}';
   }
+} else {
+  memberSince = '${DateTime.now().year}';
+}
   
-  DateTime? stopDate;
-  int? targetDays;
-  if (_userData.containsKey('stopDate') && _userData['stopDate'] != null) {
-    final stopDateStr = _userData['stopDate'];
-    if (stopDateStr is String && stopDateStr.isNotEmpty) {
-      stopDate = DateTime.parse(stopDateStr);
+DateTime? stopDate;
+int? targetDays;
+
+if (_userData.containsKey('stopDate') && _userData['stopDate'] != null) {
+  final stopDateStr = _userData['stopDate'];
+  if (stopDateStr is String && stopDateStr.isNotEmpty) {
+    final parts = stopDateStr.split('-');
+    if (parts.length == 3) {
+      stopDate = DateTime(
+        int.parse(parts[0]), 
+        int.parse(parts[1]), 
+        int.parse(parts[2])
+      );
     }
   }
+}
   if (_userData.containsKey('targetDays') && _userData['targetDays'] != null) {
     targetDays = _userData['targetDays'];
   }
@@ -1694,21 +1622,21 @@ Widget _buildHeroBanner() {
             children: [
               Column(
                 children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundImage: NetworkImage(
-                      'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_userData['nomeCompleto'])}&background=3B82F6&color=fff&size=100',
-                    ),
+                CircleAvatar(
+                  radius: 40,
+                  backgroundImage: NetworkImage(
+                    'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_userData['nomeCompleto']?.toString() ?? 'Usuário')}&background=3B82F6&color=fff&size=100',
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _userData['nomeCompleto'],
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F172A),
-                    ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _userData['nomeCompleto']?.toString() ?? 'Usuário',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
                   ),
+                ),
                   const SizedBox(height: 4),
                   Text(
                     'Membro desde $memberSince',

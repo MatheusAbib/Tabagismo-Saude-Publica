@@ -1,9 +1,10 @@
 const pool = require('../config/database');
+const bcrypt = require('bcryptjs');
 
 exports.getStats = async (req, res) => {
   try {
-    const [totalUsuarios] = await pool.execute("SELECT COUNT(*) as total FROM usuarios WHERE tipo_usuario = 'comum'");
-    const [totalEnfermeiras] = await pool.execute("SELECT COUNT(*) as total FROM usuarios WHERE tipo_usuario = 'enfermeira'");
+    const [totalUsuarios] = await pool.execute("SELECT COUNT(*) as total FROM usuarios WHERE tipo_usuario IN ('comum', 'admin')");
+    const [totalEnfermeiras] = await pool.execute("SELECT COUNT(*) as total FROM enfermeiros");
     const [totalMatriculas] = await pool.execute('SELECT COUNT(*) as total FROM matriculas');
     const [totalUPAs] = await pool.execute('SELECT COUNT(*) as total FROM upas');
     const [totalRegistrosSintomas] = await pool.execute('SELECT COUNT(*) as total FROM sintomas_diarios');
@@ -58,7 +59,7 @@ exports.getUsuarioDetalhes = async (req, res) => {
 exports.getUsuarios = async (req, res) => {
   try {
     const [usuarios] = await pool.execute(
-      'SELECT id, nome_completo, email, telefone, is_admin, created_at FROM usuarios ORDER BY id DESC'
+      'SELECT id, nome_completo, email, telefone, is_admin, created_at FROM usuarios WHERE tipo_usuario IN ("comum", "admin") ORDER BY id DESC'
     );
     res.json({ usuarios });
   } catch (error) {
@@ -98,7 +99,7 @@ exports.getUsuariosPaginados = async (req, res) => {
     
     const offset = (page - 1) * limit;
     
-    let query = 'SELECT id, nome_completo, email, telefone, is_admin, tipo_usuario, created_at FROM usuarios WHERE tipo_usuario IN ("comum", "admin")';
+    let query = 'SELECT id, nome_completo, email, telefone, is_admin, created_at FROM usuarios WHERE tipo_usuario IN ("comum", "admin")';
     let countQuery = 'SELECT COUNT(*) as total FROM usuarios WHERE tipo_usuario IN ("comum", "admin")';
     let params = [];
     let countParams = [];
@@ -126,6 +127,109 @@ exports.getUsuariosPaginados = async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao buscar usuários:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getAdminDashboardStats = async (req, res) => {
+  try {
+    const [totalUsuarios] = await pool.execute("SELECT COUNT(*) as total FROM usuarios");
+    const [totalEnfermeiras] = await pool.execute("SELECT COUNT(*) as total FROM enfermeiros");
+    const [totalMatriculas] = await pool.execute('SELECT COUNT(*) as total FROM matriculas');
+    const [totalUPAs] = await pool.execute('SELECT COUNT(*) as total FROM upas');
+    const [totalRegistrosSintomas] = await pool.execute('SELECT COUNT(*) as total FROM sintomas_diarios');
+    
+    const [maiores18] = await pool.execute('SELECT COUNT(*) as total FROM usuarios WHERE idade >= 18');
+    const [menores18] = await pool.execute('SELECT COUNT(*) as total FROM usuarios WHERE idade < 18');
+    
+    const [usuariosComCancer] = await pool.execute('SELECT COUNT(*) as total FROM matriculas WHERE comorbidades LIKE "%cancer%" AND comorbidades NOT LIKE "%nenhum%"');
+    const [usuariosComCardiovascular] = await pool.execute('SELECT COUNT(*) as total FROM matriculas WHERE comorbidades LIKE "%cardiovascular%" AND comorbidades NOT LIKE "%nenhum%"');
+    
+    const [mediaScoreFagestrom] = await pool.execute('SELECT AVG(score_fagestrom) as media FROM matriculas');
+    
+    const [distribuicaoSexo] = await pool.execute('SELECT sexo, COUNT(*) as total FROM usuarios GROUP BY sexo');
+    
+    const [distribuicaoEscolaridade] = await pool.execute('SELECT escolaridade, COUNT(*) as total FROM matriculas GROUP BY escolaridade');
+    
+    const [usuariosPorMes] = await pool.execute('SELECT DATE_FORMAT(created_at, "%Y-%m") as mes, COUNT(*) as total FROM matriculas GROUP BY DATE_FORMAT(created_at, "%Y-%m") ORDER BY mes DESC LIMIT 6');
+    
+    res.json({
+      totalUsuarios: totalUsuarios[0].total,
+      totalEnfermeiras: totalEnfermeiras[0].total,
+      totalMatriculas: totalMatriculas[0].total,
+      totalUPAs: totalUPAs[0].total,
+      totalRegistrosSintomas: totalRegistrosSintomas[0].total,
+      maiores18: maiores18[0].total,
+      menores18: menores18[0].total,
+      usuariosComCancer: usuariosComCancer[0].total,
+      usuariosComCardiovascular: usuariosComCardiovascular[0].total,
+      mediaScoreFagestrom: mediaScoreFagestrom[0].media || 0,
+      distribuicaoSexo: distribuicaoSexo,
+      distribuicaoEscolaridade: distribuicaoEscolaridade,
+      usuariosPorMes: usuariosPorMes,
+    });
+  } catch (error) {
+    console.error('Erro ao buscar estatísticas do dashboard:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getAdminEvolucaoGeral = async (req, res) => {
+  try {
+    const [alunosAtivos] = await pool.execute('SELECT COUNT(DISTINCT u.id) as total FROM usuarios u INNER JOIN matriculas m ON u.id = m.usuario_id WHERE m.status = "matriculado"');
+    
+    const [alunosConcluidos] = await pool.execute('SELECT IFNULL(SUM(total_alunos), 0) as total FROM turmas_concluidas');
+    
+    let fumandoAtivos = 0;
+    let semFumarAtivos = 0;
+    
+    if (alunosAtivos[0].total > 0) {
+      const [fumandoResult] = await pool.execute('SELECT COUNT(DISTINCT o.matricula_id) as total FROM observacoes_semanais o INNER JOIN matriculas m ON o.matricula_id = m.id WHERE m.status = "matriculado" AND o.observacao_semanal = "1- Está fumando" AND o.data = (SELECT MAX(data) FROM observacoes_semanais WHERE matricula_id = o.matricula_id)');
+      fumandoAtivos = fumandoResult[0].total || 0;
+      
+      const [semFumarResult] = await pool.execute('SELECT COUNT(DISTINCT o.matricula_id) as total FROM observacoes_semanais o INNER JOIN matriculas m ON o.matricula_id = m.id WHERE m.status = "matriculado" AND o.observacao_semanal = "2- Sem fumar" AND o.data = (SELECT MAX(data) FROM observacoes_semanais WHERE matricula_id = o.matricula_id)');
+      semFumarAtivos = semFumarResult[0].total || 0;
+    }
+    
+    let fumandoConcluidos = 0;
+    let semFumarConcluidos = 0;
+    
+    if (alunosConcluidos[0].total > 0) {
+      const [fumandoConcluidosResult] = await pool.execute('SELECT COUNT(*) as total FROM alunos_concluidos ac WHERE ac.evolucao LIKE "%1- Está fumando%"');
+      fumandoConcluidos = fumandoConcluidosResult[0].total || 0;
+      
+      const [semFumarConcluidosResult] = await pool.execute('SELECT COUNT(*) as total FROM alunos_concluidos ac WHERE ac.evolucao LIKE "%2- Sem fumar%"');
+      semFumarConcluidos = semFumarConcluidosResult[0].total || 0;
+    }
+    
+    const [evolucaoMensal] = await pool.execute('SELECT DATE_FORMAT(o.data, "%Y-%m") as mes, SUM(CASE WHEN o.observacao_semanal = "1- Está fumando" THEN 1 ELSE 0 END) as fumando, SUM(CASE WHEN o.observacao_semanal = "2- Sem fumar" THEN 1 ELSE 0 END) as sem_fumar FROM observacoes_semanais o INNER JOIN matriculas m ON o.matricula_id = m.id WHERE m.status = "matriculado" GROUP BY DATE_FORMAT(o.data, "%Y-%m") ORDER BY mes ASC LIMIT 12');
+    
+    const [alunosDetalhados] = await pool.execute('SELECT u.id, u.nome_completo, m.turma_horario, (SELECT observacao_semanal FROM observacoes_semanais WHERE matricula_id = m.id AND data = (SELECT MAX(data) FROM observacoes_semanais WHERE matricula_id = m.id) LIMIT 1) as ultima_observacao, IFNULL((SELECT COUNT(*) FROM observacoes_semanais WHERE matricula_id = m.id AND observacao_semanal = "1- Está fumando"), 0) as semanas_fumando, IFNULL((SELECT COUNT(*) FROM observacoes_semanais WHERE matricula_id = m.id AND observacao_semanal = "2- Sem fumar"), 0) as semanas_sem_fumar FROM usuarios u INNER JOIN matriculas m ON u.id = m.usuario_id WHERE m.status = "matriculado" ORDER BY u.nome_completo ASC');
+    
+    const totalAtivos = alunosAtivos[0].total || 0;
+    const totalConcluidos = alunosConcluidos[0].total || 0;
+    
+    const taxaSucessoAtivos = totalAtivos > 0 ? ((semFumarAtivos / totalAtivos) * 100).toFixed(1) : 0;
+    const taxaSucessoConcluidos = totalConcluidos > 0 ? ((semFumarConcluidos / totalConcluidos) * 100).toFixed(1) : 0;
+    
+    res.json({
+      alunos_ativos: {
+        total: totalAtivos,
+        fumando: fumandoAtivos,
+        sem_fumar: semFumarAtivos,
+        taxa_sucesso: parseFloat(taxaSucessoAtivos)
+      },
+      alunos_concluidos: {
+        total: totalConcluidos,
+        fumando: fumandoConcluidos,
+        sem_fumar: semFumarConcluidos,
+        taxa_sucesso: parseFloat(taxaSucessoConcluidos)
+      },
+      evolucao_mensal_ativos: evolucaoMensal,
+      alunos_detalhados: alunosDetalhados
+    });
+  } catch (error) {
+    console.error('Erro ao buscar evolução geral admin:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -225,14 +329,14 @@ exports.deletarUPA = async (req, res) => {
   }
 };
 
+
 exports.getEnfermeiras = async (req, res) => {
   try {
     const [enfermeiras] = await pool.execute(
-      `SELECT u.id, u.nome_completo, u.email, u.telefone, u.upa_id, up.nome as upa_nome 
-       FROM usuarios u 
-       LEFT JOIN upas up ON u.upa_id = up.id 
-       WHERE u.tipo_usuario = 'enfermeira' 
-       ORDER BY u.id DESC`
+      `SELECT e.id, e.nome_completo, e.email, e.telefone, e.upa_id, up.nome as upa_nome, e.tipo_usuario 
+       FROM enfermeiros e
+       LEFT JOIN upas up ON e.upa_id = up.id 
+       ORDER BY e.id DESC`
     );
     res.json({ enfermeiras });
   } catch (error) {
@@ -247,11 +351,10 @@ exports.criarEnfermeira = async (req, res) => {
     
     console.log('Dados recebidos:', { nomeCompleto, email, senha, telefone, upaId });
     
-    const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash(senha, 10);
     
     const [result] = await pool.execute(
-      'INSERT INTO usuarios (nome_completo, email, senha, telefone, tipo_usuario, upa_id) VALUES (?, ?, ?, ?, "enfermeira", ?)',
+      'INSERT INTO enfermeiros (nome_completo, email, senha, telefone, upa_id, tipo_usuario) VALUES (?, ?, ?, ?, ?, "enfermeira")',
       [nomeCompleto, email, hashedPassword, telefone, upaId || null]
     );
     
@@ -268,7 +371,7 @@ exports.atualizarEnfermeira = async (req, res) => {
     const { nomeCompleto, email, telefone, upaId } = req.body;
     
     const [result] = await pool.execute(
-      'UPDATE usuarios SET nome_completo = ?, email = ?, telefone = ?, upa_id = ? WHERE id = ? AND tipo_usuario = "enfermeira"',
+      'UPDATE enfermeiros SET nome_completo = ?, email = ?, telefone = ?, upa_id = ? WHERE id = ?',
       [nomeCompleto, email, telefone, upaId, id]
     );
     
@@ -287,10 +390,7 @@ exports.deletarEnfermeira = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const [result] = await pool.execute(
-      'DELETE FROM usuarios WHERE id = ? AND tipo_usuario = "enfermeira"',
-      [id]
-    );
+    const [result] = await pool.execute('DELETE FROM enfermeiros WHERE id = ?', [id]);
     
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Enfermeira não encontrada' });
@@ -312,7 +412,6 @@ exports.getUPAsParaEnfermeira = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 exports.atualizarMatricula = async (req, res) => {
   try {

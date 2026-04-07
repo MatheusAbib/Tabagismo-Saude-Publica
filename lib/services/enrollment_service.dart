@@ -21,6 +21,15 @@ class EnrollmentService {
     }
   }
 
+  Future<Map<String, dynamic>> getTurmasPorUPA(int upaId) async {
+  try {
+    final response = await _api.get('/enfermeira/turmas/$upaId');
+    return response;
+  } catch (e) {
+    throw Exception('Erro ao buscar turmas: $e');
+  }
+}
+
   Future<Map<String, dynamic>> updateStatus(int enrollmentId, String status) async {
     try {
       final response = await _api.put('/enrollment/$enrollmentId/status', {

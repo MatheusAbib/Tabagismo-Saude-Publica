@@ -1,4 +1,6 @@
-﻿const User = require('../models/User');
+﻿// backend/src/controllers/authController.js
+const User = require('../models/User');
+const Enfermeiro = require('../models/Enfermeiro');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -28,7 +30,14 @@ exports.login = async (req, res) => {
   try {
     const { email, senha } = req.body;
     
-    const user = await User.findByEmail(email);
+    let user = await User.findByEmail(email);
+    let tipo = 'comum';
+    
+    if (!user) {
+      user = await Enfermeiro.findByEmail(email);
+      tipo = 'enfermeira';
+    }
+    
     if (!user) {
       return res.status(401).json({ message: 'Email ou senha inválidos' });
     }
@@ -39,34 +48,50 @@ exports.login = async (req, res) => {
     }
     
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, tipo: tipo },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
     
-const userData = {
-  id: user.id,
-  nomeCompleto: user.nome_completo,
-  sexo: user.sexo,
-  dataNascimento: user.data_nascimento,
-  idade: user.idade,
-  email: user.email,
-  cpf: user.cpf,
-  telefone: user.telefone,
-  score_fagestrom: user.score_fagestrom,
-  stop_date: user.stop_date,
-  target_days: user.target_days,
-  cigarros_por_dia: user.cigarros_por_dia,
-  valor_carteira: user.valor_carteira,
-  is_admin: user.is_admin || 0,
-  tipo_usuario: user.tipo_usuario || 'comum',
-  upa_id: user.upa_id,
-};
-        
+    let userData;
+    
+    if (tipo === 'enfermeira') {
+      userData = {
+        id: user.id,
+        nomeCompleto: user.nome_completo,
+        email: user.email,
+        telefone: user.telefone,
+        tipo_usuario: user.tipo_usuario || 'enfermeira',
+        upa_id: user.upa_id,
+        upa_nome: user.upa_nome,
+      };
+    } else {
+      userData = {
+        id: user.id,
+        nomeCompleto: user.nome_completo,
+        sexo: user.sexo,
+        dataNascimento: user.data_nascimento,
+        idade: user.idade,
+        email: user.email,
+        cpf: user.cpf,
+        telefone: user.telefone,
+        score_fagestrom: user.score_fagestrom,
+        stop_date: user.stop_date,
+        target_days: user.target_days,
+        cigarros_por_dia: user.cigarros_por_dia,
+        valor_carteira: user.valor_carteira,
+        is_admin: user.is_admin || 0,
+        tipo_usuario: user.tipo_usuario || 'comum',
+        upa_id: user.upa_id,
+        upa_nome: user.upa_nome,
+      };
+    }
+    
     res.json({ 
       message: 'Login realizado com sucesso',
       token,
-      user: userData
+      user: userData,
+      tipo: tipo
     });
   } catch (error) {
     console.error(error);

@@ -7,9 +7,20 @@ exports.getUserData = async (req, res) => {
     const userId = req.userId;
     const user = await User.findById(userId);
     
+    console.log('USER DO BANCO:', user);
+    console.log('stop_date raw:', user.stop_date);
+    
     if (!user) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
+    
+    let stopDateFormatted = null;
+    if (user.stop_date) {
+      const dateStr = new Date(user.stop_date).toISOString().split('T')[0];
+      stopDateFormatted = dateStr;
+    }
+    
+    console.log('stopDateFormatted:', stopDateFormatted);
     
     res.json({ 
       success: true,
@@ -23,10 +34,10 @@ exports.getUserData = async (req, res) => {
         cpf: user.cpf || '',
         telefone: user.telefone || '',
         scoreFagestrom: user.score_fagestrom,
-        stop_date: user.stop_date,
-        target_days: user.target_days,
-        cigarros_por_dia: user.cigarros_por_dia,
-        valor_carteira: user.valor_carteira,
+        stop_date: stopDateFormatted,
+        target_days: user.target_days || null,
+        cigarros_por_dia: user.cigarros_por_dia || null,
+        valor_carteira: user.valor_carteira || null,
         is_admin: user.is_admin || 0,
         tipo_usuario: user.tipo_usuario || 'comum',
         upa_id: user.upa_id,
@@ -91,9 +102,13 @@ exports.updateUser = async (req, res) => {
 
 exports.updateGoal = async (req, res) => {
   const userId = req.userId;
-  const { stopDate, targetDays, cigarrosPorDia, valorCarteira } = req.body;
+  let { stopDate, targetDays, cigarrosPorDia, valorCarteira } = req.body;
   
   try {
+    if (stopDate) {
+      stopDate = stopDate.split('T')[0];
+    }
+    
     const query = 'UPDATE usuarios SET stop_date = ?, target_days = ?, cigarros_por_dia = ?, valor_carteira = ? WHERE id = ?';
     await pool.execute(query, [stopDate, targetDays, cigarrosPorDia, valorCarteira, userId]);
     res.json({ message: 'Meta atualizada com sucesso' });

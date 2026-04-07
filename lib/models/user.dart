@@ -8,6 +8,7 @@ class User {
   final String senha;
   final String? cpf;
   final String? telefone;
+  final String? tipoUsuario; 
 
   User({
     this.id,
@@ -19,6 +20,7 @@ class User {
     required this.senha,
     this.cpf,
     this.telefone,
+    this.tipoUsuario, 
   });
 
   Map<String, dynamic> toJson() {
@@ -32,6 +34,7 @@ class User {
       'senha': senha,
       'cpf': cpf,
       'telefone': telefone,
+      'tipoUsuario': tipoUsuario,
     };
   }
 
@@ -46,6 +49,7 @@ class User {
       senha: json['senha'],
       cpf: json['cpf'],
       telefone: json['telefone'],
+      tipoUsuario: json['tipo_usuario'],
     );
   }
 }
