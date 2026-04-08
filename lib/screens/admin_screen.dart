@@ -3,7 +3,6 @@ import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/screens/admin_usuario_detalhes.dart';
 import 'package:tabagismo_app/screens/login_screen.dart';
-import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 import 'package:tabagismo_app/services/pdf_service.dart';
 import 'package:tabagismo_app/services/cep_service.dart';
 import 'package:flutter/services.dart';
@@ -50,7 +49,6 @@ TextEditingController _searchEnfermeiraController = TextEditingController();
   
   final Color _primaryColor = const Color(0xFF0F2B3D);
   final Color _accentColor = const Color(0xFF2C7DA0);
-  final GlobalKey _usuariosListKey = GlobalKey();
 
 @override
 void initState() {
@@ -193,10 +191,175 @@ void _logout() {
   _showLogoutConfirmationDialog();
 }
 
-  Future<void> _changePassword() async {
-    final currentPasswordController = TextEditingController();
-    final newPasswordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
+Future<void> _changePassword() async {
+  final currentPasswordController = TextEditingController();
+  final newPasswordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+  bool isLoading = false;
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            width: 450,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2C7DA0).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.lock_outline, color: Color(0xFF2C7DA0), size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Alterar Senha',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: currentPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Senha Atual',
+                    prefixIcon: Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: newPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Nova Senha',
+                    prefixIcon: Icon(Icons.lock_reset),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: confirmPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirmar Nova Senha',
+                    prefixIcon: Icon(Icons.verified_user),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                          child: const Text(
+                            'Cancelar',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: isLoading ? null : () async {
+                          if (newPasswordController.text != confirmPasswordController.text) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('As senhas não coincidem'), backgroundColor: Colors.red),
+                            );
+                            return;
+                          }
+                          setState(() => isLoading = true);
+                          try {
+                            final authService = AuthService();
+                            await authService.changeUserPassword(
+                              currentPasswordController.text,
+                              newPasswordController.text,
+                            );
+                            if (mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Senha alterada com sucesso!'), backgroundColor: Color(0xFF10B981)),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Erro ao alterar senha: $e'), backgroundColor: Colors.red.shade400),
+                              );
+                            }
+                          } finally {
+                            setState(() => isLoading = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.save, size: 18, color: Colors.white),
+                                  SizedBox(width: 8),
+                                  Text('Salvar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+  Future<void> _editData() async {
+  try {
+    final authService = AuthService();
+    final response = await authService.getUserData();
+    final userData = response['user'];
+
+    final nomeController = TextEditingController(text: userData['nomeCompleto']);
+    String? sexoSelecionado = userData['sexo'];
+    final emailController = TextEditingController(text: userData['email']);
+    final telefoneController = MaskedTextController(
+      mask: '(00) 00000-0000',
+      text: userData['telefone'] != null ? _formatTelefone(userData['telefone']) : '',
+    );
+    
+    final cpf = userData['cpf'] != null ? _formatCpf(userData['cpf']) : 'Não informado';
     bool isLoading = false;
 
     showDialog(
@@ -204,346 +367,218 @@ void _logout() {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
-            insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
-            contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-            backgroundColor: Colors.white,
+          return Dialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Row(
-              children: [
-                Icon(Icons.lock_outline, color: _accentColor, size: 26),
-                const SizedBox(width: 10),
-                const Text(
-                  'Alterar Senha',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 20,
-                  ),
-                ),
-              ],
-            ),
-            content: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.30,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              width: 480,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2C7DA0).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.edit_outlined, color: Color(0xFF2C7DA0), size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Editar Dados',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
                   TextField(
-                    controller: currentPasswordController,
-                    obscureText: true,
+                    controller: nomeController,
                     decoration: const InputDecoration(
-                      labelText: 'Senha Atual',
-                      prefixIcon: Icon(Icons.lock_outline),
+                      labelText: 'Nome Completo',
+                      prefixIcon: Icon(Icons.person),
                       border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: newPasswordController,
-                    obscureText: true,
+                  DropdownButtonFormField<String>(
+                    value: sexoSelecionado,
                     decoration: const InputDecoration(
-                      labelText: 'Nova Senha',
-                      prefixIcon: Icon(Icons.lock_reset_outlined),
+                      labelText: 'Sexo',
+                      prefixIcon: Icon(Icons.wc),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    ),
+                    items: ['Masculino', 'Feminino', 'Outro'].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        sexoSelecionado = newValue;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email),
                       border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                     ),
                   ),
                   const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade400),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.assignment_ind, color: Colors.grey.shade600, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'CPF',
+                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                              Text(
+                                cpf,
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   TextField(
-                    controller: confirmPasswordController,
-                    obscureText: true,
+                    controller: telefoneController,
+                    keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
-                      labelText: 'Confirmar Nova Senha',
-                      prefixIcon: Icon(Icons.verified_user_outlined),
+                      labelText: 'Telefone',
+                      hintText: '(11) 91234-5678',
+                      prefixIcon: Icon(Icons.phone),
                       border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                            child: const Text(
+                            'Cancelar',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isLoading
+                              ? null
+                              : () async {
+                                  if (telefoneController.text.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Telefone é obrigatório'), backgroundColor: Colors.red),
+                                    );
+                                    return;
+                                  }
+
+                                  String telefoneLimpo = telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
+                                  if (telefoneLimpo.length != 11) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Telefone inválido (DDD + 9 dígitos)'), backgroundColor: Colors.red),
+                                    );
+                                    return;
+                                  }
+
+                                  setState(() => isLoading = true);
+
+                                  try {
+                                    final authService = AuthService();
+                                    await authService.updateUserData({
+                                      'nomeCompleto': nomeController.text,
+                                      'sexo': sexoSelecionado,
+                                      'email': emailController.text,
+                                      'telefone': telefoneLimpo,
+                                    });
+
+                                    if (mounted) {
+                                      Navigator.pop(context);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Dados atualizados com sucesso!'), backgroundColor: Color(0xFF10B981)),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Erro ao atualizar dados: $e'), backgroundColor: Colors.red.shade400),
+                                      );
+                                    }
+                                  } finally {
+                                    setState(() => isLoading = false);
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: isLoading
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.save, size: 18, color: Colors.white),
+                                    SizedBox(width: 8),
+                                    Text('Salvar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: isLoading
-                    ? null
-                    : () async {
-                        if (newPasswordController.text != confirmPasswordController.text) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('As senhas não coincidem')),
-                          );
-                          return;
-                        }
-
-                        setState(() => isLoading = true);
-
-                        try {
-                          final authService = AuthService();
-                          await authService.changeUserPassword(
-                            currentPasswordController.text,
-                            newPasswordController.text,
-                          );
-
-                          if (mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Senha alterada com sucesso!')),
-                            );
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Erro ao alterar senha: $e')),
-                            );
-                          }
-                        } finally {
-                          setState(() => isLoading = false);
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _accentColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-                child: isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('Alterar'),
-              ),
-            ],
           );
         },
       ),
     );
-  }
-
-  Future<void> _editData() async {
-    try {
-      final authService = AuthService();
-      final response = await authService.getUserData();
-      final userData = response['user'];
-
-      final nomeController = TextEditingController(text: userData['nomeCompleto']);
-      String? sexoSelecionado = userData['sexo'];
-      final emailController = TextEditingController(text: userData['email']);
-      final telefoneController = MaskedTextController(
-        mask: '(00) 00000-0000',
-        text: userData['telefone'] != null ? _formatTelefone(userData['telefone']) : '',
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar dados: $e'), backgroundColor: Colors.red.shade400),
       );
-
-      
-      final cpf = userData['cpf'] != null ? _formatCpf(userData['cpf']) : 'Não informado';
-      bool isLoading = false;
-      String? telefoneError;
-
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
-              contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Row(
-                children: [
-                  Icon(Icons.edit_outlined, color: _accentColor, size: 26),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'Editar Dados',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 20,
-                    ),
-                  ),
-                ],
-              ),
-              content: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.30,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: nomeController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nome Completo',
-                          prefixIcon: Icon(Icons.person_outline),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: sexoSelecionado,
-                        decoration: const InputDecoration(
-                          labelText: 'Sexo',
-                          prefixIcon: Icon(Icons.wc_outlined),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                        ),
-                        items: ['Masculino', 'Feminino', 'Outro'].map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          setState(() {
-                            sexoSelecionado = newValue;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: emailController,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: Icon(Icons.email_outlined),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade400),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.assignment_ind, color: Colors.grey.shade600, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'CPF',
-                                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                                  ),
-                                  Text(
-                                    cpf,
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          TextField(
-                                controller: telefoneController,
-                                keyboardType: TextInputType.phone,
-                                decoration: const InputDecoration(
-                                  labelText: 'Telefone',
-                                  hintText: '(11) 1234-5678 ou (11) 91234-5678',
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                                ),
-                            onChanged: (value) {
-                              setState(() {
-                                if (value.isNotEmpty) {
-                                  String telefoneLimpo = value.replaceAll(RegExp(r'[^\d]'), '');
-                                  if (telefoneLimpo.length != 11) {
-                                    telefoneError = 'Telefone inválido (DDD + 9 dígitos)';
-                                  } else {
-                                    telefoneError = null;
-                                  }
-                                } else {
-                                  telefoneError = 'Telefone é obrigatório';
-                                }
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar'),
-                ),
-                ElevatedButton(
-                  onPressed: isLoading
-                      ? null
-                      : () async {
-                          if (telefoneController.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Telefone é obrigatório')),
-                            );
-                            return;
-                          }
-
-                          String telefoneLimpo = telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
-                          if (telefoneLimpo.length != 11) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Telefone inválido (DDD + 9 dígitos)')),
-                            );
-                            return;
-                          }
-
-                          setState(() => isLoading = true);
-
-                          try {
-                            final authService = AuthService();
-                            await authService.updateUserData({
-                              'nomeCompleto': nomeController.text,
-                              'sexo': sexoSelecionado,
-                              'email': emailController.text,
-                              'telefone': telefoneLimpo,
-                            });
-
-                            if (mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Dados atualizados com sucesso!')),
-                              );
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Erro ao atualizar dados: $e')),
-                              );
-                            }
-                          } finally {
-                            setState(() => isLoading = false);
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _accentColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  ),
-                  child: isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        ),
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar dados: $e')),
-        );
-      }
     }
   }
+}
 
   String _formatTelefone(String telefone) {
     if (telefone.length == 11) {
@@ -640,7 +675,6 @@ void _editarUsuario(Map<String, dynamic> usuario) {
   final nomeController = TextEditingController(text: usuario['nome_completo']);
   final emailController = TextEditingController(text: usuario['email']);
   
-  // Cria um controller com máscara para telefone
   final telefoneController = MaskedTextController(
     mask: '(00) 00000-0000',
     text: usuario['telefone'] != null && usuario['telefone'].toString().length == 11 
@@ -656,8 +690,8 @@ void _editarUsuario(Map<String, dynamic> usuario) {
           return Dialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             child: Container(
-              padding: const EdgeInsets.all(20),
-              width: 450,
+              padding: const EdgeInsets.all(24),
+              width: 480,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -667,10 +701,10 @@ void _editarUsuario(Map<String, dynamic> usuario) {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF3B82F6).withOpacity(0.1),
+                          color: const Color(0xFF2C7DA0).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.edit, color: Color(0xFF3B82F6), size: 24),
+                        child: const Icon(Icons.edit, color: Color(0xFF2C7DA0), size: 24),
                       ),
                       const SizedBox(width: 12),
                       const Text(
@@ -689,6 +723,7 @@ void _editarUsuario(Map<String, dynamic> usuario) {
                     controller: nomeController,
                     decoration: const InputDecoration(
                       labelText: 'Nome Completo',
+                      prefixIcon: Icon(Icons.person),
                       border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                     ),
                   ),
@@ -697,6 +732,7 @@ void _editarUsuario(Map<String, dynamic> usuario) {
                     controller: emailController,
                     decoration: const InputDecoration(
                       labelText: 'Email',
+                      prefixIcon: Icon(Icons.email),
                       border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                     ),
                   ),
@@ -706,7 +742,7 @@ void _editarUsuario(Map<String, dynamic> usuario) {
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
                       labelText: 'Telefone',
-                      hintText: '(11) 91234-5678',
+                      prefixIcon: Icon(Icons.phone),
                       border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                     ),
                   ),
@@ -721,7 +757,14 @@ void _editarUsuario(Map<String, dynamic> usuario) {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Text('Cancelar'),
+                            child: const Text(
+                            'Cancelar',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -753,11 +796,18 @@ void _editarUsuario(Map<String, dynamic> usuario) {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3B82F6),
+                            backgroundColor: const Color(0xFF10B981),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Text('Salvar'),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.save, size: 18, color: Colors.white),
+                              SizedBox(width: 8),
+                              Text('Salvar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -771,7 +821,6 @@ void _editarUsuario(Map<String, dynamic> usuario) {
     },
   );
 }
-  // --- BUILD PRINCIPAL COM O HEADER ---
   
   @override
   Widget build(BuildContext context) {
@@ -935,20 +984,20 @@ void _editarUsuario(Map<String, dynamic> usuario) {
               ),
             ),
             // TabBar
-            Container(
-              color: Colors.white,
-              child: TabBar(
-                indicatorColor: const Color(0xFF8B5CF6),
-                labelColor: const Color(0xFF8B5CF6),
-                unselectedLabelColor: const Color(0xFF64748B),
-                tabs: _tabTitles.map((title) => Tab(text: title)).toList(),
-                onTap: (index) {
-                  setState(() {
-                    _selectedIndex = index;
-                  });
-                },
-              ),
+          Container(
+            color: Colors.white,
+            child: TabBar(
+              indicatorColor: _accentColor,
+              labelColor: _accentColor,
+              unselectedLabelColor: const Color(0xFF64748B),
+              tabs: _tabTitles.map((title) => Tab(text: title)).toList(),
+              onTap: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              },
             ),
+          ),
             // Conteúdo
             Expanded(
               child: IndexedStack(
@@ -1014,7 +1063,7 @@ Widget _buildUsuariosList() {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 2),
+                    borderSide: BorderSide(color: _accentColor, width: 2),
                   ),
                   filled: true,
                   fillColor: Colors.white,
@@ -1071,17 +1120,17 @@ Widget _buildPagination() {
         ),
       ),
       const SizedBox(width: 8),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF8B5CF6).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          'Página $_currentPage de $_totalPages',
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF8B5CF6)),
-        ),
-      ),
+Container(
+  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  decoration: BoxDecoration(
+    color: _accentColor.withOpacity(0.1),
+    borderRadius: BorderRadius.circular(8),
+  ),
+  child: Text(
+    'Página $_currentPageUPAs de $_totalPagesUPAs',
+    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _accentColor),
+  ),
+),
       const SizedBox(width: 8),
       IconButton(
         icon: const Icon(Icons.chevron_right),
@@ -1108,13 +1157,13 @@ Widget _buildPagination() {
         ],
       ),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: isAdmin ? const Color(0xFF8B5CF6) : const Color(0xFF3B82F6),
-          child: Text(
-            usuario['nome_completo'][0].toUpperCase(),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-          ),
-        ),
+            leading: CircleAvatar(
+              backgroundColor: isAdmin ? _accentColor : const Color(0xFF3B82F6),
+              child: Text(
+                usuario['nome_completo'][0].toUpperCase(),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+            ),
         title: Text(
           usuario['nome_completo'],
           style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
@@ -1126,15 +1175,15 @@ Widget _buildPagination() {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (isAdmin)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text('Admin', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF8B5CF6))),
+          if (isAdmin)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _accentColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
+              child: Text('Admin', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _accentColor)),
+            ),
             IconButton(
               icon: const Icon(Icons.edit, color: Color(0xFF3B82F6)),
               onPressed: () => _editarUsuario(usuario),
@@ -1248,14 +1297,14 @@ Widget _buildStatsRow(Map<String, dynamic> data) {
         ),
       ),
       const SizedBox(width: 16),
-      Expanded(
-        child: _buildStatCard(
-          'Enfermeiras',
-          _parseToInt(data['totalEnfermeiras']),
-          Icons.medical_services,
-          const Color(0xFF8B5CF6),
-        ),
+    Expanded(
+      child: _buildStatCard(
+        'Enfermeiras',
+        _parseToInt(data['totalEnfermeiras']),
+        Icons.medical_services,
+        _accentColor,
       ),
+    ),
       const SizedBox(width: 16),
       Expanded(
         child: _buildStatCard(
@@ -1298,7 +1347,7 @@ Widget _buildDemographicSection(Map<String, dynamic> data) {
           ),
           child: const Row(
             children: [
-              Icon(Icons.people_outline, size: 20, color: Color(0xFF8B5CF6)),
+              Icon(Icons.people_outline, size: 20, color: Color(0xFF2C7DA0)),
               SizedBox(width: 8),
               Text('Demografia', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
             ],
@@ -1362,7 +1411,7 @@ Widget _buildHealthSection(Map<String, dynamic> data) {
                 ],
               ),
               const SizedBox(height: 16),
-              _buildHealthItem('Média Score Fagerström', '${_parseToDouble(data['mediaScoreFagestrom']).toStringAsFixed(1)} pontos', Icons.assessment, const Color(0xFF8B5CF6)),
+          _buildHealthItem('Média Score Fagerström', '${_parseToDouble(data['mediaScoreFagestrom']).toStringAsFixed(1)} pontos', Icons.assessment, _accentColor),
             ],
           ),
         ),
@@ -1395,7 +1444,7 @@ Widget _buildEvolucaoSection(Map<String, dynamic> data) {
           ),
           child: const Row(
             children: [
-              Icon(Icons.trending_up, size: 20, color: Color(0xFF8B5CF6)),
+              Icon(Icons.trending_up, size: 20, color: Color(0xFF2C7DA0)),
               SizedBox(width: 8),
               Text('Evolução dos Alunos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
             ],
@@ -1745,17 +1794,17 @@ Widget _buildAdminAlunosDetalhados(Map<String, dynamic> data) {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF8B5CF6).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _accentColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${_adminEvolucaoPage + 1} de $totalPages',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: _accentColor),
+                        ),
                       ),
-                      child: Text(
-                        '${_adminEvolucaoPage + 1} de $totalPages',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF8B5CF6)),
-                      ),
-                    ),
                     const SizedBox(width: 8),
                     IconButton(
                       icon: const Icon(Icons.chevron_right, size: 20),
@@ -1806,7 +1855,7 @@ Widget _buildChartSection(Map<String, dynamic> data) {
           ),
           child: const Row(
             children: [
-              Icon(Icons.show_chart, size: 20, color: Color(0xFF8B5CF6)),
+              Icon(Icons.show_chart, size: 20, color: Color(0xFF2C7DA0)),
               SizedBox(width: 8),
               Text('Matrículas por Mês', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
             ],
@@ -1962,7 +2011,7 @@ Widget _buildSexoDistribution(List<dynamic> sexoData) {
           const SizedBox(width: 12),
           Expanded(child: _buildSexoBar('Feminino', feminino, const Color(0xFFEC4899))),
           const SizedBox(width: 12),
-          Expanded(child: _buildSexoBar('Outro', outro, const Color(0xFF8B5CF6))),
+          Expanded(child: _buildSexoBar('Outro', outro, _accentColor)),
         ],
       ),
     ],
@@ -2007,10 +2056,6 @@ Widget _buildLegendaItem(Color cor, String texto) {
   );
 }
 
-String _parseToString(dynamic value) {
-  if (value == null) return '0';
-  return value.toString();
-}
 
 int _parseToInt(dynamic value) {
   if (value == null) return 0;
@@ -2269,37 +2314,38 @@ void _abrirModalUPA({Map<String, dynamic>? upa}) async {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF8B5CF6).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(isEditing ? Icons.edit : Icons.add, color: const Color(0xFF8B5CF6), size: 24),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(isEditing ? Icons.edit : Icons.add, color: const Color(0xFF10B981), size: 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              isEditing ? 'Editar UPA' : 'Nova UPA',
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Text(
-                          isEditing ? 'Editar UPA' : 'Nova UPA',
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 20),
                     
-                    TextField(
-                      controller: nomeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nome da UPA',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      TextField(
+                        controller: nomeController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nome da UPA',
+                          prefixIcon: Icon(Icons.local_hospital),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 16),
                     
                     Container(
@@ -2363,33 +2409,39 @@ void _abrirModalUPA({Map<String, dynamic>? upa}) async {
                             controller: ruaController,
                             decoration: const InputDecoration(
                               labelText: 'Rua',
+                              prefixIcon: Icon(Icons.location_on),
                               border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                             ),
                           ),
+
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           flex: 1,
-                          child: TextField(
-                            controller: numeroController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Número',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                          child: 
+                            TextField(
+                              controller: numeroController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Número',
+                                prefixIcon: Icon(Icons.numbers),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                              ),
                             ),
-                          ),
+
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     
-                    TextField(
-                      controller: bairroController,
-                      decoration: const InputDecoration(
-                        labelText: 'Bairro',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      TextField(
+                        controller: bairroController,
+                        decoration: const InputDecoration(
+                          labelText: 'Bairro',
+                          prefixIcon: Icon(Icons.location_city),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 16),
                     
                     TextField(
@@ -2401,19 +2453,19 @@ void _abrirModalUPA({Map<String, dynamic>? upa}) async {
                         border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                         filled: true,
                         fillColor: const Color(0xFFF1F5F9),
-                        suffixIcon: const Icon(Icons.location_city, color: Color(0xFF8B5CF6), size: 20),
+                        suffixIcon: const Icon(Icons.location_city, color: Color(0xFF2C7DA0), size: 20),
                       ),
                     ),
                     const SizedBox(height: 16),
                     
-                    TextField(
-                      controller: telefoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Telefone',
-                        hintText: '(11) 1234-5678',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                      ),
+                      TextField(
+                        controller: telefoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          labelText: 'Telefone',
+                          prefixIcon: Icon(Icons.phone),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
                     ),
                     const SizedBox(height: 16),
                     
@@ -2472,15 +2524,16 @@ void _abrirModalUPA({Map<String, dynamic>? upa}) async {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            children: [
-                              Icon(Icons.schedule, color: const Color(0xFF8B5CF6), size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Turmas Disponíveis para Matrícula',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
-                              ),
-                            ],
-                          ),
+                              children: [
+                                Icon(Icons.schedule, color: _accentColor, size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Turmas Disponíveis para Matrícula',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                                ),
+                              ],
+                            ),
+
                           const SizedBox(height: 12),
                           Text(
                             'Selecione os dias e horários que esta UPA oferecerá turmas',
@@ -2525,8 +2578,8 @@ void _abrirModalUPA({Map<String, dynamic>? upa}) async {
                                                 });
                                               },
                                               backgroundColor: Colors.grey.shade100,
-                                              selectedColor: const Color(0xFF8B5CF6).withOpacity(0.2),
-                                              checkmarkColor: const Color(0xFF8B5CF6),
+                                              selectedColor: _accentColor.withOpacity(0.2),
+                                              checkmarkColor: _accentColor,
                                             );
                                           }).toList(),
                                         ),
@@ -2553,7 +2606,14 @@ void _abrirModalUPA({Map<String, dynamic>? upa}) async {
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: const Text('Cancelar'),
+                            child: const Text(
+                            'Cancelar',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -2655,13 +2715,21 @@ void _abrirModalUPA({Map<String, dynamic>? upa}) async {
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF8B5CF6),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            child: isLoading
-                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                : Text(isEditing ? 'Salvar' : 'Criar'),
+                                backgroundColor: const Color(0xFF10B981),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: isLoading
+                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(isEditing ? Icons.save : Icons.add, size: 18, color: Colors.white),
+                                        const SizedBox(width: 8),
+                                        Text(isEditing ? 'Salvar' : 'Criar', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+  
                           ),
                         ),
                       ],
@@ -2686,7 +2754,14 @@ Future<void> _confirmarDeletarUPA(Map<String, dynamic> upa) async {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancelar'),
+            child: const Text(
+                            'Cancelar',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
         ),
         ElevatedButton(
           onPressed: () => Navigator.pop(context, true),
@@ -2740,10 +2815,10 @@ Widget _buildUPAsList() {
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 2),
-                  ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: _accentColor, width: 2),
+                ),
                   filled: true,
                   fillColor: Colors.white,
                 ),
@@ -2756,12 +2831,11 @@ Widget _buildUPAsList() {
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Nova UPA'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
+                backgroundColor: const Color(0xFF10B981),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
-
           ],
         ),
       ),
@@ -2811,14 +2885,14 @@ Widget _buildUPACard(Map<String, dynamic> upa) {
       ],
     ),
     child: ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF8B5CF6).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Icon(Icons.local_hospital, color: Color(0xFF8B5CF6), size: 24),
-      ),
+leading: Container(
+  padding: const EdgeInsets.all(10),
+  decoration: BoxDecoration(
+    color: _accentColor.withOpacity(0.1),
+    borderRadius: BorderRadius.circular(12),
+  ),
+  child: const Icon(Icons.local_hospital, color: Color(0xFF2C7DA0), size: 24),
+),
       title: Text(
         upa['nome'],
         style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
@@ -2959,60 +3033,64 @@ void _abrirModalEnfermeira({Map<String, dynamic>? enfermeira}) {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF8B5CF6).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2C7DA0).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(isEditing ? Icons.edit : Icons.person_add, color: const Color(0xFF2C7DA0), size: 24),
                         ),
-                        child: Icon(isEditing ? Icons.edit : Icons.person_add, color: const Color(0xFF8B5CF6), size: 24),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        isEditing ? 'Editar Enfermeira' : 'Nova Enfermeira',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 12),
+                        Text(
+                          isEditing ? 'Editar Enfermeira' : 'Nova Enfermeira',
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: 20),
                   TextField(
                     controller: nomeController,
                     decoration: const InputDecoration(
                       labelText: 'Nome Completo',
+                      prefixIcon: Icon(Icons.person),
                       border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    TextField(
+                      controller: emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.email),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: telefoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Telefone',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                 TextField(
+                      controller: telefoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Telefone',
+                        prefixIcon: Icon(Icons.phone),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 16),
-                  DropdownButtonFormField<int>(
-                    value: upaIdSelecionado,
-                    decoration: const InputDecoration(
-                      labelText: 'UPA Vinculada',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
+                        DropdownButtonFormField<int>(
+                          value: upaIdSelecionado,
+                          decoration: const InputDecoration(
+                            labelText: 'UPA Vinculada',
+                            prefixIcon: Icon(Icons.local_hospital),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                          ),
                     items: [
                       const DropdownMenuItem<int>(value: null, child: Text('Selecione uma UPA')),
                       ..._upasLista.map((upa) => DropdownMenuItem<int>(
@@ -3028,14 +3106,15 @@ void _abrirModalEnfermeira({Map<String, dynamic>? enfermeira}) {
                   ),
                   if (!isEditing) ...[
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: senhaController,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Senha',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                     TextField(
+                        controller: senhaController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Senha',
+                          prefixIcon: Icon(Icons.lock),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        ),
                       ),
-                    ),
                   ],
                   const SizedBox(height: 24),
                   Row(
@@ -3048,7 +3127,14 @@ void _abrirModalEnfermeira({Map<String, dynamic>? enfermeira}) {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Text('Cancelar'),
+                            child: const Text(
+                            'Cancelar',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -3113,14 +3199,22 @@ void _abrirModalEnfermeira({Map<String, dynamic>? enfermeira}) {
                               setState(() => isLoading = false);
                             }
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF8B5CF6),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: isLoading
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : Text(isEditing ? 'Salvar' : 'Criar'),
+                         style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: isLoading
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(isEditing ? Icons.save : Icons.add, size: 18, color: Colors.white),
+                                const SizedBox(width: 8),
+                                Text(isEditing ? 'Salvar' : 'Criar', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+
                         ),
                       ),
                     ],
@@ -3144,7 +3238,14 @@ Future<void> _confirmarDeletarEnfermeira(Map<String, dynamic> enfermeira) async 
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancelar'),
+            child: const Text(
+                            'Cancelar',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
         ),
         ElevatedButton(
           onPressed: () => Navigator.pop(context, true),
@@ -3201,10 +3302,10 @@ Widget _buildEnfermeirasList() {
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 2),
-                  ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: _accentColor, width: 2),
+                ),
                   filled: true,
                   fillColor: Colors.white,
                 ),
@@ -3212,16 +3313,16 @@ Widget _buildEnfermeirasList() {
               ),
             ),
             const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: () => _abrirModalEnfermeira(),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Nova Enfermeira'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ElevatedButton.icon(
+                onPressed: () => _abrirModalEnfermeira(),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Nova Enfermeira'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -3253,45 +3354,45 @@ Widget _buildEnfermeirasList() {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            margin: const EdgeInsets.only(top: 8, bottom: 12),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF8B5CF6).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.local_hospital, size: 16, color: const Color(0xFF8B5CF6)),
-                                const SizedBox(width: 8),
-                                Text(
-                                  upaNome,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF8B5CF6),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF8B5CF6).withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    '${enfermeirasDaUPA.length}',
-                                    style: const TextStyle(
-                                      fontSize: 11,
+                            Container(
+                              margin: const EdgeInsets.only(top: 8, bottom: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _accentColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.local_hospital, size: 16, color: _accentColor),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    upaNome,
+                                    style: TextStyle(
+                                      fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF8B5CF6),
+                                      color: _accentColor,
                                     ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _accentColor.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      '${enfermeirasDaUPA.length}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: _accentColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
                           ...enfermeirasDaUPA.map((enfermeira) => _buildEnfermeiraCard(enfermeira)),
                           const SizedBox(height: 8),
                         ],
@@ -3327,14 +3428,14 @@ Widget _buildEnfermeiraCard(Map<String, dynamic> enfermeira) {
       ],
     ),
     child: ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF8B5CF6).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Icon(Icons.medical_services, color: Color(0xFF8B5CF6), size: 24),
-      ),
+leading: Container(
+  padding: const EdgeInsets.all(10),
+  decoration: BoxDecoration(
+    color: _accentColor.withOpacity(0.1),
+    borderRadius: BorderRadius.circular(12),
+  ),
+  child: const Icon(Icons.local_hospital, color: Color(0xFF2C7DA0), size: 24),
+),
       title: Text(
         enfermeira['nome_completo'],
         style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
@@ -3387,17 +3488,17 @@ Widget _buildPaginacaoUPAs() {
         ),
       ),
       const SizedBox(width: 8),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF8B5CF6).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          'Página $_currentPageUPAs de $_totalPagesUPAs',
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF8B5CF6)),
-        ),
-      ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: _accentColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Página $_currentPage de $_totalPages',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _accentColor),
+            ),
+          ),
       const SizedBox(width: 8),
       IconButton(
         icon: const Icon(Icons.chevron_right),

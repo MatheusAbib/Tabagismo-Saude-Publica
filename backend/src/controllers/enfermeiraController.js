@@ -602,7 +602,19 @@ exports.getUsuariosMatriculadosComPresencas = async (req, res) => {
     for (let usuario of usuarios) {
       const turma = usuario.turma_horario;
       if (!turmasMap[turma]) {
-        turmasMap[turma] = [];
+        turmasMap[turma] = {
+          usuarios: [],
+          turma_id: null
+        };
+        
+        const [turmaInfo] = await pool.execute(
+          'SELECT id, vagas_totais FROM turmas WHERE upa_id = ? AND CONCAT(dia_semana, " - ", horario) = ?',
+          [upaId, turma]
+        );
+        if (turmaInfo.length > 0) {
+          turmasMap[turma].turma_id = turmaInfo[0].id;
+          turmasMap[turma].vagas_totais = turmaInfo[0].vagas_totais;
+        }
       }
       
       const [presenca] = await pool.execute(
@@ -619,13 +631,46 @@ exports.getUsuariosMatriculadosComPresencas = async (req, res) => {
       usuario.presenca_observacoes = presenca.length > 0 ? presenca[0].observacoes : null;
       usuario.observacao_semanal = observacao.length > 0 ? observacao[0].observacao_semanal : null;
       
-      turmasMap[turma].push(usuario);
+      turmasMap[turma].usuarios.push(usuario);
     }
     
-    const turmas = Object.keys(turmasMap).map(turma => ({
-      nome: turma,
-      usuarios: turmasMap[turma]
-    }));
+    const turmas = [];
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    
+    for (const [nome, dataTurma] of Object.entries(turmasMap)) {
+      let proximaAula = null;
+      
+      if (dataTurma.turma_id) {
+        const [cronogramaRows] = await pool.execute(
+          `SELECT c.*, 
+                  DATE_FORMAT(c.data, '%d/%m/%Y') as data_formatada
+           FROM cronograma c
+           WHERE c.turma_id = ? 
+           ORDER BY c.data ASC`,
+          [dataTurma.turma_id]
+        );
+        
+        for (const aula of cronogramaRows) {
+          const dataAula = new Date(aula.data);
+          if (dataAula >= hoje) {
+            proximaAula = {
+              data_formatada: aula.data_formatada,
+              horario: aula.horario,
+              numero: aula.numero_aula
+            };
+            break;
+          }
+        }
+      }
+      
+      turmas.push({
+        nome: nome,
+        usuarios: dataTurma.usuarios,
+        vagas_totais: dataTurma.vagas_totais || 4,
+        proxima_aula: proximaAula
+      });
+    }
     
     res.json({ turmas, dataAtual });
   } catch (error) {
@@ -633,6 +678,7 @@ exports.getUsuariosMatriculadosComPresencas = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 exports.salvarPresencasEmLote = async (req, res) => {
   try {
@@ -895,7 +941,7 @@ exports.getUsuariosDaUPA = async (req, res) => {
     
     const upaId = enfermeira[0].upa_id;
     
-    let query = `SELECT u.id, u.nome_completo, u.email, u.telefone, u.cpf, u.created_at,
+    let query = `SELECT u.id, u.nome_completo, u.email, u.telefone, u.cpf, u.idade, u.created_at,
                         m.id as matricula_id, m.turma_horario, m.segunda_opcao_turma, m.status, m.escolaridade, m.score_fagestrom, m.medicamento, m.comorbidades
                  FROM usuarios u
                  INNER JOIN matriculas m ON u.id = m.usuario_id
@@ -938,6 +984,159 @@ exports.getUsuariosDaUPA = async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao buscar usuários da UPA:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getTurmasComCronograma = async (req, res) => {
+  try {
+    const enfermeiraId = req.userId;
+    
+    const [enfermeira] = await pool.execute(
+      'SELECT upa_id FROM enfermeiros WHERE id = ?',
+      [enfermeiraId]
+    );
+    
+    if (enfermeira.length === 0 || !enfermeira[0].upa_id) {
+      return res.json({ turmas: [] });
+    }
+    
+    const upaId = enfermeira[0].upa_id;
+    
+    const [turmas] = await pool.execute(
+      `SELECT t.id, t.dia_semana, t.horario, t.vagas_totais, t.vagas_ocupadas,
+              CONCAT(t.dia_semana, ' - ', t.horario) as nome
+       FROM turmas t
+       WHERE t.upa_id = ?
+       ORDER BY FIELD(t.dia_semana, 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'),
+                t.horario`,
+      [upaId]
+    );
+    
+    for (let turma of turmas) {
+      const [aulas] = await pool.execute(
+        `SELECT c.*, DATE_FORMAT(c.data, '%d/%m/%Y') as data_formatada
+         FROM cronograma c
+         WHERE c.turma_id = ?
+         ORDER BY c.numero_aula ASC`,
+        [turma.id]
+      );
+      turma.aulas = aulas;
+    }
+    
+    res.json({ turmas });
+  } catch (error) {
+    console.error('Erro ao buscar turmas com cronograma:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getCronograma = async (req, res) => {
+  try {
+    const { matriculaId } = req.params;
+    
+    const [matricula] = await pool.execute(
+      `SELECT m.*, u.nome_completo 
+       FROM matriculas m
+       JOIN usuarios u ON m.usuario_id = u.id
+       WHERE m.id = ?`,
+      [matriculaId]
+    );
+    
+    if (matricula.length === 0) {
+      return res.status(404).json({ error: 'Matrícula não encontrada' });
+    }
+    
+    const [turma] = await pool.execute(
+      `SELECT t.id, t.dia_semana, t.horario as turma_horario
+       FROM turmas t
+       WHERE t.upa_id = ? AND CONCAT(t.dia_semana, ' - ', t.horario) = ?`,
+      [matricula[0].upa_id, matricula[0].turma_horario]
+    );
+    
+    if (turma.length === 0) {
+      return res.json({
+        aulas: [],
+        total_aulas: 0,
+        data_inicio: '',
+        turma: matricula[0].turma_horario,
+        proxima_aula: null
+      });
+    }
+    
+    const [aulas] = await pool.execute(
+      `SELECT c.*, DATE_FORMAT(c.data, '%d/%m/%Y') as data_formatada
+       FROM cronograma c
+       WHERE c.turma_id = ?
+       ORDER BY c.numero_aula ASC`,
+      [turma[0].id]
+    );
+    
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    
+    let proximaAula = null;
+    for (const aula of aulas) {
+      const dataAula = new Date(aula.data);
+      if (dataAula >= hoje) {
+        proximaAula = {
+          data_formatada: aula.data_formatada,
+          horario: aula.horario,
+          numero: aula.numero_aula
+        };
+        break;
+      }
+    }
+    
+    const aulasFormatadas = aulas.map(aula => ({
+      numero: aula.numero_aula,
+      data: aula.data,
+      data_formatada: aula.data_formatada,
+      horario: aula.horario,
+      mes: aula.mes
+    }));
+    
+    const dataInicio = aulas.length > 0 ? aulas[0].data_formatada : '';
+    
+    res.json({
+      aulas: aulasFormatadas,
+      total_aulas: aulas.length,
+      data_inicio: dataInicio,
+      turma: matricula[0].turma_horario,
+      proxima_aula: proximaAula
+    });
+    
+  } catch (error) {
+    console.error('Erro ao buscar cronograma:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.adicionarAulaCronograma = async (req, res) => {
+  try {
+    const { turmaId, numeroAula, data, horario, mes } = req.body;
+    
+    await pool.execute(
+      'INSERT INTO cronograma (turma_id, numero_aula, data, horario, mes) VALUES (?, ?, ?, ?, ?)',
+      [turmaId, numeroAula, data, horario, mes]
+    );
+    
+    res.json({ message: 'Aula adicionada com sucesso' });
+  } catch (error) {
+    console.error('Erro ao adicionar aula:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.deletarAulaCronograma = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    await pool.execute('DELETE FROM cronograma WHERE id = ?', [id]);
+    
+    res.json({ message: 'Aula deletada com sucesso' });
+  } catch (error) {
+    console.error('Erro ao deletar aula:', error);
     res.status(500).json({ error: error.message });
   }
 };

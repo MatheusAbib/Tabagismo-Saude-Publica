@@ -1,10 +1,7 @@
-import 'package:fl_chart/fl_chart.dart' as fl_chart;
 import 'package:flutter/material.dart';
 import 'package:tabagismo_app/widgets/footer_widget.dart';
 import 'package:tabagismo_app/widgets/header_widget.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
-import 'package:tabagismo_app/screens/login_screen.dart';
-import 'package:tabagismo_app/services/sintoma_service.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'dart:html' as html;
 import 'dart:async';
@@ -21,521 +18,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late Map<String, dynamic> _userData;
   int _currentBannerIndex = 0;
-
-
-
-Future<void> _showSintomasGrafico() async {
-  try {
-    final sintomaService = SintomaService();
-    final sintomas = await sintomaService.getSintomas(limit: 30);
-    
-    if (sintomas.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ainda não há registros de sintomas. Registre seu primeiro diário!'),
-          backgroundColor: Color(0xFFF59E0B),
-        ),
-      );
-      return;
-    }
-    
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          insetPadding: const EdgeInsets.all(20),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          child: Container(
-            width: 700,
-            height: 500,
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-Row(
-  children: [
-    Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF3B82F6).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: const Icon(Icons.show_chart, size: 24, color: Color(0xFF3B82F6)),
-    ),
-    const SizedBox(width: 12),
-    const Text(
-      'Evolução dos Sintomas',
-      style: TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.w700,
-        color: Color(0xFF0F172A),
-      ),
-    ),
-    const Spacer(),
-    IconButton(
-      icon: const Icon(Icons.close),
-      onPressed: () => Navigator.pop(context),
-    ),
-  ],
-),
-const SizedBox(height: 20),
-Wrap(
-  spacing: 16,
-  runSpacing: 10,
-  alignment: WrapAlignment.center,
-  children: [
-    _buildLegendaItem(const Color(0xFF3B82F6), 'Ansiedade'),
-    _buildLegendaItem(const Color(0xFFEF4444), 'Irritabilidade'),
-    _buildLegendaItem(const Color(0xFF8B5CF6), 'Insônia'),
-    _buildLegendaItem(const Color(0xFFF97316), 'Fome'),
-    _buildLegendaItem(const Color(0xFF10B981), 'Dificuldade de Concentração'),
-    _buildLegendaItem(const Color(0xFFF59E0B), 'Vontade de Fumar'),
-  ],
-),
-const SizedBox(height: 16),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: _buildSintomasGrafico(sintomas),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Erro ao carregar gráfico: $e'), backgroundColor: const Color(0xFFEF4444)),
-    );
-  }
-}
-
-
-Widget _buildLegendaItem(Color cor, String texto) {
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Container(
-        width: 15,
-        height: 15,
-        decoration: BoxDecoration(
-          color: cor,
-          borderRadius: BorderRadius.circular(4),
-        ),
-      ),
-      const SizedBox(width: 6),
-      Text(
-        texto,
-        style: const TextStyle(
-          fontSize: 12,
-          color: Color(0xFF475569),
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    ],
-  );
-}
-
-Widget _buildSintomasGrafico(List<Map<String, dynamic>> sintomas) {
-  sintomas = sintomas.reversed.toList();
-  
-  List<double> ansiedade = [];
-  List<double> irritabilidade = [];
-  List<double> vontadeFumar = [];
-  List<double> insonia = [];
-  List<double> fome = [];
-  List<double> dificuldadeConcentracao = [];
-  List<String> labels = [];
-
-  for (var s in sintomas) {
-    ansiedade.add((s['ansiedade'] ?? 0).toDouble());
-    irritabilidade.add((s['irritabilidade'] ?? 0).toDouble());
-    vontadeFumar.add((s['vontade_fumar'] ?? 0).toDouble());
-    insonia.add((s['insonia'] ?? 0).toDouble());
-    fome.add((s['fome'] ?? 0).toDouble());
-    dificuldadeConcentracao.add((s['dificuldade_concentracao'] ?? 0).toDouble());
-    
-    final data = DateTime.parse(s['data']);
-    labels.add('${data.day}/${data.month}');
-  }
-  
-  return SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    child: Container(
-      width: 600,
-      height: 350,
-      child: fl_chart.LineChart(
-        fl_chart.LineChartData(
-          gridData: fl_chart.FlGridData(show: true),
-          titlesData: fl_chart.FlTitlesData(
-            bottomTitles: fl_chart.AxisTitles(
-              sideTitles: fl_chart.SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  final index = value.toInt();
-                  if (index >= 0 && index < labels.length) {
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        labels[index],
-                        style: const TextStyle(fontSize: 10),
-                      ),
-                    );
-                  }
-                  return const Text('');
-                },
-              ),
-            ),
-            leftTitles: fl_chart.AxisTitles(
-              sideTitles: fl_chart.SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  return Text('${value.toInt()}', style: const TextStyle(fontSize: 10));
-                },
-                reservedSize: 30,
-              ),
-            ),
-            topTitles: fl_chart.AxisTitles(sideTitles: fl_chart.SideTitles(showTitles: false)),
-            rightTitles: fl_chart.AxisTitles(sideTitles: fl_chart.SideTitles(showTitles: false)),
-          ),
-          borderData: fl_chart.FlBorderData(show: true),
-          minX: 0,
-          maxX: (sintomas.length - 1).toDouble(),
-          minY: 0,
-          maxY: 10,
-          lineBarsData: [
-            fl_chart.LineChartBarData(
-              spots: List.generate(ansiedade.length, (i) => fl_chart.FlSpot(i.toDouble(), ansiedade[i])),
-              isCurved: true,
-              color: const Color(0xFF3B82F6),
-              barWidth: 3,
-              dotData: fl_chart.FlDotData(show: true),
-            ),
-            fl_chart.LineChartBarData(
-              spots: List.generate(irritabilidade.length, (i) => fl_chart.FlSpot(i.toDouble(), irritabilidade[i])),
-              isCurved: true,
-              color: const Color(0xFFEF4444),
-              barWidth: 3,
-              dotData: fl_chart.FlDotData(show: true),
-            ),
-            fl_chart.LineChartBarData(
-              spots: List.generate(vontadeFumar.length, (i) => fl_chart.FlSpot(i.toDouble(), vontadeFumar[i])),
-              isCurved: true,
-              color: const Color(0xFFF59E0B),
-              barWidth: 3,
-              dotData: fl_chart.FlDotData(show: true),
-            ),
-            fl_chart.LineChartBarData(
-              spots: List.generate(insonia.length, (i) => fl_chart.FlSpot(i.toDouble(), insonia[i])),
-              isCurved: true,
-              color: const Color(0xFF8B5CF6),
-              barWidth: 3,
-              dotData: fl_chart.FlDotData(show: true),
-            ),
-            fl_chart.LineChartBarData(
-              spots: List.generate(fome.length, (i) => fl_chart.FlSpot(i.toDouble(), fome[i])),
-              isCurved: true,
-              color: const Color(0xFFF97316),
-              barWidth: 3,
-              dotData: fl_chart.FlDotData(show: true),
-            ),
-            fl_chart.LineChartBarData(
-              spots: List.generate(dificuldadeConcentracao.length, (i) => fl_chart.FlSpot(i.toDouble(), dificuldadeConcentracao[i])),
-              isCurved: true,
-              color: const Color(0xFF10B981),
-              barWidth: 3,
-              dotData: fl_chart.FlDotData(show: true),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-
-void _showSintomasModal() {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      int ansiedade = 0;
-      int irritabilidade = 0;
-      int insonia = 0;
-      int fome = 0;
-      int dificuldadeConcentracao = 0;
-      int vontadeFumar = 0;
-      String observacoes = '';
-      bool isLoading = false;
-      
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return Dialog(
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            child: Container(
-              width: 700,
-              constraints: BoxConstraints(maxHeight: 800),
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 30,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-Container(
-  padding: const EdgeInsets.all(12),
-  decoration: BoxDecoration(
-    color: const Color(0xFF3B82F6).withOpacity(0.1),
-    borderRadius: BorderRadius.circular(16),
-  ),
-  child: const Icon(Icons.show_chart, size: 24, color: Color(0xFF3B82F6)),
-),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Diário de Sintomas',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                            Text(
-                              'Registre como você se sente hoje',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF64748B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF94A3B8)),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          _buildSintomaSlider(
-                            'Ansiedade',
-                            Icons.psychology,
-                            ansiedade,
-                            (value) => setState(() => ansiedade = value),
-                            const Color(0xFF3B82F6),
-                          ),
-                          _buildSintomaSlider(
-                            'Irritabilidade',
-                            Icons.flash_on,
-                            irritabilidade,
-                            (value) => setState(() => irritabilidade = value),
-                            const Color(0xFFEF4444),
-                          ),
-                          _buildSintomaSlider(
-                            'Insônia',
-                            Icons.nightlight_round,
-                            insonia,
-                            (value) => setState(() => insonia = value),
-                            const Color(0xFF8B5CF6),
-                          ),
-                          _buildSintomaSlider(
-                            'Fome',
-                            Icons.restaurant,
-                            fome,
-                            (value) => setState(() => fome = value),
-                            const Color(0xFFF59E0B),
-                          ),
-                          _buildSintomaSlider(
-                            'Dificuldade de Concentração',
-                            Icons.auto_awesome,
-                            dificuldadeConcentracao,
-                            (value) => setState(() => dificuldadeConcentracao = value),
-                            const Color(0xFF10B981),
-                          ),
-                          _buildSintomaSlider(
-                            'Vontade de Fumar',
-                            Icons.smoking_rooms,
-                            vontadeFumar,
-                            (value) => setState(() => vontadeFumar = value),
-                            const Color(0xFFEF4444),
-                          ),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Observações (opcional)',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF475569),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                TextField(
-                                  maxLines: 3,
-                                  decoration: InputDecoration(
-                                    hintText: 'Como foi seu dia? Algum gatilho específico?',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                  ),
-                                  onChanged: (value) => observacoes = value,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 25),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: isLoading ? null : () async {
-                        setState(() => isLoading = true);
-                        try {
-                          final sintomaService = SintomaService();
-                          final hoje = DateTime.now().toIso8601String().split('T')[0];
-                          await sintomaService.registrarSintoma(
-                            data: hoje,
-                            ansiedade: ansiedade,
-                            irritabilidade: irritabilidade,
-                            insonia: insonia,
-                            fome: fome,
-                            dificuldadeConcentracao: dificuldadeConcentracao,
-                            vontadeFumar: vontadeFumar,
-                            observacoes: observacoes,
-                          );
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Sintomas registrados com sucesso!'),
-                              backgroundColor: Color(0xFF10B981),
-                            ),
-                          );
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Erro ao registrar: $e'), backgroundColor: Color(0xFFEF4444)),
-                          );
-                        } finally {
-                          setState(() => isLoading = false);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B5CF6),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: isLoading
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Registrar Sintomas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
-
-Widget _buildSintomaSlider(String titulo, IconData icon, int valor, Function(int) onChanged, Color cor) {
-  return Container(
-    margin: const EdgeInsets.only(bottom: 16),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF8FAFC),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFFE2E8F0)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 18, color: cor),
-            const SizedBox(width: 8),
-            Text(
-              titulo,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: cor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                valor.toString(),
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: cor,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Slider(
-          value: valor.toDouble(),
-          min: 0,
-          max: 10,
-          divisions: 10,
-          activeColor: cor,
-          inactiveColor: cor.withOpacity(0.2),
-          onChanged: (value) => onChanged(value.round()),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Nenhum', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
-            Text('Moderado', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
-            Text('Máximo', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
-          ],
-        ),
-      ],
-    ),
-  );
-}
 
 
 void _showGoalModal() {
@@ -1030,35 +512,38 @@ void _showGoalModal() {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            if (stopDate != null && targetDays != null && targetDays! > 0) {
-                              _saveGoal(stopDate!, targetDays!, 
-                                cigarrosPorDia: cigarrosPorDia, 
-                                valorCarteira: valorCarteira
-                              );
-                              Navigator.pop(context);
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              if (stopDate != null && targetDays != null && targetDays! > 0) {
+                                _saveGoal(
+                                  stopDate!,
+                                  targetDays!,
+                                  cigarrosPorDia: cigarrosPorDia,
+                                  valorCarteira: valorCarteira,
+                                );
+                                Navigator.pop(context);
+                              }
+                            },
+                            icon: const Icon(Icons.save, size: 16),
+                            label: const Text(
+                              'Salvar Meta',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          child: const Text(
-                            'Salvar Meta',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ],
@@ -1109,16 +594,6 @@ void _saveGoal(DateTime stopDate, int targetDays, {int? cigarrosPorDia, double? 
       );
     }
   }
-}
-
-void _performLogout() async {
-  final authService = AuthService();
-  await authService.logout();
-  Navigator.pushAndRemoveUntil(
-    context,
-    MaterialPageRoute(builder: (context) => LoginScreen()),
-    (route) => false,
-  );
 }
   
   final List<Map<String, dynamic>> _banners = [
@@ -1344,8 +819,7 @@ HeaderWidget(
   userData: _userData,
   onNameUpdated: _updateUserName,
   showBackButton: false,
-  onSintomasPressed: _showSintomasModal,
-  onSintomasGraficoPressed: _showSintomasGrafico,
+
 ),
             Expanded(
               child: SingleChildScrollView(
@@ -1414,7 +888,6 @@ HeaderWidget(
 
 Widget _buildHeroBanner() {
   final banner = _banners[_currentBannerIndex];
-  final Color primaryDark = const Color(0xFF0F2B3D);
   final Color accentColor = const Color(0xFF2C7DA0);
   
   return SizedBox(

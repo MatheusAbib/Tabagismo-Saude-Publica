@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/services/enrollment_service.dart';
 import 'package:tabagismo_app/widgets/footer_widget.dart';
@@ -18,7 +17,6 @@ class UPAScreen extends StatefulWidget {
 
 class _UPAScreenState extends State<UPAScreen> {
   final _authService = AuthService();
-  final _enrollmentService = EnrollmentService();
   final Color _primaryDark = Color(0xFF0F2B3D);
   final Color _primaryMedium = Color(0xFF1A4A6F);
   final Color _accentColor = Color(0xFF2C7DA0);
@@ -41,18 +39,6 @@ class _UPAScreenState extends State<UPAScreen> {
     'Vila Lavínia', 'Jardim Armênia', 'Vila Industrial', 'Parque das Varinhas',
     'Residencial Itapety', 'Vila Nova Aparecida',
   ];
-
-  final List<Map<String, String>> _turmas = [
-    {'dia': 'Segunda-feira', 'horario': '08:00 - 10:00'},
-    {'dia': 'Terça-feira', 'horario': '14:00 - 16:00'},
-    {'dia': 'Quarta-feira', 'horario': '18:00 - 20:00'},
-    {'dia': 'Quinta-feira', 'horario': '10:00 - 12:00'},
-    {'dia': 'Sexta-feira', 'horario': '15:00 - 17:00'},
-    {'dia': 'Sábado', 'horario': '09:00 - 11:00'},
-  ];
-
-  List<Map<String, dynamic>> _turmasComVagas = [];
-  bool _carregandoTurmas = true;
 
 
   @override
@@ -547,7 +533,6 @@ class _InfoModal extends StatelessWidget {
   final Color _accentColor = Color(0xFF2C7DA0);
   final Color _successColor = Color(0xFF10B981);
   final Color _warningColor = Color(0xFFF59E0B);
-  final Color _dangerColor = Color(0xFFEF4444);
 
   
   Widget _infoItem(IconData icon, String text, Color color) {
@@ -887,30 +872,31 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _submitEnrollment();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _submitEnrollment();
+                          },
+                          icon: const Icon(Icons.check, size: 18),
+                          label: const Text(
+                            'Confirmar',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text(
-                        'Confirmar',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ],
@@ -977,13 +963,6 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
           lista.removeAt(index);
         }
       }
-    });
-  }
-
-  void _updateOutroTexto(String categoria, String valor, String texto) {
-    setState(() {
-      final index = _comorbidades[categoria]!.indexWhere((item) => item['valor'] == valor);
-      if (index != -1) _comorbidades[categoria]![index]['outroTexto'] = texto;
     });
   }
 
@@ -1068,7 +1047,7 @@ title: Column(
         icon: Icon(Icons.check_circle_outline, size: 18),
         label: Text('Confirmar Matrícula'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _accentColor,
+          backgroundColor: _successColor,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -1447,49 +1426,4 @@ Widget _buildScoreFieldCompact() {
   );
 }
 
-
-  Widget _buildComorbidadeSection(String titulo, String categoria, List<String> opcoes) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(titulo, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _primaryDark, fontFamily: 'Poppins')),
-        SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: opcoes.map((opcao) {
-            bool isSelected = _isSelected(categoria, opcao);
-            bool isDisabled = _isNenhumSelected(categoria) && opcao != 'nenhum';
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                FilterChip(
-                  label: Text(opcao, style: TextStyle(fontSize: 12)),
-                  selected: isSelected,
-                  onSelected: isDisabled ? null : (selected) => _toggleComorbidade(categoria, opcao),
-                  backgroundColor: Colors.grey.shade100,
-                  selectedColor: _accentColor.withValues(alpha: 0.2),
-                  checkmarkColor: _accentColor,
-                ),
-                if (isSelected && (opcao == 'outro' || opcao == 'outros'))
-                  Padding(
-                    padding: EdgeInsets.only(left: 12, top: 8),
-                    child: TextFormField(
-                      initialValue: _comorbidades[categoria]!.firstWhere((item) => item['valor'] == opcao)['outroTexto'] as String?,
-                      decoration: InputDecoration(
-                        hintText: 'Especifique "$opcao"',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      onChanged: (text) => _updateOutroTexto(categoria, opcao, text),
-                    ),
-                  ),
-              ],
-            );
-          }).toList(),
-        ),
-        SizedBox(height: 12),
-      ],
-    );
-  }
 }

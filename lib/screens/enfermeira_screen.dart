@@ -5,6 +5,7 @@ import 'package:tabagismo_app/screens/admin_usuario_detalhes.dart';
 import 'package:tabagismo_app/services/pdf_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:tabagismo_app/screens/cronograma_screen.dart';
+import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'dart:async';
 
 class EnfermeiraScreen extends StatefulWidget {
@@ -34,7 +35,7 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
   int _alunosPerPage = 5;
 
   int _selectedTabIndex = 0;
-  final List<String> _tabTitles = ['Dashboard', 'Em Espera', 'Matriculados', 'Cancelados', 'Lista de Presença', 'Histórico'];
+  final List<String> _tabTitles = ['Dashboard', 'Em Espera', 'Matriculados', 'Cronogramas', 'Lista de Presença', 'Histórico'];
   
   String _upaNome = '';
 
@@ -46,6 +47,382 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
     _upaNome = (nome != null && nome.toString().isNotEmpty) ? nome : 'Carregando...';
     _carregarUsuarios();
   }
+
+Widget _buildCronogramasList() {
+  return FutureBuilder(
+    future: AuthService().getTurmasComCronograma(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      
+      if (snapshot.hasError) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Erro ao carregar turmas: ${snapshot.error}'),
+              ElevatedButton(
+                onPressed: () => setState(() {}),
+                child: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        );
+      }
+      
+      final turmas = List<Map<String, dynamic>>.from(snapshot.data!['turmas']);
+      
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: turmas.map((turma) => _buildTurmaCronogramaCard(turma)).toList(),
+        ),
+      );
+    },
+  );
+}
+
+Widget _buildTurmaCronogramaCard(Map<String, dynamic> turma) {
+  final aulas = List<Map<String, dynamic>>.from(turma['aulas'] ?? []);
+  final horarioFixo = turma['horario'];
+  
+  return Container(
+    margin: const EdgeInsets.only(bottom: 20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.calendar_today, color: _accentColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      turma['nome'],
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    Text(
+                      'Horário: $horarioFixo • ${turma['vagas_ocupadas']}/${turma['vagas_totais']} alunos',
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => _abrirModalCronograma(turma),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Adicionar Aula'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (aulas.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(
+              child: Text(
+                'Nenhuma aula cadastrada. Clique em "Adicionar Aula" para criar o cronograma.',
+                style: TextStyle(color: Color(0xFF64748B)),
+              ),
+            ),
+          )
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(12),
+            itemCount: aulas.length,
+            itemBuilder: (context, index) {
+              final aula = aulas[index];
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: _accentColor.withOpacity(0.1),
+                  child: Text('${aula['numero_aula']}', style: TextStyle(color: _accentColor)),
+                ),
+                title: Text('Aula ${aula['numero_aula']}'),
+                subtitle: Text('${aula['data_formatada']} • ${aula['horario']}'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Color(0xFFEF4444)),
+                  onPressed: () => _confirmarDeletarAula(turma['id'], aula['id']),
+                ),
+              );
+            },
+          ),
+      ],
+    ),
+  );
+}
+
+void _abrirModalCronograma(Map<String, dynamic> turma) {
+  final numeroAulaController = TextEditingController();
+  final dataController = TextEditingController();
+  final mesController = TextEditingController();
+  bool isLoading = false;
+  
+  DateTime? dataSelecionada;
+  
+  final horarioFixo = turma['horario'];
+  final Color _successColor = const Color(0xFF10B981);
+  
+  showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Container(
+              width: 450,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: _successColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.calendar_month, color: Color(0xFF2C7DA0), size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Adicionar Aula',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: numeroAulaController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Número da Aula',
+                      hintText: 'Ex: 1, 2, 3...',
+                      prefixIcon: Icon(Icons.format_list_numbered),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: dataController,
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: 'Data da Aula',
+                      hintText: 'Selecione uma data',
+                      prefixIcon: Icon(Icons.calendar_today),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    ),
+                    onTap: () async {
+                      final result = await showCalendarDatePicker2Dialog(
+                        context: context,
+                        config: CalendarDatePicker2WithActionButtonsConfig(
+                          calendarType: CalendarDatePicker2Type.single,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                          currentDate: DateTime.now(),
+                        ),
+                        dialogSize: const Size(325, 400),
+                      );
+                      if (result != null && result.isNotEmpty) {
+                        dataSelecionada = result.first;
+                        dataController.text = '${dataSelecionada!.day}/${dataSelecionada!.month}/${dataSelecionada!.year}';
+                        
+                        int mesCalculado = ((dataSelecionada!.month - DateTime.now().month) + 12) % 12;
+                        mesCalculado = mesCalculado == 0 ? 1 : mesCalculado + 1;
+                        if (mesCalculado > 6) mesCalculado = 6;
+                        mesController.text = mesCalculado.toString();
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: TextEditingController(text: horarioFixo),
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: 'Horário',
+                      hintText: 'Horário fixo da turma',
+                      prefixIcon: Icon(Icons.access_time),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: mesController,
+                    keyboardType: TextInputType.number,
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: 'Mês do Programa',
+                      hintText: 'Calculado automaticamente',
+                      prefixIcon: Icon(Icons.calendar_month),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                            child: const Text(
+                            'Cancelar',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (numeroAulaController.text.isEmpty || dataSelecionada == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Preencha todos os campos'), backgroundColor: Colors.red),
+                              );
+                              return;
+                            }
+                            
+                            setState(() => isLoading = true);
+                            try {
+                              await AuthService().adicionarAulaCronograma(
+                                turma['id'],
+                                int.parse(numeroAulaController.text),
+                                dataSelecionada!.toIso8601String().split('T')[0],
+                                horarioFixo,
+                                int.parse(mesController.text),
+                              );
+                              Navigator.pop(context);
+                              _recarregarTurmasCronograma();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Aula adicionada com sucesso!'), backgroundColor: Color(0xFF10B981)),
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+                              );
+                            } finally {
+                              setState(() => isLoading = false);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _successColor,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: isLoading
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.save, size: 18, color: Colors.white),
+                                    SizedBox(width: 8),
+                                    Text('Adicionar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+Future<void> _recarregarTurmasCronograma() async {
+  setState(() {});
+}
+
+void _confirmarDeletarAula(int turmaId, int aulaId) async {
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Confirmar exclusão'),
+      content: const Text('Tem certeza que deseja excluir esta aula?'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+        ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Excluir')),
+      ],
+    ),
+  );
+  
+  if (confirm == true) {
+    try {
+      await AuthService().deletarAulaCronograma(aulaId);
+      _recarregarTurmasCronograma();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aula excluída com sucesso!'), backgroundColor: Color(0xFF10B981)),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+}
+
 
 
 Widget _buildEvolucaoSection(Map<String, dynamic> data) {
@@ -324,110 +701,6 @@ Widget _buildMensalChart(List<Map<String, dynamic>> dados, String titulo) {
   );
 }
 
-Widget _buildMensalChartConcluidos(List<Map<String, dynamic>> dados) {
-  final maxValor = dados.fold<int>(0, (max, item) {
-    final sucesso = _parseToInt(item['sucesso']);
-    final insucesso = _parseToInt(item['insucesso']);
-    final total = sucesso + insucesso;
-    return total > max ? total : max;
-  });
-  
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      const Text('Turmas Concluídas', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF64748B))),
-      const SizedBox(height: 8),
-      SizedBox(
-        height: 180,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: dados.map((item) {
-              final mes = item['mes'] as String;
-              final sucesso = _parseToInt(item['sucesso']).toDouble();
-              final insucesso = _parseToInt(item['insucesso']).toDouble();
-              final total = sucesso + insucesso;
-              final altura = maxValor > 0 ? (total / maxValor) * 120 : 0;
-              
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(total.toInt().toString(), style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                    const SizedBox(height: 4),
-                    Stack(
-                      alignment: Alignment.bottomCenter,
-                      children: [
-                        Container(
-                          width: 35,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE2E8F0),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                        if (altura > 0)
-                          Column(
-                            children: [
-                              if (sucesso > 0)
-                                Container(
-                                  width: 35,
-                                  height: (sucesso / total) * altura,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF10B981),
-                                    borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
-                                  ),
-                                ),
-                              if (insucesso > 0)
-                                Container(
-                                  width: 35,
-                                  height: (insucesso / total) * altura,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEF4444),
-                                    borderRadius: BorderRadius.vertical(
-                                      top: sucesso > 0 ? Radius.zero : Radius.circular(6),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    SizedBox(
-                      width: 45,
-                      child: Text(
-                        mes.substring(5),
-                        style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-      const SizedBox(height: 8),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildLegendaItem(const Color(0xFF10B981), 'Sucesso'),
-          const SizedBox(width: 16),
-          _buildLegendaItem(const Color(0xFFEF4444), 'Insucesso'),
-        ],
-      ),
-    ],
-  );
-}
-
-
-
 Widget _buildAlunosDetalhados(Map<String, dynamic> data) {
   final alunos = List<Map<String, dynamic>>.from(data['alunos_detalhados'] ?? []);
   
@@ -551,17 +824,17 @@ Widget _buildAlunosDetalhados(Map<String, dynamic> data) {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF8B5CF6).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _accentColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${_alunosPage + 1} de $totalPages',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: _accentColor),
+                        ),
                       ),
-                      child: Text(
-                        '${_alunosPage + 1} de $totalPages',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF8B5CF6)),
-                      ),
-                    ),
                     const SizedBox(width: 8),
                     IconButton(
                       icon: const Icon(Icons.chevron_right, size: 20),
@@ -588,119 +861,158 @@ Widget _buildAlunosDetalhados(Map<String, dynamic> data) {
 
 
   Future<void> _changePassword() async {
-    final currentPasswordController = TextEditingController();
-    final newPasswordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
-    bool isLoading = false;
+  final currentPasswordController = TextEditingController();
+  final newPasswordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+  bool isLoading = false;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
-            contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Row(
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            width: 450,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.lock_outline, color: _accentColor, size: 26),
-                const SizedBox(width: 10),
-                const Text(
-                  'Alterar Senha',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2C7DA0).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.lock_outline, color: Color(0xFF2C7DA0), size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Alterar Senha',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: currentPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Senha Atual',
+                    prefixIcon: Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: newPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Nova Senha',
+                    prefixIcon: Icon(Icons.lock_reset),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: confirmPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirmar Nova Senha',
+                    prefixIcon: Icon(Icons.verified_user),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                         child: const Text(
+                            'Cancelar',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: isLoading ? null : () async {
+                          if (newPasswordController.text != confirmPasswordController.text) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('As senhas não coincidem'), backgroundColor: Colors.red),
+                            );
+                            return;
+                          }
+                          setState(() => isLoading = true);
+                          try {
+                            final authService = AuthService();
+                            await authService.changeUserPassword(
+                              currentPasswordController.text,
+                              newPasswordController.text,
+                            );
+                            if (mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Senha alterada com sucesso!'), backgroundColor: Color(0xFF10B981)),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Erro ao alterar senha: $e'), backgroundColor: Colors.red.shade400),
+                              );
+                            }
+                          } finally {
+                            setState(() => isLoading = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.save, size: 18, color: Colors.white),
+                                  SizedBox(width: 8),
+                                  Text('Salvar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            content: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.30,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: currentPasswordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Senha Atual',
-                      prefixIcon: Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: newPasswordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Nova Senha',
-                      prefixIcon: Icon(Icons.lock_reset_outlined),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: confirmPasswordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Confirmar Nova Senha',
-                      prefixIcon: Icon(Icons.verified_user_outlined),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: isLoading ? null : () async {
-                  if (newPasswordController.text != confirmPasswordController.text) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('As senhas não coincidem')),
-                    );
-                    return;
-                  }
-                  setState(() => isLoading = true);
-                  try {
-                    final authService = AuthService();
-                    await authService.changeUserPassword(
-                      currentPasswordController.text,
-                      newPasswordController.text,
-                    );
-                    if (mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Senha alterada com sucesso!')),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Erro ao alterar senha: $e')),
-                      );
-                    }
-                  } finally {
-                    setState(() => isLoading = false);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _accentColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-                child: isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Alterar'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
+          ),
+        );
+      },
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -734,14 +1046,14 @@ Widget _buildAlunosDetalhados(Map<String, dynamic> data) {
             Expanded(
               child: IndexedStack(
                 index: _selectedTabIndex,
-                children: [
-                  _buildDashboard(),
-                  _buildUsuariosList(),
-                  _buildUsuariosList(),
-                  _buildUsuariosList(),
-                  _buildListaPresenca(),
-                  _buildHistoricoPresencas(),
-                ],
+                  children: [
+                    _buildDashboard(),
+                    _buildUsuariosList(),
+                    _buildUsuariosList(),
+                    _buildCronogramasList(), 
+                    _buildListaPresenca(),
+                    _buildHistoricoPresencas(),
+                  ],
               ),
             ),
           ],
@@ -824,11 +1136,11 @@ Widget _buildTurmaPresenca(Map<String, dynamic> turma, int turmaIndex, DateTime 
       bool _salvando = false;
       bool _encerrando = false;
       final DateTime _dataAtual = DateTime.now();
+      int vagasOcupadas = usuarios.length;
+      int vagasTotais = turma['vagas_totais'] ?? 4;
       
       Future<void> salvarPresencas() async {
-        setState(() {
-          _salvando = true;
-        });
+        setState(() => _salvando = true);
         try {
           final authService = AuthService();
           final presencasParaSalvar = usuarios.map((u) => ({
@@ -861,18 +1173,14 @@ Widget _buildTurmaPresenca(Map<String, dynamic> turma, int turmaIndex, DateTime 
           if (mounted) {
             final novasTurmas = List<Map<String, dynamic>>.from(newResponse['turmas']);
             onTurmaUpdate(novasTurmas[turmaIndex]);
-            setState(() {
-              _salvando = false;
-            });
+            setState(() => _salvando = false);
           }
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Erro ao salvar: $e'), backgroundColor: Colors.red.shade400),
             );
-            setState(() {
-              _salvando = false;
-            });
+            setState(() => _salvando = false);
           }
         }
       }
@@ -890,40 +1198,20 @@ Widget _buildTurmaPresenca(Map<String, dynamic> turma, int turmaIndex, DateTime 
                 const SizedBox(height: 12),
                 Text('Turma: ${turma['nome']}', style: const TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
-                const Text(
-                  'Isso irá:',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                const Text('• Arquivar todos os alunos'),
-                const Text('• Salvar histórico de presenças e observações'),
-                const Text('• Limpar a lista de presença atual'),
-                const Text('• Liberar vagas para nova turma'),
+                const Text('Isso irá arquivar todos os alunos e liberar as vagas.'),
                 const SizedBox(height: 12),
-                const Text(
-                  'Esta ação não pode ser desfeita!',
-                  style: TextStyle(color: Colors.red, fontSize: 12),
-                ),
+                const Text('Esta ação não pode ser desfeita!', style: TextStyle(color: Colors.red, fontSize: 12)),
               ],
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Confirmar'),
-              ),
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+              ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Confirmar')),
             ],
           ),
         );
         
         if (confirm == true) {
-          setState(() {
-            _encerrando = true;
-          });
+          setState(() => _encerrando = true);
           try {
             final authService = AuthService();
             final upaId = widget.userData['upa_id'];
@@ -933,14 +1221,11 @@ Widget _buildTurmaPresenca(Map<String, dynamic> turma, int turmaIndex, DateTime 
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Turma encerrada com sucesso!'), backgroundColor: Color(0xFF10B981)),
               );
-              
               final newResponse = await AuthService().getUsuariosMatriculadosComPresencas();
               if (mounted) {
                 final novasTurmas = List<Map<String, dynamic>>.from(newResponse['turmas']);
                 onTurmaUpdate(novasTurmas[turmaIndex]);
-                setState(() {
-                  _encerrando = false;
-                });
+                setState(() => _encerrando = false);
               }
             }
           } catch (e) {
@@ -948,137 +1233,209 @@ Widget _buildTurmaPresenca(Map<String, dynamic> turma, int turmaIndex, DateTime 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Erro ao encerrar turma: $e'), backgroundColor: Colors.red.shade400),
               );
-              setState(() {
-                _encerrando = false;
-              });
+              setState(() => _encerrando = false);
             }
           }
         }
       }
       
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      return Container(
+        margin: const EdgeInsets.only(bottom: 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+Container(
+  padding: const EdgeInsets.all(16),
+  decoration: BoxDecoration(
+    color: const Color(0xFFF1F5F9),
+    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+  ),
+  child: Row(
+    children: [
+      Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: _accentColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(Icons.schedule, color: _accentColor, size: 20),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              turma['nome'],
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0F172A),
+                fontFamily: 'Poppins',
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _formatarProximaAula(turma['proxima_aula']),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            ),
+          ],
+        ),
+      ),
+      Row(
         children: [
           Container(
-            margin: const EdgeInsets.only(top: 8, bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF8B5CF6).withOpacity(0.1),
+              color: vagasOcupadas >= vagasTotais 
+                ? Colors.red.withOpacity(0.1) 
+                : const Color(0xFF10B981).withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Row(
-              children: [
-                Icon(Icons.schedule, size: 16, color: const Color(0xFF8B5CF6)),
-                const SizedBox(width: 8),
-                Text(
-                  turma['nome'],
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF8B5CF6),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${usuarios.length}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF8B5CF6),
+            child: Text(
+              '$vagasOcupadas/$vagasTotais vagas',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: vagasOcupadas >= vagasTotais ? Colors.red : const Color(0xFF10B981),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            onPressed: () => _verCronogramaTurma(turma),
+            icon: Icon(Icons.calendar_month, size: 16, color: _accentColor),
+            label: Text('Cronograma', style: TextStyle(fontSize: 12, color: _accentColor)),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: _accentColor),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Aluno',
+                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 100,
+                              child: Text(
+                                'Presença',
+                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            SizedBox(
+                              width: 120,
+                              child: Text(
+                                'Observação',
+                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const SizedBox(width: 40),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ...usuarios.map((usuario) => _buildLinhaPresenca(usuario, setState)),
+                      ],
                     ),
                   ),
-                ),
-                const Spacer(),
-                OutlinedButton.icon(
-                  onPressed: _encerrando ? null : encerrarTurma,
-                  icon: _encerrando
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFEF4444)))
-                      : const Icon(Icons.archive, size: 16, color: Color(0xFFEF4444)),
-                  label: const Text('Encerrar Turma', style: TextStyle(fontSize: 12, color: Color(0xFFEF4444))),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFEF4444)),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  const SizedBox(height: 16),
+                  Divider(color: Colors.grey.shade200),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      const Icon(Icons.calendar_today, size: 14, color: Color(0xFF64748B)),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${_dataAtual.day}/${_dataAtual.month}/${_dataAtual.year}',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+OutlinedButton.icon(
+  onPressed: _encerrando ? null : encerrarTurma,
+  icon: _encerrando
+      ? const SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )
+      : const Icon(Icons.archive, size: 16),
+  label: const Text('Encerrar Turma'),
+  style: OutlinedButton.styleFrom(
+    foregroundColor: const Color(0xFFEF4444), // 👈 AQUI
+    side: const BorderSide(color: Color(0xFFEF4444)),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+  ),
+),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: _salvando ? null : salvarPresencas,
+                        icon: _salvando
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.save, size: 16),
+                        label: const Text('Salvar Presenças'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: _salvando ? null : salvarPresencas,
-                  icon: _salvando
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.save, size: 16),
-                  label: const Text('Salvar'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
-              ],
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  ),
-                  child: const Row(
-                    children: [
-                      Expanded(child: Text('Nome', style: TextStyle(fontWeight: FontWeight.w600))),
-                      SizedBox(width: 120, child: Text('Presença', style: TextStyle(fontWeight: FontWeight.w600), textAlign: TextAlign.center)),
-                      SizedBox(width: 140, child: Text('Observação', style: TextStyle(fontWeight: FontWeight.w600), textAlign: TextAlign.center)),
-                    ],
-                  ),
-                ),
-                ...usuarios.map((usuario) => _buildLinhaPresenca(usuario, setState)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
+          ],
+        ),
       );
     },
   );
 }
 
+String _formatarProximaAula(Map<String, dynamic>? proximaAula) {
+  if (proximaAula == null) {
+    return 'Nenhuma aula agendada';
+  }
+  
+  final data = proximaAula['data_formatada'];
+  final horario = proximaAula['horario'];
+  final numero = proximaAula['numero'];
+  
+  return 'Próxima aula: $data às $horario (Aula $numero)';
+}
 
-
+void _verCronogramaTurma(Map<String, dynamic> turma) {
+  final matriculaId = turma['usuarios'].isNotEmpty ? turma['usuarios'][0]['matricula_id'] : null;
+  if (matriculaId != null) {
+    _verCronograma(matriculaId, turma['nome']);
+  }
+}
 
 Widget _buildLinhaPresenca(Map<String, dynamic> usuario, Function setState) {
   String? status = usuario['presenca_status'];
@@ -1104,12 +1461,11 @@ Widget _buildLinhaPresenca(Map<String, dynamic> usuario, Function setState) {
     '2- Sem fumar': '2- Sem fumar',
   };
   
-
-Color getObservacaoColor(String? observacao) {
-  if (observacao == '1- Está fumando') return const Color(0xFFF59E0B);
-  if (observacao == '2- Sem fumar') return const Color(0xFF3B82F6);
-  return const Color(0xFF94A3B8);
-}
+  Color getObservacaoColor(String? observacao) {
+    if (observacao == '1- Está fumando') return const Color(0xFFF59E0B);
+    if (observacao == '2- Sem fumar') return const Color(0xFF3B82F6);
+    return const Color(0xFF94A3B8);
+  }
   
   return Container(
     padding: const EdgeInsets.all(12),
@@ -1214,12 +1570,6 @@ Color getObservacaoColor(String? observacao) {
             ),
           ),
         ),
-const SizedBox(width: 8),
-IconButton(
-  icon: const Icon(Icons.calendar_month, color: Color(0xFF10B981)),
-  onPressed: () => _verCronograma(usuario['matricula_id'], usuario['turma_horario']),
-  tooltip: 'Ver Cronograma',
-),
       ],
     ),
   );
@@ -1350,31 +1700,31 @@ String getStatusText(String? status) {
           ),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _accentColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.calendar_today, size: 18, color: Color(0xFF2C7DA0)),
                 ),
-                child: const Icon(Icons.calendar_today, size: 18, color: Color(0xFF8B5CF6)),
-              ),
               const SizedBox(width: 12),
               Text(
                 turma['turma'],
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
               ),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _accentColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${usuarios.length} alunos',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _accentColor),
+                  ),
                 ),
-                child: Text(
-                  '${usuarios.length} alunos',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF8B5CF6)),
-                ),
-              ),
             ],
           ),
         ),
@@ -1957,7 +2307,7 @@ Future<void> _exportarPDF(Map<String, dynamic> data, Map<String, dynamic> evoluc
             ),
             child: const Row(
               children: [
-                Icon(Icons.people_outline, size: 20, color: Color(0xFF8B5CF6)),
+                Icon(Icons.people_outline, size: 20, color: Color(0xFF2C7DA0)),
                 SizedBox(width: 8),
                 Text('Demografia', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
               ],
@@ -2099,7 +2449,7 @@ Future<void> _exportarPDF(Map<String, dynamic> data, Map<String, dynamic> evoluc
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildHealthItem('Média Score Fagerström', '${double.parse(data['mediaScoreFagestrom'].toString()).toStringAsFixed(1)} pontos', Icons.assessment, const Color(0xFF8B5CF6)),
+                _buildHealthItem('Média Score Fagerström', '${double.parse(data['mediaScoreFagestrom'].toString()).toStringAsFixed(1)} pontos', Icons.assessment, _accentColor),
               ],
             ),
           ),
@@ -2175,7 +2525,7 @@ Future<void> _exportarPDF(Map<String, dynamic> data, Map<String, dynamic> evoluc
           Padding(
             padding: const EdgeInsets.all(16),
             child: SizedBox(
-              height: 200,
+              height: 250,
               child: usuariosPorMes.reversed.toList().isEmpty
                   ? const Center(child: Text('Sem dados'))
                   : _buildBarChart(usuariosPorMes.reversed.toList()),
@@ -2214,19 +2564,19 @@ Widget _buildBarChart(List<dynamic> dados) {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(valores[index].toInt().toString(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
-          const SizedBox(height: 4),
-          Container(
-            width: 40,
-            height: altura,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-              ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
+const Icon(Icons.show_chart, size: 20, color: Color(0xFF2C7DA0)),
+Container(
+  width: 40,
+  height: altura,
+  decoration: BoxDecoration(
+    gradient: const LinearGradient(
+      colors: [Color(0xFF2C7DA0), Color(0xFF1A4A6F)],
+      begin: Alignment.bottomCenter,
+      end: Alignment.topCenter,
+    ),
+    borderRadius: BorderRadius.circular(8),
+  ),
+),
           const SizedBox(height: 8),
           Text(meses[index].toString().substring(5), style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
         ],
@@ -2302,88 +2652,115 @@ Widget _buildBarChart(List<dynamic> dados) {
     );
   }
 
+  String _formatarTelefone(String telefone) {
+  if (telefone.isEmpty) return 'Não informado';
+  String apenasNumeros = telefone.replaceAll(RegExp(r'[^\d]'), '');
+  if (apenasNumeros.length == 11) {
+    return '(${apenasNumeros.substring(0, 2)}) ${apenasNumeros.substring(2, 7)}-${apenasNumeros.substring(7)}';
+  } else if (apenasNumeros.length == 10) {
+    return '(${apenasNumeros.substring(0, 2)}) ${apenasNumeros.substring(2, 6)}-${apenasNumeros.substring(6)}';
+  }
+  return telefone;
+}
+
+String _formatarCpf(String cpf) {
+  if (cpf.isEmpty) return 'Não informado';
+  String apenasNumeros = cpf.replaceAll(RegExp(r'[^\d]'), '');
+  if (apenasNumeros.length == 11) {
+    return '${apenasNumeros.substring(0, 3)}.${apenasNumeros.substring(3, 6)}.${apenasNumeros.substring(6, 9)}-${apenasNumeros.substring(9)}';
+  }
+  return cpf;
+}
+
   Widget _buildUsuarioCard(Map<String, dynamic> usuario) {
-    final status = usuario['status'];
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.1),
-                  child: Text(usuario['nome_completo'][0].toUpperCase(), style: const TextStyle(color: Color(0xFF8B5CF6), fontWeight: FontWeight.w600)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(usuario['nome_completo'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Color(0xFF0F172A))),
-                      Text(usuario['email'], style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                    ],
-                  ),
-                ),
-                if (status != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(status).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(_getStatusText(status), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _getStatusColor(status))),
-                  ),
-              ],
-            ),
+  final status = usuario['status'];
+  final telefone = usuario['telefone'] ?? '';
+  final telefoneFormatado = _formatarTelefone(telefone);
+  final cpf = usuario['cpf'] ?? 'Não informado';
+  final cpfFormatado = cpf != 'Não informado' ? _formatarCpf(cpf) : cpf;
+  final idade = usuario['idade'] ?? 0;
+  
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 2)),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildInfoRow(Icons.phone, 'Telefone', usuario['telefone'] ?? 'Não informado'),
-                if (usuario['turma_horario'] != null)
-                  _buildInfoRow(Icons.schedule, 'Turma', usuario['turma_horario']),
-                const SizedBox(height: 12),
-                Row(
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: _accentColor.withOpacity(0.1),
+                child: Text(usuario['nome_completo'][0].toUpperCase(), style: TextStyle(color: _accentColor, fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _verDetalhes(usuario),
-                        icon: const Icon(Icons.visibility, size: 18),
-                        label: const Text('Detalhes'),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF8B5CF6)),
-                          foregroundColor: const Color(0xFF8B5CF6),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
+                    Text(usuario['nome_completo'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Color(0xFF0F172A))),
+                    Text(usuario['email'], style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                   ],
                 ),
-              ],
-            ),
+              ),
+              if (status != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(_getStatusText(status), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _getStatusColor(status))),
+                ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoRow(Icons.phone, 'Telefone', telefoneFormatado),
+              _buildInfoRow(Icons.assignment_ind, 'CPF', cpfFormatado),
+              _buildInfoRow(Icons.cake, 'Idade', '$idade anos'),
+              if (usuario['turma_horario'] != null)
+                _buildInfoRow(Icons.schedule, 'Turma', usuario['turma_horario']),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _verDetalhes(usuario),
+                      icon: const Icon(Icons.visibility, size: 18),
+                      label: const Text('Ver detalhes'),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: _accentColor),
+                        foregroundColor: _accentColor,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildPagination() {
     if (_totalPages <= 1) return const SizedBox.shrink();
@@ -2397,14 +2774,14 @@ Widget _buildBarChart(List<dynamic> dados) {
           style: IconButton.styleFrom(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
         ),
         const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF8B5CF6).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: _accentColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text('Página $_currentPage de $_totalPages', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _accentColor)),
           ),
-          child: Text('Página $_currentPage de $_totalPages', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF8B5CF6))),
-        ),
         const SizedBox(width: 8),
         IconButton(
           icon: const Icon(Icons.chevron_right),

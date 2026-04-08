@@ -7,6 +7,7 @@ import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/utils/validators.dart';
 import 'package:tabagismo_app/screens/enfermeira_screen.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
+import 'package:tabagismo_app/widgets/custom_snackbar.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -22,7 +23,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final Color _primaryDark = Color(0xFF0F2B3D);
   final Color _primaryMedium = Color(0xFF1A4A6F);
   final Color _accentColor = Color(0xFF2C7DA0);
-  final Color _successColor = Color(0xFF10B981);
 
   TextEditingController _emailController = TextEditingController();
   TextEditingController _senhaController = TextEditingController();
@@ -69,129 +69,104 @@ Future<void> _selectDate(BuildContext context) async {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
-  Future<void> _handleAuth() async {
-    if (_formKey.currentState!.validate()) {
-      if (_isRegisterMode) {
-        if (_senhaController.text != _confirmSenhaController.text) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('As senhas não coincidem'),
-              backgroundColor: Colors.red.shade400,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          );
-          return;
-        }
+Future<void> _handleAuth() async {
+  if (_formKey.currentState!.validate()) {
+    if (_isRegisterMode) {
+      if (_senhaController.text != _confirmSenhaController.text) {
+        CustomSnackBar.showError(context, 'As senhas não coincidem');
+        return;
+      }
 
-        if (_sexoSelecionado == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Selecione o sexo'),
-              backgroundColor: Colors.red.shade400,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-          return;
-        }
+      if (_sexoSelecionado == null) {
+        CustomSnackBar.showWarning(context, 'Selecione o sexo');
+        return;
+      }
 
-        if (_dataNascimento == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Selecione a data de nascimento'),
-              backgroundColor: Colors.red.shade400,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-          return;
-        }
+      if (_dataNascimento == null) {
+        CustomSnackBar.showWarning(context, 'Selecione a data de nascimento');
+        return;
+      }
 
-        setState(() => _isLoading = true);
+      setState(() => _isLoading = true);
 
-        try {
-          final user = User(
-            nomeCompleto: _nomeController.text,
-            sexo: _sexoSelecionado!,
-            dataNascimento: _dataNascimento!,
-            idade: Validators.calcularIdade(_dataNascimento!),
-            email: _emailController.text,
-            senha: _senhaController.text,
-            cpf: _cpfController.text.replaceAll(RegExp(r'[^\d]'), ''),
-            telefone: _telefoneController.text.replaceAll(RegExp(r'[^\d]'), ''),
-          );
+      try {
+        final user = User(
+          nomeCompleto: _nomeController.text,
+          sexo: _sexoSelecionado!,
+          dataNascimento: _dataNascimento!,
+          idade: Validators.calcularIdade(_dataNascimento!),
+          email: _emailController.text,
+          senha: _senhaController.text,
+          cpf: _cpfController.text.replaceAll(RegExp(r'[^\d]'), ''),
+          telefone: _telefoneController.text.replaceAll(RegExp(r'[^\d]'), ''),
+        );
 
-          await _authService.register(user);
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Cadastro realizado com sucesso!'),
-              backgroundColor: _successColor,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-          
-          setState(() {
-            _isRegisterMode = false;
-            _clearRegisterFields();
-          });
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao cadastrar: $e'),
-              backgroundColor: Colors.red.shade400,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } finally {
-          setState(() => _isLoading = false);
-        }
-      } else {
-        setState(() => _isLoading = true);
+        await _authService.register(user);
         
-        try {
-          final response = await _authService.login(
-            _emailController.text,
-            _senhaController.text,
-          );
-          
-          final userData = response['user'];
-          print('UserData do login: $userData');
-          final tipoUsuario = userData['tipo_usuario'] ?? 'comum';
-          final isAdmin = userData['is_admin'] == 1;
-
-          if (mounted) {
-            if (isAdmin || tipoUsuario == 'admin') {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => AdminScreen(userData: userData)),
-              );
-            } else if (tipoUsuario == 'enfermeira') {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => EnfermeiraScreen(userData: userData)),
-              );
-            } else {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => HomeScreen(userData: userData)),
-              );
-            }
-          }
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao fazer login: $e'),
-              backgroundColor: Colors.red.shade400,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          );
-        } finally {
-          setState(() => _isLoading = false);
+        CustomSnackBar.showSuccess(context, 'Cadastro realizado com sucesso!');
+        
+        setState(() {
+          _isRegisterMode = false;
+          _clearRegisterFields();
+        });
+      } catch (e) {
+        String errorMessage = 'Erro ao cadastrar';
+        if (e.toString().contains('duplicate') || e.toString().contains('email')) {
+          errorMessage = 'E-mail já cadastrado';
+        } else if (e.toString().contains('CPF')) {
+          errorMessage = 'CPF já cadastrado';
         }
+        CustomSnackBar.showError(context, errorMessage);
+      } finally {
+        setState(() => _isLoading = false);
+      }
+    } else {
+      setState(() => _isLoading = true);
+      
+      try {
+        final response = await _authService.login(
+          _emailController.text,
+          _senhaController.text,
+        );
+        
+        final userData = response['user'];
+        final tipoUsuario = userData['tipo_usuario'] ?? 'comum';
+        final isAdmin = userData['is_admin'] == 1;
+
+        if (mounted) {
+          if (isAdmin || tipoUsuario == 'admin') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => AdminScreen(userData: userData)),
+            );
+          } else if (tipoUsuario == 'enfermeira') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => EnfermeiraScreen(userData: userData)),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomeScreen(userData: userData)),
+            );
+          }
+        }
+      } catch (e) {
+        String errorMessage = 'Erro ao fazer login';
+        if (e.toString().contains('401') || e.toString().contains('credenciais')) {
+          errorMessage = 'E-mail ou senha incorretos';
+        } else if (e.toString().contains('404')) {
+          errorMessage = 'Usuário não encontrado';
+        } else if (e.toString().contains('network')) {
+          errorMessage = 'Erro de conexão. Verifique sua internet';
+        }
+        CustomSnackBar.showError(context, errorMessage);
+      } finally {
+        setState(() => _isLoading = false);
       }
     }
   }
+}
 
   void _clearRegisterFields() {
     _nomeController.clear();
@@ -242,27 +217,27 @@ Future<void> _selectDate(BuildContext context) async {
                       child: SafeArea(
                         child: Center(
                           child: Padding(
-                            padding: EdgeInsets.all(32),
+                            padding: EdgeInsets.all(40),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Container(
-                                  padding: EdgeInsets.all(20),
+                                  padding: EdgeInsets.all(25),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(80),
+                                    borderRadius: BorderRadius.circular(100),
                                   ),
                                   child: Icon(
                                     Icons.smoking_rooms_outlined,
-                                    size: 60,
+                                    size: 75,
                                     color: Colors.white,
                                   ),
                                 ),
-                                SizedBox(height: 16),
+                                SizedBox(height: 20),
                                 Text(
-                                  'Desfumar',
+                                  'Desfumo',
                                   style: TextStyle(
-                                    fontSize: 28,
+                                    fontSize: 32,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.white,
                                     letterSpacing: -0.5,
@@ -433,18 +408,19 @@ Future<void> _selectDate(BuildContext context) async {
                                   obscureText: _obscureText,
                                   decoration: InputDecoration(
                                     labelText: 'Senha',
-                                    prefixIcon: Icon(Icons.lock_outline, color: _accentColor),
-                                    suffixIcon: IconButton(
-                                      icon: Icon(
-                                        _obscureText ? Icons.visibility_off : Icons.visibility,
-                                        color: Colors.grey.shade500,
+                                    prefixIcon: Icon(Icons.lock_outline, color: _accentColor, size: 18),
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscureText ? Icons.visibility_off : Icons.visibility,
+                                          color: Colors.grey.shade500,
+                                          size: 18,
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            _obscureText = !_obscureText;
+                                          });
+                                        },
                                       ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _obscureText = !_obscureText;
-                                        });
-                                      },
-                                    ),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                       borderSide: BorderSide(color: Colors.grey.shade300),
@@ -475,18 +451,19 @@ Future<void> _selectDate(BuildContext context) async {
                                     obscureText: _obscureConfirmText,
                                     decoration: InputDecoration(
                                       labelText: 'Confirmar Senha',
-                                      prefixIcon: Icon(Icons.lock_outline, color: _accentColor),
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscureConfirmText ? Icons.visibility_off : Icons.visibility,
-                                          color: Colors.grey.shade500,
-                                        ),
-                                        onPressed: () {
-                                          setState(() {
-                                            _obscureConfirmText = !_obscureConfirmText;
-                                          });
-                                        },
+                                      prefixIcon: Icon(Icons.lock_outline, color: _accentColor, size: 18),
+                                        suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscureText ? Icons.visibility_off : Icons.visibility,
+                                        color: Colors.grey.shade500,
+                                        size: 18,
                                       ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _obscureText = !_obscureText;
+                                        });
+                                      },
+                                    ),
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(10),
                                         borderSide: BorderSide(color: Colors.grey.shade300),
@@ -768,9 +745,7 @@ Future<void> _selectDate(BuildContext context) async {
     );
   }
 
-  Widget _buildContactSection() {
-    final Color accentColor = Color(0xFF2C7DA0);
-    
+  Widget _buildContactSection() {    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

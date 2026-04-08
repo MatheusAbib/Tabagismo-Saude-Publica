@@ -19,7 +19,6 @@ class MyEnrollmentsScreen extends StatefulWidget {
 class _MyEnrollmentsScreenState extends State<MyEnrollmentsScreen> {
   final _enrollmentService = EnrollmentService();
   final Color _primaryDark = Color(0xFF0F2B3D);
-  final Color _primaryMedium = Color(0xFF1A4A6F);
   final Color _accentColor = Color(0xFF2C7DA0);
   final Color _successColor = Color(0xFF10B981);
   final Color _warningColor = Color(0xFFF59E0B);
@@ -39,8 +38,6 @@ Future<void> _verHistoricoPresencas(int matriculaId) async {
   try {
     final authService = AuthService();
     final response = await authService.getMinhasPresencasPorMatricula(matriculaId);
-    
-    print('RESPOSTA COMPLETA: $response');
     
     final presencas = response['presencas'] as List? ?? [];
     final estatisticas = response['estatisticas'] as Map<String, dynamic>? ?? {
@@ -66,10 +63,10 @@ Future<void> _verHistoricoPresencas(int matriculaId) async {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                      color: _accentColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.history, color: Color(0xFF8B5CF6), size: 24),
+                    child: Icon(Icons.history, color: _accentColor, size: 24),
                   ),
                   const SizedBox(width: 12),
                   const Text(
@@ -100,7 +97,6 @@ Future<void> _verHistoricoPresencas(int matriculaId) async {
       ),
     );
   } catch (e) {
-    print('ERRO: $e');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Erro ao carregar histórico: $e'), backgroundColor: Colors.red.shade400),
     );
@@ -271,31 +267,43 @@ Widget _buildListaPresencas(List<dynamic> presencas) {
 
 
   Future<void> _loadEnrollments() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  setState(() {
+    _isLoading = true;
+    _errorMessage = null;
+  });
+  
+  try {
+    final response = await _enrollmentService.getMyEnrollments();
     
-    try {
-      final response = await _enrollmentService.getMyEnrollments();
+    if (response['success'] == true || response['data'] != null) {
+      List<Map<String, dynamic>> enrollments = List<Map<String, dynamic>>.from(response['data']);
       
-      if (response['success'] == true || response['data'] != null) {
-        setState(() {
-          _enrollments = List<Map<String, dynamic>>.from(response['data']);
-        });
-      } else {
-        setState(() {
-          _errorMessage = response['message'] ?? 'Erro ao carregar matrículas';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro ao carregar matrículas: $e';
+      // Ordenar: canceladas sempre no final
+      enrollments.sort((a, b) {
+        bool aCancelada = a['status'] == 'cancelada';
+        bool bCancelada = b['status'] == 'cancelada';
+        
+        if (aCancelada && !bCancelada) return 1;
+        if (!aCancelada && bCancelada) return -1;
+        return 0;
       });
-    } finally {
-      setState(() => _isLoading = false);
+      
+      setState(() {
+        _enrollments = enrollments;
+      });
+    } else {
+      setState(() {
+        _errorMessage = response['message'] ?? 'Erro ao carregar matrículas';
+      });
     }
+  } catch (e) {
+    setState(() {
+      _errorMessage = 'Erro ao carregar matrículas: $e';
+    });
+  } finally {
+    setState(() => _isLoading = false);
   }
+}
 
 void _verDetalhes(Map<String, dynamic> enrollment) {
   showDialog(
@@ -322,80 +330,109 @@ void _verDetalhes(Map<String, dynamic> enrollment) {
   );
 }
 
-  Future<void> _confirmarCancelamento(Map<String, dynamic> enrollment) async {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
+Future<void> _confirmarCancelamento(Map<String, dynamic> enrollment) async {
+  showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Container(
+        width: 400,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.warning_amber_rounded, color: _dangerColor, size: 28),
-            SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _dangerColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.warning_amber_rounded, color: _dangerColor, size: 48),
+            ),
+            const SizedBox(height: 20),
             Text(
               'Cancelar Matrícula',
-              style: TextStyle(fontWeight: FontWeight.bold, color: _primaryDark),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: _primaryDark,
+                fontFamily: 'Poppins',
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Tem certeza que deseja cancelar sua matrícula na ${enrollment['upa_nome']}?\n\nTurma: ${enrollment['turma_horario']}\n\nEsta ação não pode ser desfeita.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.grey.shade300),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Não, voltar'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      await _cancelarMatricula(enrollment);
+                    },
+                    icon: const Icon(Icons.check, size: 18),
+                    label: const Text('Sim, cancelar'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _dangerColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        content: Text(
-          'Tem certeza que deseja cancelar sua matrícula na ${enrollment['upa_nome']}?\n\n'
-          'Turma: ${enrollment['turma_horario']}\n\n'
-          'Esta ação não pode ser desfeita.',
-          style: TextStyle(fontSize: 14, height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Não',
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _cancelarMatricula(enrollment);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _dangerColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text('Sim, cancelar'),
-          ),
-        ],
+      ),
+    ),
+  );
+}
+
+Future<void> _cancelarMatricula(Map<String, dynamic> enrollment) async {
+  setState(() => _isLoading = true);
+  
+  try {
+    await _enrollmentService.cancelEnrollment(enrollment['id']);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Matrícula cancelada com sucesso!'),
+        backgroundColor: _successColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
-  }
-
-  Future<void> _cancelarMatricula(Map<String, dynamic> enrollment) async {
-    setState(() => _isLoading = true);
     
-    try {
-      await _enrollmentService.cancelEnrollment(enrollment['id']);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Matrícula cancelada com sucesso!'),
-          backgroundColor: _successColor,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-      
-      await _loadEnrollments();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao cancelar matrícula: $e'),
-          backgroundColor: _dangerColor,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    // Recarregar e ordenar novamente
+    await _loadEnrollments();
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Erro ao cancelar matrícula: $e'),
+        backgroundColor: _dangerColor,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    setState(() => _isLoading = false);
   }
+}
 
 Color _getStatusColor(String status) {
   switch (status) {
@@ -622,190 +659,189 @@ Widget _buildEnrollmentsList() {
   );
 }
 
-  Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
-    Color statusColor = _getStatusColor(enrollment['status'] ?? 'em_espera');
-    IconData statusIcon = _getStatusIcon(enrollment['status'] ?? 'em_espera');
-    String statusText = _getStatusText(enrollment['status'] ?? 'em_espera');
-    
-    return Container(
-      margin: EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-Container(
-  padding: EdgeInsets.all(16),
-  decoration: BoxDecoration(
-    color: Color(0xFFF1F5F9), 
-    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-  ),
-  child: Row(
-    children: [
-      Container(
-        padding: EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: _primaryDark.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
+ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
+  Color statusColor = _getStatusColor(enrollment['status'] ?? 'em_espera');
+  IconData statusIcon = _getStatusIcon(enrollment['status'] ?? 'em_espera');
+  String statusText = _getStatusText(enrollment['status'] ?? 'em_espera');
+  bool isCanceled = enrollment['status'] == 'cancelada';
+  
+  return Container(
+    margin: EdgeInsets.only(bottom: 16),
+    decoration: BoxDecoration(
+      color: isCanceled ? Colors.grey.shade50 : Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 15,
+          offset: Offset(0, 4),
         ),
-        child: Icon(Icons.location_on_outlined, color: _primaryDark, size: 20),
-      ),
-      SizedBox(width: 12),
-      Expanded(
-        child: Text(
-          enrollment['upa_nome'] ?? 'UPA não identificada',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: _primaryDark, 
-            fontFamily: 'Poppins',
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isCanceled ? Colors.grey.shade100 : const Color(0xFFF1F5F9),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
-        ),
-      ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: statusColor.withOpacity(0.5)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(statusIcon, color: statusColor, size: 14),
-                      SizedBox(width: 4),
-                      Text(
-                        statusText,
-                        style: TextStyle(
-                          color: statusColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 11,
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-                    ],
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _primaryDark.withValues(alpha: isCanceled ? 0.05 : 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.location_on_outlined, color: isCanceled ? Colors.grey.shade500 : _primaryDark, size: 20),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  enrollment['upa_nome'] ?? 'UPA não identificada',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isCanceled ? Colors.grey.shade600 : _primaryDark,
+                    fontFamily: 'Poppins',
                   ),
                 ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: statusColor.withOpacity(0.5)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.schedule_outlined, size: 16, color: Colors.grey.shade500),
-                    SizedBox(width: 8),
+                    Icon(statusIcon, color: statusColor, size: 14),
+                    SizedBox(width: 4),
                     Text(
-                      'Turma: ${enrollment['turma_horario'] ?? 'Não informado'}',
+                      statusText,
                       style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF475569),
+                        color: statusColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
                         fontFamily: 'Inter',
                       ),
                     ),
                   ],
                 ),
-                if (enrollment['segunda_opcao_turma'] != null && enrollment['segunda_opcao_turma'].isNotEmpty) ...[
-                  SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.swap_horiz, size: 16, color: _warningColor),
-                      SizedBox(width: 8),
-                      Text(
-                        '2ª opção: ${enrollment['segunda_opcao_turma']}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _warningColor,
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-                    ],
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.schedule_outlined, size: 16, color: isCanceled ? Colors.grey.shade400 : Colors.grey.shade500),
+                  SizedBox(width: 8),
+                  Text(
+                    'Turma: ${enrollment['turma_horario'] ?? 'Não informado'}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isCanceled ? Colors.grey.shade500 : const Color(0xFF475569),
+                      fontFamily: 'Inter',
+                    ),
                   ),
                 ],
+              ),
+              if (enrollment['segunda_opcao_turma'] != null && enrollment['segunda_opcao_turma'].isNotEmpty) ...[
                 SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey.shade500),
+                    Icon(Icons.swap_horiz, size: 16, color: isCanceled ? Colors.grey.shade400 : _warningColor),
                     SizedBox(width: 8),
                     Text(
-                      'Data: ${_formatDate(enrollment['created_at'])}',
+                      '2ª opção: ${enrollment['segunda_opcao_turma']}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: isCanceled ? Colors.grey.shade500 : _warningColor,
                         fontFamily: 'Inter',
                       ),
                     ),
                   ],
                 ),
-    
-                SizedBox(height: 16),
-                Divider(color: Colors.grey.shade200),
-                SizedBox(height: 12),
-                   Row(
-  mainAxisAlignment: MainAxisAlignment.end,
-  children: [
-    if (enrollment['status'] == 'em_espera')
-      TextButton.icon(
-        onPressed: () => _confirmarCancelamento(enrollment),
-        icon: Icon(Icons.delete_outline, size: 18, color: _dangerColor),
-        label: Text('Cancelar', style: TextStyle(color: _dangerColor, fontWeight: FontWeight.w500)),
-      ),
-SizedBox(width: 8),
-OutlinedButton.icon(
-  onPressed: () => _verCronograma(enrollment['id'], enrollment['turma_horario']),
-  icon: Icon(Icons.calendar_month, size: 18, color: const Color(0xFF10B981)),
-  label: Text('Ver Cronograma', style: TextStyle(color: const Color(0xFF10B981))),
-  style: OutlinedButton.styleFrom(
-    side: const BorderSide(color: Color(0xFF10B981)),
-    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-  ),
-),
-    SizedBox(width: 8),
-    ElevatedButton.icon(
-      onPressed: () => _verDetalhes(enrollment),
-      icon: Icon(Icons.visibility_outlined, size: 18),
-      label: Text('Ver detalhes'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: _accentColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    ),
-    SizedBox(width: 8),
-    OutlinedButton.icon(
-      onPressed: () => _verHistoricoPresencas(enrollment['id']),
-      icon: Icon(Icons.history, size: 18, color: const Color(0xFF8B5CF6)),
-      label: Text('Lista de presença', style: TextStyle(color: const Color(0xFF8B5CF6))),
-      style: OutlinedButton.styleFrom(
-        side: const BorderSide(color: Color(0xFF8B5CF6)),
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    ),
-  ],
-),
               ],
-            ),
+              SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.calendar_today_outlined, size: 16, color: isCanceled ? Colors.grey.shade400 : Colors.grey.shade500),
+                  SizedBox(width: 8),
+                  Text(
+                    'Data: ${_formatDate(enrollment['created_at'])}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isCanceled ? Colors.grey.shade500 : Colors.grey.shade600,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Divider(color: isCanceled ? Colors.grey.shade200 : Colors.grey.shade200),
+              SizedBox(height: 12),
+              if (!isCanceled)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (enrollment['status'] == 'em_espera')
+                      TextButton.icon(
+                        onPressed: () => _confirmarCancelamento(enrollment),
+                        icon: Icon(Icons.delete_outline, size: 18, color: _dangerColor),
+                        label: Text('Cancelar', style: TextStyle(color: _dangerColor, fontWeight: FontWeight.w500)),
+                      ),
+                    SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _verCronograma(enrollment['id'], enrollment['turma_horario']),
+                      icon: Icon(Icons.calendar_month, size: 18, color: const Color(0xFF10B981)),
+                      label: Text('Cronograma', style: TextStyle(color: const Color(0xFF10B981))),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF10B981)),
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _verDetalhes(enrollment),
+                      icon: Icon(Icons.visibility_outlined, size: 18, color: _accentColor),
+                      label: Text('Ver detalhes', style: TextStyle(color: _accentColor)),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: _accentColor),
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _verHistoricoPresencas(enrollment['id']),
+                      icon: Icon(Icons.history, size: 18, color: _accentColor),
+                      label: Text('Lista de presença', style: TextStyle(color: _accentColor)),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: _accentColor),
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
 String _formatarData(String dataStr) {
   try {
@@ -828,87 +864,6 @@ void _verCronograma(int matriculaId, String turmaHorario) {
     ),
   );
 }
-
-  Widget _buildStatusMessage(String status) {
-    if (status == 'em_espera') {
-      return Container(
-        padding: EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: _warningColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _warningColor.withOpacity(0.3)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.hourglass_bottom, size: 18, color: _warningColor),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Aguardando confirmação da UPA. Em até 5 dias você receberá o contato.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: _warningColor,
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (status == 'confirmada') {
-      return Container(
-        padding: EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: _successColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _successColor.withOpacity(0.3)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.check_circle, size: 18, color: _successColor),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Matrícula confirmada! Em breve você receberá mais informações.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: _successColor,
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (status == 'cancelada') {
-      return Container(
-        padding: EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: _dangerColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _dangerColor.withOpacity(0.3)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.cancel, size: 18, color: _dangerColor),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Matrícula cancelada',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: _dangerColor,
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    return SizedBox.shrink();
-  }
-
 
 
 Widget _infoItem(IconData icon, String text, Color color) {

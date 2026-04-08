@@ -529,4 +529,36 @@ Future<Map<String, dynamic>> getUPAById(int id) async {
   }
 }
 
+
+Future<Map<String, dynamic>> getTurmasComCronograma() async {
+  try {
+    final response = await _api.get('/enfermeira/turmas-cronograma');
+    return response;
+  } catch (e) {
+    throw Exception('Erro ao buscar turmas: $e');
+  }
+}
+
+Future<void> adicionarAulaCronograma(int turmaId, int numeroAula, String data, String horario, int mes) async {
+  try {
+    await _api.post('/enfermeira/cronograma', {
+      'turmaId': turmaId,
+      'numeroAula': numeroAula,
+      'data': data,
+      'horario': horario,
+      'mes': mes,
+    });
+  } catch (e) {
+    throw Exception('Erro ao adicionar aula: $e');
+  }
+}
+
+Future<void> deletarAulaCronograma(int aulaId) async {
+  try {
+    await _api.delete('/enfermeira/cronograma/$aulaId');
+  } catch (e) {
+    throw Exception('Erro ao deletar aula: $e');
+  }
+}
+
 }

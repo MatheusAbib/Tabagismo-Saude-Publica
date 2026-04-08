@@ -121,8 +121,7 @@ exports.getCronograma = async (req, res) => {
     const { matriculaId } = req.params;
     
     const [matricula] = await pool.execute(
-      `SELECT m.id, m.usuario_id, m.turma_horario, m.created_at, m.status,
-              u.data_nascimento
+      `SELECT m.*, u.nome_completo 
        FROM matriculas m
        JOIN usuarios u ON m.usuario_id = u.id
        WHERE m.id = ?`,
@@ -133,83 +132,71 @@ exports.getCronograma = async (req, res) => {
       return res.status(404).json({ error: 'Matrícula não encontrada' });
     }
     
-    const turma = matricula[0];
-    const dataMatricula = new Date(turma.created_at);
+    const [turma] = await pool.execute(
+      `SELECT t.id, t.dia_semana, t.horario as turma_horario
+       FROM turmas t
+       WHERE t.upa_id = ? AND CONCAT(t.dia_semana, ' - ', t.horario) = ?`,
+      [matricula[0].upa_id, matricula[0].turma_horario]
+    );
     
-    const diasSemana = {
-      'Segunda-feira': 1,
-      'Terça-feira': 2,
-      'Quarta-feira': 3,
-      'Quinta-feira': 4,
-      'Sexta-feira': 5,
-      'Sábado': 6,
-      'Domingo': 0
-    };
-    
-    const horarioParts = turma.turma_horario.match(/(\d{2}):(\d{2})/);
-    const hora = parseInt(horarioParts[1]);
-    const minuto = parseInt(horarioParts[2]);
-    
-    const diaSemanaTexto = turma.turma_horario.split(' - ')[0];
-    const diaSemanaNumero = diasSemana[diaSemanaTexto];
-    
-    let dataPrimeiraAula = new Date(dataMatricula);
-    dataPrimeiraAula.setDate(dataPrimeiraAula.getDate() + 1);
-    
-    while (dataPrimeiraAula.getDay() !== diaSemanaNumero) {
-      dataPrimeiraAula.setDate(dataPrimeiraAula.getDate() + 1);
-    }
-    dataPrimeiraAula.setHours(hora, minuto, 0, 0);
-    
-    const aulas = [];
-    let dataAtual = new Date(dataPrimeiraAula);
-    let mes = 1;
-    let contador = 0;
-    
-    const fimPrograma = new Date(dataPrimeiraAula);
-    fimPrograma.setMonth(fimPrograma.getMonth() + 6);
-    
-    while (dataAtual <= fimPrograma) {
-      let intervaloDias = 7;
-      
-      if (contador >= 4 && contador < 12) {
-        intervaloDias = 15;
-      } else if (contador >= 12) {
-        intervaloDias = 30;
-      }
-      
-      aulas.push({
-        numero: contador + 1,
-        data: dataAtual.toISOString(),
-        data_formatada: dataAtual.toLocaleDateString('pt-BR'),
-        horario: `${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`,
-        mes: mes
+    if (turma.length === 0) {
+      return res.json({
+        aulas: [],
+        total_aulas: 0,
+        data_inicio: '',
+        turma: matricula[0].turma_horario,
+        proxima_aula: null
       });
-      
-      dataAtual.setDate(dataAtual.getDate() + intervaloDias);
-      contador++;
-      
-      if (contador === 4 || contador === 12) {
-        mes++;
-      }
     }
+    
+    const [aulas] = await pool.execute(
+      `SELECT c.*, DATE_FORMAT(c.data, '%d/%m/%Y') as data_formatada
+       FROM cronograma c
+       WHERE c.turma_id = ?
+       ORDER BY c.numero_aula ASC`,
+      [turma[0].id]
+    );
     
     const hoje = new Date();
-    const proximaAula = aulas.find(aula => new Date(aula.data) >= hoje);
+    hoje.setHours(0, 0, 0, 0);
+    
+    let proximaAula = null;
+    for (const aula of aulas) {
+      const dataAula = new Date(aula.data);
+      if (dataAula >= hoje) {
+        proximaAula = {
+          data_formatada: aula.data_formatada,
+          horario: aula.horario,
+          numero: aula.numero_aula
+        };
+        break;
+      }
+    }
+    
+    const aulasFormatadas = aulas.map(aula => ({
+      numero: aula.numero_aula,
+      data: aula.data,
+      data_formatada: aula.data_formatada,
+      horario: aula.horario,
+      mes: aula.mes
+    }));
+    
+    const dataInicio = aulas.length > 0 ? aulas[0].data_formatada : '';
     
     res.json({
-      turma: turma.turma_horario,
-      data_inicio: dataPrimeiraAula.toLocaleDateString('pt-BR'),
+      aulas: aulasFormatadas,
       total_aulas: aulas.length,
-      proxima_aula: proximaAula || null,
-      aulas: aulas
+      data_inicio: dataInicio,
+      turma: matricula[0].turma_horario,
+      proxima_aula: proximaAula
     });
     
   } catch (error) {
-    console.error('Erro ao gerar cronograma:', error);
+    console.error('Erro ao buscar cronograma:', error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 exports.updateEnrollmentStatus = async (req, res) => {
   try {

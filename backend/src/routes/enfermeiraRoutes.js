@@ -27,4 +27,8 @@ router.get('/evolucao-geral', enfermeiraController.getEvolucaoGeral);
 
 router.get('/turmas/:upaId', turmaController.getTurmasPorUPA);
 
+router.get('/turmas-cronograma', enfermeiraController.getTurmasComCronograma);
+router.post('/cronograma', enfermeiraController.adicionarAulaCronograma);
+router.delete('/cronograma/:id', enfermeiraController.deletarAulaCronograma);
+
 module.exports = router;

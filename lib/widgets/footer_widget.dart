@@ -173,7 +173,6 @@ class FooterWidget extends StatelessWidget {
   }
 
   Widget _buildContactSection() {
-    final Color accentColor = Color(0xFF2C7DA0);
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

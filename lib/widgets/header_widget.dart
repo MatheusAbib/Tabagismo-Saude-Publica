@@ -5,6 +5,9 @@ import 'package:tabagismo_app/screens/upa_screen.dart';
 import 'package:tabagismo_app/screens/my_enrollments_screen.dart';
 import 'package:tabagismo_app/screens/fagerstrom_test_screen.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
+import 'package:tabagismo_app/services/sintoma_service.dart';
+
+import 'package:fl_chart/fl_chart.dart' as fl_chart;
 
 class HeaderWidget extends StatefulWidget {
   final String userName;
@@ -12,8 +15,6 @@ class HeaderWidget extends StatefulWidget {
   final Function(String)? onNameUpdated;
   final bool showBackButton;
   final VoidCallback? onBackPressed;
-  final VoidCallback? onSintomasPressed;
-  final VoidCallback? onSintomasGraficoPressed;
 
   const HeaderWidget({
     Key? key,
@@ -22,8 +23,6 @@ class HeaderWidget extends StatefulWidget {
     this.onNameUpdated,
     this.showBackButton = false,
     this.onBackPressed,
-    this.onSintomasPressed,
-    this.onSintomasGraficoPressed,
   }) : super(key: key);
 
   @override
@@ -32,9 +31,9 @@ class HeaderWidget extends StatefulWidget {
 
 class _HeaderWidgetState extends State<HeaderWidget> {
   final _authService = AuthService();
+  final _sintomaService = SintomaService();
   final Color _primaryColor = Color(0xFF0F2B3D);
   final Color _accentColor = Color(0xFF2C7DA0);
-  final Color _grayColor = Color(0xFF9E9E9E);
 
   void _showLogoutConfirmationDialog() {
     showDialog(
@@ -152,8 +151,7 @@ class _HeaderWidgetState extends State<HeaderWidget> {
   }
 
   void _performLogout() async {
-    final authService = AuthService();
-    await authService.logout();
+    await _authService.logout();
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -163,6 +161,478 @@ class _HeaderWidgetState extends State<HeaderWidget> {
 
   void _logout() {
     _showLogoutConfirmationDialog();
+  }
+
+  void _showSintomasModal() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        int ansiedade = 0;
+        int irritabilidade = 0;
+        int insonia = 0;
+        int fome = 0;
+        int dificuldadeConcentracao = 0;
+        int vontadeFumar = 0;
+        String observacoes = '';
+        bool isLoading = false;
+        
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              child: Container(
+                width: 700,
+                constraints: BoxConstraints(maxHeight: 800),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _accentColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(Icons.monitor_heart, size: 24, color: Color(0xFF2C7DA0)),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Diário de Sintomas',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              Text(
+                                'Registre como você se sente hoje',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Color(0xFF94A3B8)),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            _buildSintomaSlider('Ansiedade', Icons.psychology, ansiedade, (value) => setState(() => ansiedade = value), const Color(0xFF3B82F6)),
+                            _buildSintomaSlider('Irritabilidade', Icons.flash_on, irritabilidade, (value) => setState(() => irritabilidade = value), const Color(0xFFEF4444)),
+                            _buildSintomaSlider('Insônia', Icons.nightlight_round, insonia, (value) => setState(() => insonia = value), const Color(0xFF8B5CF6)),
+                            _buildSintomaSlider('Fome', Icons.restaurant, fome, (value) => setState(() => fome = value), const Color(0xFFF59E0B)),
+                            _buildSintomaSlider('Dificuldade de Concentração', Icons.auto_awesome, dificuldadeConcentracao, (value) => setState(() => dificuldadeConcentracao = value), const Color(0xFF10B981)),
+                            _buildSintomaSlider('Vontade de Fumar', Icons.smoking_rooms, vontadeFumar, (value) => setState(() => vontadeFumar = value), const Color(0xFFEF4444)),
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Observações (opcional)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF475569),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextField(
+                                    maxLines: 3,
+                                    decoration: InputDecoration(
+                                      hintText: 'Como foi seu dia? Algum gatilho específico?',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                    ),
+                                    onChanged: (value) => observacoes = value,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: isLoading ? null : () async {
+                          setState(() => isLoading = true);
+                          try {
+                            final hoje = DateTime.now().toIso8601String().split('T')[0];
+                            await _sintomaService.registrarSintoma(
+                              data: hoje,
+                              ansiedade: ansiedade,
+                              irritabilidade: irritabilidade,
+                              insonia: insonia,
+                              fome: fome,
+                              dificuldadeConcentracao: dificuldadeConcentracao,
+                              vontadeFumar: vontadeFumar,
+                              observacoes: observacoes,
+                            );
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Sintomas registrados com sucesso!'),
+                                backgroundColor: Color(0xFF10B981),
+                              ),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Erro ao registrar: $e'), backgroundColor: Color(0xFFEF4444)),
+                            );
+                          } finally {
+                            setState(() => isLoading = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text('Registrar Sintomas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showSintomasGrafico() async {
+    try {
+      final sintomas = await _sintomaService.getSintomas(limit: 30);
+      
+      if (sintomas.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ainda não há registros de sintomas. Registre seu primeiro diário!'),
+            backgroundColor: Color(0xFFF59E0B),
+          ),
+        );
+        return;
+      }
+      
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return Dialog(
+            insetPadding: const EdgeInsets.all(20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            child: Container(
+              width: 700,
+              height: 500,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _accentColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.show_chart, size: 24, color: Color(0xFF2C7DA0)),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Evolução dos Sintomas',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 10,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      _buildLegendaItem(const Color(0xFF3B82F6), 'Ansiedade'),
+                      _buildLegendaItem(const Color(0xFFEF4444), 'Irritabilidade'),
+                      _buildLegendaItem(const Color(0xFF8B5CF6), 'Insônia'),
+                      _buildLegendaItem(const Color(0xFFF97316), 'Fome'),
+                      _buildLegendaItem(const Color(0xFF10B981), 'Dificuldade de Concentração'),
+                      _buildLegendaItem(const Color(0xFFF59E0B), 'Vontade de Fumar'),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: _buildSintomasGrafico(sintomas),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar gráfico: $e'), backgroundColor: const Color(0xFFEF4444)),
+      );
+    }
+  }
+
+  Widget _buildSintomaSlider(String titulo, IconData icon, int valor, Function(int) onChanged, Color cor) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: cor),
+              const SizedBox(width: 8),
+              Text(
+                titulo,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: cor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  valor.toString(),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: cor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Slider(
+            value: valor.toDouble(),
+            min: 0,
+            max: 10,
+            divisions: 10,
+            activeColor: cor,
+            inactiveColor: cor.withOpacity(0.2),
+            onChanged: (value) => onChanged(value.round()),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Nenhum', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+              Text('Moderado', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+              Text('Máximo', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendaItem(Color cor, String texto) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 15,
+          height: 15,
+          decoration: BoxDecoration(
+            color: cor,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          texto,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFF475569),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSintomasGrafico(List<Map<String, dynamic>> sintomas) {
+    sintomas = sintomas.reversed.toList();
+    
+    List<double> ansiedade = [];
+    List<double> irritabilidade = [];
+    List<double> vontadeFumar = [];
+    List<double> insonia = [];
+    List<double> fome = [];
+    List<double> dificuldadeConcentracao = [];
+    List<String> labels = [];
+
+    for (var s in sintomas) {
+      ansiedade.add((s['ansiedade'] ?? 0).toDouble());
+      irritabilidade.add((s['irritabilidade'] ?? 0).toDouble());
+      vontadeFumar.add((s['vontade_fumar'] ?? 0).toDouble());
+      insonia.add((s['insonia'] ?? 0).toDouble());
+      fome.add((s['fome'] ?? 0).toDouble());
+      dificuldadeConcentracao.add((s['dificuldade_concentracao'] ?? 0).toDouble());
+      
+      final data = DateTime.parse(s['data']);
+      labels.add('${data.day}/${data.month}');
+    }
+    
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Container(
+        width: 600,
+        height: 350,
+        child: fl_chart.LineChart(
+          fl_chart.LineChartData(
+            gridData: fl_chart.FlGridData(show: true),
+            titlesData: fl_chart.FlTitlesData(
+              bottomTitles: fl_chart.AxisTitles(
+                sideTitles: fl_chart.SideTitles(
+                  showTitles: true,
+                  getTitlesWidget: (value, meta) {
+                    final index = value.toInt();
+                    if (index >= 0 && index < labels.length) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          labels[index],
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                      );
+                    }
+                    return const Text('');
+                  },
+                ),
+              ),
+              leftTitles: fl_chart.AxisTitles(
+                sideTitles: fl_chart.SideTitles(
+                  showTitles: true,
+                  getTitlesWidget: (value, meta) {
+                    return Text('${value.toInt()}', style: const TextStyle(fontSize: 10));
+                  },
+                  reservedSize: 30,
+                ),
+              ),
+              topTitles: fl_chart.AxisTitles(sideTitles: fl_chart.SideTitles(showTitles: false)),
+              rightTitles: fl_chart.AxisTitles(sideTitles: fl_chart.SideTitles(showTitles: false)),
+            ),
+            borderData: fl_chart.FlBorderData(show: true),
+            minX: 0,
+            maxX: (sintomas.length - 1).toDouble(),
+            minY: 0,
+            maxY: 10,
+            lineBarsData: [
+              fl_chart.LineChartBarData(
+                spots: List.generate(ansiedade.length, (i) => fl_chart.FlSpot(i.toDouble(), ansiedade[i])),
+                isCurved: true,
+                color: const Color(0xFF3B82F6),
+                barWidth: 3,
+                dotData: fl_chart.FlDotData(show: true),
+              ),
+              fl_chart.LineChartBarData(
+                spots: List.generate(irritabilidade.length, (i) => fl_chart.FlSpot(i.toDouble(), irritabilidade[i])),
+                isCurved: true,
+                color: const Color(0xFFEF4444),
+                barWidth: 3,
+                dotData: fl_chart.FlDotData(show: true),
+              ),
+              fl_chart.LineChartBarData(
+                spots: List.generate(vontadeFumar.length, (i) => fl_chart.FlSpot(i.toDouble(), vontadeFumar[i])),
+                isCurved: true,
+                color: const Color(0xFFF59E0B),
+                barWidth: 3,
+                dotData: fl_chart.FlDotData(show: true),
+              ),
+              fl_chart.LineChartBarData(
+                spots: List.generate(insonia.length, (i) => fl_chart.FlSpot(i.toDouble(), insonia[i])),
+                isCurved: true,
+                color: const Color(0xFF8B5CF6),
+                barWidth: 3,
+                dotData: fl_chart.FlDotData(show: true),
+              ),
+              fl_chart.LineChartBarData(
+                spots: List.generate(fome.length, (i) => fl_chart.FlSpot(i.toDouble(), fome[i])),
+                isCurved: true,
+                color: const Color(0xFFF97316),
+                barWidth: 3,
+                dotData: fl_chart.FlDotData(show: true),
+              ),
+              fl_chart.LineChartBarData(
+                spots: List.generate(dificuldadeConcentracao.length, (i) => fl_chart.FlSpot(i.toDouble(), dificuldadeConcentracao[i])),
+                isCurved: true,
+                color: const Color(0xFF10B981),
+                barWidth: 3,
+                dotData: fl_chart.FlDotData(show: true),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _changePassword() async {
@@ -176,170 +646,135 @@ class _HeaderWidgetState extends State<HeaderWidget> {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
-            insetPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 24),
-            contentPadding: EdgeInsets.fromLTRB(24, 20, 24, 8),
-            backgroundColor: Colors.white,
+          return Dialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Row(
-              children: [
-                Icon(Icons.lock_outline, color: _accentColor, size: 26),
-                SizedBox(width: 10),
-                Text(
-                  'Alterar Senha',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: _primaryColor,
-                    fontSize: 20,
-                  ),
-                ),
-              ],
-            ),
-            content: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.20,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              width: 450,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  FocusScope(
-                    child: Focus(
-                      onFocusChange: (hasFocus) {
-                        setState(() {});
-                      },
-                      child: TextField(
-                        controller: currentPasswordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Senha Atual',
-                          labelStyle: TextStyle(color: _grayColor),
-                          prefixIcon: Icon(Icons.lock_outline, color: _grayColor),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: _grayColor),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: _grayColor),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: _accentColor, width: 1.5),
-                          ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        child: const Icon(Icons.lock_outline, color: Color(0xFF10B981), size: 24),
                       ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Alterar Senha',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: currentPasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Senha Atual',
+                      prefixIcon: Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                     ),
                   ),
-                  SizedBox(height: 16),
-                  FocusScope(
-                    child: Focus(
-                      onFocusChange: (hasFocus) {
-                        setState(() {});
-                      },
-                      child: TextField(
-                        controller: newPasswordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Nova Senha',
-                          labelStyle: TextStyle(color: _grayColor),
-                          prefixIcon: Icon(Icons.lock_reset_outlined, color: _grayColor),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: _grayColor),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: _grayColor),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: _accentColor, width: 1.5),
-                          ),
-                        ),
-                      ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: newPasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Nova Senha',
+                      prefixIcon: Icon(Icons.lock_reset),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                     ),
                   ),
-                  SizedBox(height: 16),
-                  FocusScope(
-                    child: Focus(
-                      onFocusChange: (hasFocus) {
-                        setState(() {});
-                      },
-                      child: TextField(
-                        controller: confirmPasswordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Confirmar Nova Senha',
-                          labelStyle: TextStyle(color: _grayColor),
-                          prefixIcon: Icon(Icons.verified_user_outlined, color: _grayColor),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: _grayColor),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: confirmPasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Confirmar Nova Senha',
+                      prefixIcon: Icon(Icons.verified_user),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: _grayColor),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: _accentColor, width: 1.5),
-                          ),
+                          child: const Text('Cancelar'),
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : () async {
+                            if (newPasswordController.text != confirmPasswordController.text) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('As senhas não coincidem'), backgroundColor: Colors.red),
+                              );
+                              return;
+                            }
+                            setState(() => isLoading = true);
+                            try {
+                              await _authService.changeUserPassword(
+                                currentPasswordController.text,
+                                newPasswordController.text,
+                              );
+                              if (mounted) {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Senha alterada com sucesso!'), backgroundColor: Color(0xFF10B981)),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Erro ao alterar senha: $e'), backgroundColor: Colors.red.shade400),
+                                );
+                              }
+                            } finally {
+                              setState(() => isLoading = false);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: isLoading
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.save, size: 18, color: Colors.white),
+                                    SizedBox(width: 8),
+                                    Text('Salvar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Cancelar', style: TextStyle(color: Colors.grey.shade600)),
-              ),
-              ElevatedButton(
-                onPressed: isLoading
-                    ? null
-                    : () async {
-                        if (newPasswordController.text != confirmPasswordController.text) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('As senhas não coincidem')),
-                          );
-                          return;
-                        }
-
-                        setState(() => isLoading = true);
-
-                        try {
-                          await _authService.changeUserPassword(
-                            currentPasswordController.text,
-                            newPasswordController.text,
-                          );
-
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Senha alterada com sucesso!')),
-                          );
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Erro ao alterar senha: $e')),
-                          );
-                        } finally {
-                          setState(() => isLoading = false);
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _accentColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-                child: isLoading
-                    ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : Text('Alterar'),
-              ),
-            ],
           );
         },
       ),
@@ -360,292 +795,214 @@ class _HeaderWidgetState extends State<HeaderWidget> {
       );
       final cpf = userData['cpf'] != null ? _formatCpf(userData['cpf']) : 'Não informado';
       bool isLoading = false;
-      String? telefoneError;
 
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              insetPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 24),
-              contentPadding: EdgeInsets.fromLTRB(24, 20, 24, 8),
-              backgroundColor: Colors.white,
+            return Dialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Row(
-                children: [
-                  Icon(Icons.edit_outlined, color: _accentColor, size: 26),
-                  SizedBox(width: 10),
-                  Text(
-                    'Editar Dados',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: _primaryColor,
-                      fontSize: 20,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                width: 480,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.edit_outlined, color: Color(0xFF10B981), size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Editar Dados',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              content: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.2,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      FocusScope(
-                        child: Focus(
-                          onFocusChange: (hasFocus) {
-                            setState(() {});
-                          },
-                          child: TextField(
-                            controller: nomeController,
-                            decoration: InputDecoration(
-                              labelText: 'Nome Completo',
-                              labelStyle: TextStyle(color: _grayColor),
-                              prefixIcon: Icon(Icons.person_outline, color: _grayColor),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: _grayColor),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: _grayColor),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: _accentColor, width: 1.5),
-                              ),
-                            ),
-                          ),
-                        ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: nomeController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nome Completo',
+                        prefixIcon: Icon(Icons.person),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                       ),
-                      SizedBox(height: 16),
-                      FocusScope(
-                        child: Focus(
-                          onFocusChange: (hasFocus) {
-                            setState(() {});
-                          },
-                          child: DropdownButtonFormField<String>(
-                            value: sexoSelecionado,
-                            decoration: InputDecoration(
-                              labelText: 'Sexo',
-                              labelStyle: TextStyle(color: _grayColor),
-                              prefixIcon: Icon(Icons.wc_outlined, color: _grayColor),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: _grayColor),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: _grayColor),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: _accentColor, width: 1.5),
-                              ),
-                            ),
-                            items: ['Masculino', 'Feminino', 'Outro'].map((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                sexoSelecionado = newValue;
-                              });
-                            },
-                          ),
-                        ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: sexoSelecionado,
+                      decoration: const InputDecoration(
+                        labelText: 'Sexo',
+                        prefixIcon: Icon(Icons.wc),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                       ),
-                      SizedBox(height: 16),
-                      FocusScope(
-                        child: Focus(
-                          onFocusChange: (hasFocus) {
-                            setState(() {});
-                          },
-                          child: TextField(
-                            controller: emailController,
-                            decoration: InputDecoration(
-                              labelText: 'Email',
-                              labelStyle: TextStyle(color: _grayColor),
-                              prefixIcon: Icon(Icons.email_outlined, color: _grayColor),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: _grayColor),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: _grayColor),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: _accentColor, width: 1.5),
-                              ),
-                            ),
-                          ),
-                        ),
+                      items: ['Masculino', 'Feminino', 'Outro'].map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          sexoSelecionado = newValue;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.email),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                       ),
-                      SizedBox(height: 16),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: _grayColor),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.assignment_ind, color: _grayColor, size: 20),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'CPF',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: _grayColor,
-                                    ),
-                                  ),
-                                  Text(
-                                    cpf,
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade400),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      SizedBox(height: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          FocusScope(
-                            child: Focus(
-                              onFocusChange: (hasFocus) {
-                                setState(() {});
-                              },
-                              child: TextField(
-                                controller: telefoneController,
-                                keyboardType: TextInputType.phone,
-                                decoration: InputDecoration(
-                                  labelText: 'Telefone Celular',
-                                  labelStyle: TextStyle(color: _grayColor),
-                                  prefixIcon: Icon(Icons.phone_iphone_outlined, color: _grayColor),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: _grayColor),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: _grayColor),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: _accentColor, width: 1.5),
-                                  ),
-                                  helperText: 'Formato: (DDD) 99999-9999',
-                                  errorText: telefoneError,
+                          Icon(Icons.assignment_ind, color: Colors.grey.shade600, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'CPF',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
                                 ),
-                                onChanged: (value) {
-                                  setState(() {
-                                    if (value.isNotEmpty) {
-                                      String telefoneLimpo = value.replaceAll(RegExp(r'[^\d]'), '');
-                                      if (telefoneLimpo.length != 11) {
-                                        telefoneError = 'Telefone inválido (DDD + 9 dígitos)';
-                                      } else {
-                                        telefoneError = null;
-                                      }
-                                    } else {
-                                      telefoneError = 'Telefone é obrigatório';
-                                    }
-                                  });
-                                },
-                              ),
+                                Text(
+                                  cpf,
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: telefoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Telefone',
+                        hintText: '(11) 91234-5678',
+                        prefixIcon: Icon(Icons.phone),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text('Cancelar'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: isLoading
+                                ? null
+                                : () async {
+                                    if (telefoneController.text.isEmpty) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Telefone é obrigatório'), backgroundColor: Colors.red),
+                                      );
+                                      return;
+                                    }
+
+                                    String telefoneLimpo = telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
+                                    if (telefoneLimpo.length != 11) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Telefone inválido (DDD + 9 dígitos)'), backgroundColor: Colors.red),
+                                      );
+                                      return;
+                                    }
+
+                                    setState(() => isLoading = true);
+
+                                    try {
+                                      await _authService.updateUserData({
+                                        'nomeCompleto': nomeController.text,
+                                        'sexo': sexoSelecionado,
+                                        'email': emailController.text,
+                                        'telefone': telefoneLimpo,
+                                      });
+
+                                      if (mounted) {
+                                        Navigator.pop(context);
+                                        if (widget.onNameUpdated != null) {
+                                          widget.onNameUpdated!(nomeController.text);
+                                        }
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Dados atualizados com sucesso!'), backgroundColor: Color(0xFF10B981)),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Erro ao atualizar dados: $e'), backgroundColor: Colors.red.shade400),
+                                        );
+                                      }
+                                    } finally {
+                                      setState(() => isLoading = false);
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: isLoading
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                : const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.save, size: 18, color: Colors.white),
+                                      SizedBox(width: 8),
+                                      Text('Salvar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancelar', style: TextStyle(color: Colors.grey.shade600)),
-                ),
-                ElevatedButton(
-                  onPressed: isLoading
-                      ? null
-                      : () async {
-                          if (telefoneController.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Telefone é obrigatório')),
-                            );
-                            return;
-                          }
-
-                          String telefoneLimpo = telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
-                          if (telefoneLimpo.length != 11) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Telefone inválido (DDD + 9 dígitos)')),
-                            );
-                            return;
-                          }
-
-                          setState(() => isLoading = true);
-
-                          try {
-                            await _authService.updateUserData({
-                              'nomeCompleto': nomeController.text,
-                              'sexo': sexoSelecionado,
-                              'email': emailController.text,
-                              'telefone': telefoneLimpo,
-                            });
-
-                            Navigator.pop(context);
-
-                            if (widget.onNameUpdated != null) {
-                              widget.onNameUpdated!(nomeController.text);
-                            }
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Dados atualizados com sucesso!')),
-                            );
-
-                            setState(() {});
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Erro ao atualizar dados: $e')),
-                            );
-                          } finally {
-                            setState(() => isLoading = false);
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _accentColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  ),
-                  child: isLoading
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : Text('Salvar'),
-                ),
-              ],
             );
           },
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar dados: $e')),
+        SnackBar(content: Text('Erro ao carregar dados: $e'), backgroundColor: Colors.red.shade400),
       );
     }
   }
@@ -712,14 +1069,14 @@ class _HeaderWidgetState extends State<HeaderWidget> {
           end: Alignment.bottomRight,
           colors: [
             _primaryColor,
-            Color(0xFF1A4A6F),
+            const Color(0xFF1A4A6F),
           ],
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
             blurRadius: 12,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -738,22 +1095,22 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                 Container(
                   margin: EdgeInsets.only(right: 5),
                   child: IconButton(
-                    icon: Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
                     onPressed: widget.onBackPressed ?? () => Navigator.pop(context),
-                    padding: EdgeInsets.all(10),
-                    constraints: BoxConstraints(),
+                    padding: const EdgeInsets.all(10),
+                    constraints: const BoxConstraints(),
                   ),
                 ),
               Container(
-                padding: EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(35),
                 ),
-                child: Icon(Icons.smoking_rooms_outlined, color: Colors.white, size: 29),
+                child: const Icon(Icons.smoking_rooms_outlined, color: Colors.white, size: 29),
               ),
-              SizedBox(width: 14),
-              Column(
+              const SizedBox(width: 14),
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -770,96 +1127,95 @@ class _HeaderWidgetState extends State<HeaderWidget> {
               ),
             ],
           ),
-Row(
-  children: [
-    Container(
-      height: 40, // Altura fixa adicionada
-      margin: EdgeInsets.only(right: 10),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _openUPAScreen,
-          borderRadius: BorderRadius.circular(30),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0), 
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
-                SizedBox(width: 6),
-                Text(
-                  'Turmas de Apoio',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ),
-    Container(
-      height: 40, // Mesma altura fixa adicionada
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: PopupMenuButton<String>(
-        offset: Offset(0, 52),
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-          child: Row(
+          Row(
             children: [
               Container(
-                padding: EdgeInsets.all(4),
+                height: 40,
+                margin: const EdgeInsets.only(right: 10),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _openUPAScreen,
+                    borderRadius: BorderRadius.circular(30),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Turmas de Apoio',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
                 ),
-                child: Icon(Icons.person_outline, color: Colors.white, size: 16),
-              ),
-              SizedBox(width: 8),
-              Text(
-                'Bem-vindo, ${widget.userName.split(' ').first}',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(width: 6),
-              Icon(
-                Icons.arrow_drop_down,
-                color: Colors.white.withOpacity(0.9),
-                size: 20,
-              ),
-            ],
-          ),
-        ),
-
+                child: PopupMenuButton<String>(
+                  offset: const Offset(0, 52),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.person_outline, color: Colors.white, size: 16),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Bem-vindo, ${widget.userName.split(' ').first}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          color: Colors.white.withOpacity(0.9),
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
                   onSelected: (String value) {
                     if (value == 'diario') {
-                      widget.onSintomasPressed?.call();
+                      _showSintomasModal();
                     } else if (value == 'grafico') {
-                      widget.onSintomasGraficoPressed?.call();
+                      _showSintomasGrafico();
                     } else if (value == 'teste_fagerstrom') {
                       _openFagerstromTest();
                     } else if (value == 'minhas_matriculas') {
@@ -873,75 +1229,75 @@ Row(
                     }
                   },
                   itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                    PopupMenuItem<String>(
+                    const PopupMenuItem<String>(
                       value: 'diario',
                       child: Row(
                         children: [
-                          Icon(Icons.monitor_heart_outlined, size: 20, color: _primaryColor),
+                          Icon(Icons.monitor_heart_outlined, size: 20),
                           SizedBox(width: 12),
                           Text('Diário de Sintomas', style: TextStyle(fontSize: 14)),
                         ],
                       ),
                     ),
-                    PopupMenuItem<String>(
+                    const PopupMenuItem<String>(
                       value: 'grafico',
                       child: Row(
                         children: [
-                          Icon(Icons.show_chart, size: 20, color: _primaryColor),
+                          Icon(Icons.show_chart, size: 20),
                           SizedBox(width: 12),
                           Text('Gráfico de Sintomas', style: TextStyle(fontSize: 14)),
                         ],
                       ),
                     ),
-                    PopupMenuDivider(),
-                    PopupMenuItem<String>(
+                    const PopupMenuDivider(),
+                    const PopupMenuItem<String>(
                       value: 'teste_fagerstrom',
                       child: Row(
                         children: [
-                          Icon(Icons.assessment_outlined, size: 20, color: _primaryColor),
+                          Icon(Icons.assessment_outlined, size: 20),
                           SizedBox(width: 12),
                           Text('Teste de Fagerström', style: TextStyle(fontSize: 14)),
                         ],
                       ),
                     ),
-                    PopupMenuItem<String>(
+                    const PopupMenuItem<String>(
                       value: 'minhas_matriculas',
                       child: Row(
                         children: [
-                          Icon(Icons.list_alt_outlined, size: 20, color: _primaryColor),
+                          Icon(Icons.list_alt_outlined, size: 20),
                           SizedBox(width: 12),
                           Text('Minhas Matrículas', style: TextStyle(fontSize: 14)),
                         ],
                       ),
                     ),
-                    PopupMenuDivider(),
-                    PopupMenuItem<String>(
+                    const PopupMenuDivider(),
+                    const PopupMenuItem<String>(
                       value: 'alterar_senha',
                       child: Row(
                         children: [
-                          Icon(Icons.lock_outline, size: 20, color: _primaryColor),
+                          Icon(Icons.lock_outline, size: 20),
                           SizedBox(width: 12),
                           Text('Alterar Senha', style: TextStyle(fontSize: 14)),
                         ],
                       ),
                     ),
-                    PopupMenuItem<String>(
+                    const PopupMenuItem<String>(
                       value: 'editar_dados',
                       child: Row(
                         children: [
-                          Icon(Icons.edit_outlined, size: 20, color: _primaryColor),
+                          Icon(Icons.edit_outlined, size: 20),
                           SizedBox(width: 12),
                           Text('Editar Dados', style: TextStyle(fontSize: 14)),
                         ],
                       ),
                     ),
-                    PopupMenuDivider(),
+                    const PopupMenuDivider(),
                     PopupMenuItem<String>(
                       value: 'sair',
                       child: Row(
                         children: [
                           Icon(Icons.logout_outlined, size: 20, color: Colors.red.shade400),
-                          SizedBox(width: 12),
+                          const SizedBox(width: 12),
                           Text('Sair', style: TextStyle(fontSize: 14, color: Colors.red.shade400)),
                         ],
                       ),
