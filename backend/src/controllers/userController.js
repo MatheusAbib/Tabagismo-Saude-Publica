@@ -1,5 +1,6 @@
 ﻿const pool = require('../config/database');
 const User = require('../models/User');
+const notificacaoController = require('./notificacaoController');
 const bcrypt = require('bcryptjs');
 
 exports.getUserData = async (req, res) => {
@@ -54,51 +55,53 @@ exports.updateUser = async (req, res) => {
     const userId = req.userId;
     const { nomeCompleto, sexo, email, telefone, scoreFagestrom } = req.body;
     
-    console.log('=== DEBUG updateUser ===');
-    console.log('userId:', userId);
-    console.log('Dados recebidos:', req.body);
-    console.log('scoreFagestrom:', scoreFagestrom);
-    console.log('Tipo do score:', typeof scoreFagestrom);
-    
     let updated;
     
     if (scoreFagestrom !== undefined && scoreFagestrom !== null) {
-      // Atualizar apenas o score
-      console.log('Atualizando score para:', scoreFagestrom);
       const [result] = await pool.execute(
         'UPDATE usuarios SET score_fagestrom = ? WHERE id = ?',
         [scoreFagestrom, userId]
       );
       updated = result.affectedRows;
-      console.log('Resultado da atualização do score:', result);
+      
+      let nivel = '';
+      if (scoreFagestrom <= 2) nivel = 'Muito Baixa';
+      else if (scoreFagestrom <= 4) nivel = 'Baixa';
+      else if (scoreFagestrom == 5) nivel = 'Média';
+      else if (scoreFagestrom <= 7) nivel = 'Elevada';
+      else nivel = 'Muito Elevada';
+      
+        await notificacaoController.criarNotificacao(
+          userId,
+          'Teste de Fagerström',
+          'Resultado do seu teste:\n\n'
+          + `Nível de dependência: ${nivel}\n`
+          + `Pontuação: ${scoreFagestrom} pontos\n\n`
+          + 'Continue acompanhando sua evolução.',
+          'fagerstrom',
+          '/fagerstrom-test'
+        );
     } else {
-      // Atualizar dados completos
-      console.log('Atualizando dados completos');
       const [result] = await pool.execute(
         'UPDATE usuarios SET nome_completo = ?, sexo = ?, email = ?, telefone = ? WHERE id = ?',
         [nomeCompleto, sexo, email, telefone, userId]
       );
       updated = result.affectedRows;
-      console.log('Resultado da atualização completa:', result);
     }
     
     if (updated === 0) {
-      console.log('Nenhuma linha foi atualizada');
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
     
-    console.log('Atualização bem sucedida!');
     res.json({ 
       success: true,
       message: 'Dados atualizados com sucesso' 
     });
   } catch (error) {
     console.error('Erro no updateUser:', error);
-    console.error('Stack trace:', error.stack);
     res.status(500).json({ message: 'Erro ao atualizar dados: ' + error.message });
   }
 };
-
 
 exports.updateGoal = async (req, res) => {
   const userId = req.userId;

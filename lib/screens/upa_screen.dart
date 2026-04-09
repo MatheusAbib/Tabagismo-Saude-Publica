@@ -4,6 +4,7 @@ import 'package:tabagismo_app/services/enrollment_service.dart';
 import 'package:tabagismo_app/widgets/footer_widget.dart';
 import 'package:tabagismo_app/widgets/header_widget.dart';
 import 'package:tabagismo_app/screens/fagerstrom_test_screen.dart';
+import 'package:tabagismo_app/screens/my_enrollments_screen.dart';
 
 class UPAScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -156,19 +157,228 @@ class _UPAScreenState extends State<UPAScreen> {
   void _nextPage() => _goToPage(_currentPage + 1);
   void _previousPage() => _goToPage(_currentPage - 1);
 
-void _abrirModalMatricula(Map<String, dynamic> upa) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => Dialog(
-      insetPadding: EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: EnrollmentModal(upa: upa), 
+void _abrirModalMatricula(Map<String, dynamic> upa) async {
+  try {
+    final authService = AuthService();
+    final response = await authService.verificarMatriculaAtiva();
+    
+    if (response['hasActiveEnrollment']) {
+      final matricula = response['enrollment'];
+      final statusTexto = matricula['status'] == 'em_espera' ? 'em espera' : 'ativa';
+      
+showDialog(
+  context: context,
+  builder: (context) => Dialog(
+    elevation: 0,
+    backgroundColor: Colors.transparent,
+    child: Container(
+      width: 420,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF59E0B).withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.warning_amber_rounded,
+              size: 48,
+              color: Color(0xFFF59E0B),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Matrícula Existente',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
+              letterSpacing: -0.5,
+              fontFamily: 'Poppins',
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Você já possui uma matrícula $statusTexto.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              color: Color(0xFF475569),
+              fontFamily: 'Inter',
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.local_hospital, size: 16, color: const Color(0xFF2C7DA0)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        matricula['upa_nome'],
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.schedule, size: 16, color: const Color(0xFF2C7DA0)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        matricula['turma_horario'],
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Aguarde a conclusão ou cancele a matrícula atual antes de realizar uma nova.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFF64748B),
+              fontFamily: 'Inter',
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 28),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MyEnrollmentsScreen(
+                          userData: widget.userData,
+                          onNameUpdated: widget.onNameUpdated,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.list_alt, size: 18),
+                  label: const Text(
+                    'Ver Matrículas',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2C7DA0),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     ),
-  );
+  ),
+);
+      return;
+    }
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        insetPadding: EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: EnrollmentModal(
+            upa: upa,
+            userData: widget.userData,
+            onNameUpdated: widget.onNameUpdated,
+          ),
+        ),
+      ),
+    );
+  } catch (e) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        insetPadding: EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: EnrollmentModal(
+            upa: upa,
+            userData: widget.userData,
+            onNameUpdated: widget.onNameUpdated,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
   @override
@@ -739,13 +949,19 @@ Widget _buildInfoSection({
 
 class EnrollmentModal extends StatefulWidget {
   final Map<String, dynamic> upa;
+  final Map<String, dynamic>? userData; 
+  final Function(String)? onNameUpdated; 
 
-  const EnrollmentModal({Key? key, required this.upa}) : super(key: key);
+  const EnrollmentModal({
+    Key? key, 
+    required this.upa,
+    this.userData,
+    this.onNameUpdated,
+  }) : super(key: key);
 
   @override
   _EnrollmentModalState createState() => _EnrollmentModalState();
 }
-
 
 class _EnrollmentModalState extends State<EnrollmentModal> {
   final _formKey = GlobalKey<FormState>();
@@ -996,7 +1212,54 @@ Future<void> _submitEnrollment() async {
       Navigator.pop(context);
       _showSnackBar('Matrícula realizada com sucesso! Você está na lista de espera.', _successColor);
     } catch (e) {
-      _showSnackBar('Erro ao realizar matrícula: $e', _dangerColor);
+      String errorMessage = e.toString();
+      
+      if (errorMessage.contains('já possui uma matrícula')) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber, color: Color(0xFFF59E0B), size: 28),
+                SizedBox(width: 12),
+                Text('Matrícula Existente', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: Text(
+              errorMessage.replaceFirst('Exception: ', ''),
+              style: const TextStyle(fontSize: 14, height: 1.4),
+            ),
+             actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MyEnrollmentsScreen(
+                    userData: widget.userData, // Agora usa widget.userData
+                    onNameUpdated: widget.onNameUpdated,
+                  ),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2C7DA0),
+            ),
+            child: const Text('Ver Minhas Matrículas'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        _showSnackBar('Erro ao realizar matrícula: $e', _dangerColor);
+      }
     } finally {
       setState(() => _isSubmitting = false);
     }

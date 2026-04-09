@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const notificacaoController = require('./notificacaoController');
 
 exports.createEnrollment = async (req, res) => {
   try {
@@ -13,6 +14,23 @@ exports.createEnrollment = async (req, res) => {
       medicamento,
       comorbidades
     } = req.body;
+
+    const [matriculaAtiva] = await pool.execute(
+      `SELECT id, status, upa_nome, turma_horario 
+       FROM matriculas 
+       WHERE usuario_id = ? AND status IN ('em_espera', 'matriculado')`,
+      [userId]
+    );
+
+    if (matriculaAtiva.length > 0) {
+      const statusTexto = matriculaAtiva[0].status === 'em_espera' ? 'em espera' : 'ativa';
+      return res.status(400).json({ 
+        message: `Você já possui uma matrícula ${statusTexto} na UPA ${matriculaAtiva[0].upa_nome} (Turma: ${matriculaAtiva[0].turma_horario}). 
+Aguarde a conclusão ou cancele a matrícula atual antes de realizar uma nova.`,
+        hasActiveEnrollment: true,
+        currentEnrollment: matriculaAtiva[0]
+      });
+    }
 
     const [result] = await pool.execute(
       `INSERT INTO matriculas 
@@ -32,6 +50,17 @@ exports.createEnrollment = async (req, res) => {
       ]
     );
 
+    await notificacaoController.criarNotificacao(
+      userId,
+      'Matrícula Realizada',
+      'Sua matrícula foi realizada com sucesso!\n\n'
+      + `UPA: ${upaNome}\n`
+      + `Turma: ${turmaHorario}\n\n`
+      + 'Aguarde contato da UPA em até 5 dias úteis para confirmação.',
+      'outro',
+      '/my-enrollments'
+    );
+
     res.status(201).json({ 
       message: 'Matrícula realizada com sucesso! Você está na lista de espera.',
       enrollmentId: result.insertId,
@@ -40,6 +69,34 @@ exports.createEnrollment = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Erro ao realizar matrícula: ' + error.message });
+  }
+};
+
+exports.verificarMatriculaAtiva = async (req, res) => {
+  try {
+    const userId = req.userId;
+    
+    const [matriculaAtiva] = await pool.execute(
+      `SELECT id, status, upa_nome, turma_horario 
+       FROM matriculas 
+       WHERE usuario_id = ? AND status IN ('em_espera', 'matriculado')`,
+      [userId]
+    );
+    
+    if (matriculaAtiva.length > 0) {
+      res.json({
+        hasActiveEnrollment: true,
+        enrollment: matriculaAtiva[0]
+      });
+    } else {
+      res.json({
+        hasActiveEnrollment: false,
+        enrollment: null
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao verificar matrícula ativa:', error);
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -65,11 +122,14 @@ exports.enroll = async (req, res) => {
     
     await pool.execute('START TRANSACTION');
     
+    const [upaRows] = await pool.execute('SELECT nome FROM upas WHERE id = ?', [upaId]);
+    const upaNome = upaRows.length > 0 ? upaRows[0].nome : 'UPA';
+    
     const [result] = await pool.execute(
       `INSERT INTO matriculas 
        (usuario_id, upa_id, upa_nome, turma_horario, escolaridade, score_fagestrom, medicamento, comorbidades, segunda_opcao_turma) 
-       VALUES (?, ?, (SELECT nome FROM upas WHERE id = ?), ?, ?, ?, ?, ?, ?)`,
-      [usuarioId, upaId, upaId, turmaHorario, escolaridade, scoreFagestrom, medicamento, JSON.stringify(comorbidades), segundaOpcaoTurma || null]
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [usuarioId, upaId, upaNome, turmaHorario, escolaridade, scoreFagestrom, medicamento, JSON.stringify(comorbidades), segundaOpcaoTurma || null]
     );
     
     await pool.execute(
@@ -78,6 +138,14 @@ exports.enroll = async (req, res) => {
     );
     
     await pool.execute('COMMIT');
+    
+await notificacaoController.criarNotificacao(
+  usuarioId,
+  'Matrícula Realizada!',
+  `Sua matrícula na ${upaNome} (Turma: ${turmaHorario}) foi realizada com sucesso! Aguarde contato da UPA em até 5 dias úteis para confirmação.`,
+  'outro',
+  '/my-enrollments'
+);
     
     res.status(201).json({ message: 'Matrícula realizada com sucesso', id: result.insertId });
   } catch (error) {
@@ -90,21 +158,54 @@ exports.enroll = async (req, res) => {
 exports.getUserEnrollments = async (req, res) => {
   try {
     const userId = req.userId;
-    console.log('Buscando matrículas para usuário:', userId);
     
-    const [rows] = await pool.execute(
-      `SELECT * FROM matriculas 
-       WHERE usuario_id = ? 
-       ORDER BY created_at DESC`,
+    const [matriculas] = await pool.execute(
+      `SELECT 
+        m.*,
+        'matricula' as tipo,
+        NULL as percentual_presenca,
+        NULL as total_presencas,
+        NULL as total_faltas,
+        NULL as evolucao
+       FROM matriculas m
+       WHERE m.usuario_id = ?
+       ORDER BY m.created_at DESC`,
       [userId]
     );
     
-    console.log('Matrículas encontradas:', rows.length);
+    const [concluidas] = await pool.execute(
+      `SELECT 
+        ac.id,
+        ac.usuario_id,
+        tc.upa_id,
+        tc.upa_nome,
+        tc.turma_horario,
+        'concluida' as status,
+        'concluida' as status_display,
+        ac.created_at,
+        ac.percentual_presenca,
+        ac.total_presencas,
+        ac.total_faltas,
+        ac.evolucao,
+        'concluida' as tipo,
+        tc.tipo_encerramento
+       FROM alunos_concluidos ac
+       JOIN turmas_concluidas tc ON ac.turma_concluida_id = tc.id
+       WHERE ac.usuario_id = ?
+       ORDER BY ac.created_at DESC`,
+      [userId]
+    );
+    
+    const todasMatriculas = [...matriculas, ...concluidas];
+    
+    todasMatriculas.sort((a, b) => {
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
     
     res.json({ 
       success: true,
-      data: rows,
-      count: rows.length
+      data: todasMatriculas,
+      count: todasMatriculas.length
     });
   } catch (error) {
     console.error('Erro ao buscar matrículas:', error);
@@ -114,7 +215,6 @@ exports.getUserEnrollments = async (req, res) => {
     });
   }
 };
-
 
 exports.getCronograma = async (req, res) => {
   try {

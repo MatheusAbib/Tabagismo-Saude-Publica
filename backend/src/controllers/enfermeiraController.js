@@ -1,4 +1,6 @@
 const pool = require('../config/database');
+const notificacaoController = require('./notificacaoController');
+
 
 exports.getUsuariosEmEspera = async (req, res) => {
   try {
@@ -35,17 +37,36 @@ exports.getUsuariosEmEspera = async (req, res) => {
   }
 };
 
+
 exports.atualizarStatusMatricula = async (req, res) => {
   try {
     const { matriculaId, status } = req.body;
     
-    const [result] = await pool.execute(
+    const [matricula] = await pool.execute(
+      'SELECT usuario_id, upa_nome FROM matriculas WHERE id = ?',
+      [matriculaId]
+    );
+    
+    if (matricula.length === 0) {
+      return res.status(404).json({ error: 'Matrícula não encontrada' });
+    }
+    
+    await pool.execute(
       'UPDATE matriculas SET status = ? WHERE id = ?',
       [status, matriculaId]
     );
     
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Matrícula não encontrada' });
+    if (status === 'matriculado') {
+      await notificacaoController.criarNotificacao(
+        matricula[0].usuario_id,
+        'Matrícula Confirmada',
+        'Parabéns! Sua matrícula foi confirmada.\n\n'
+        + `UPA: ${matricula[0].upa_nome}\n`
+        + `Turma: ${matricula[0].turma_horario}\n\n`
+        + 'Acesse "Minhas Matrículas" para mais detalhes.',
+        'matricula',
+        '/my-enrollments'
+      );
     }
     
     res.json({ message: 'Status atualizado com sucesso' });
@@ -183,9 +204,8 @@ exports.getPresencasPorMatricula = async (req, res) => {
     const { matriculaId } = req.params;
     
     const [presencas] = await pool.execute(
-      `SELECT p.*, o.observacao_semanal 
+      `SELECT p.* 
        FROM presencas p
-       LEFT JOIN observacoes_semanais o ON p.matricula_id = o.matricula_id AND p.data = o.data
        WHERE p.matricula_id = ? 
        ORDER BY p.data DESC`,
       [matriculaId]
@@ -200,7 +220,7 @@ exports.getPresencasPorMatricula = async (req, res) => {
 
 exports.encerrarTurma = async (req, res) => {
   try {
-    const { upaId, turmaHorario } = req.body;
+    const { upaId, turmaHorario, tipoEncerramento } = req.body; // tipoEncerramento: 'concluida' ou 'cancelada'
     const enfermeiraId = req.userId;
     
     const [enfermeira] = await pool.execute(
@@ -262,9 +282,9 @@ exports.encerrarTurma = async (req, res) => {
     
     const [result] = await pool.execute(
       `INSERT INTO turmas_concluidas 
-       (upa_id, upa_nome, turma_horario, data_inicio, data_fim, total_alunos, total_presencas, percentual_medio_presenca)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [upaId, upaNome, turmaHorario, dataInicio, dataFim, alunos.length, totalPresencasGeral, percentualMedio]
+       (upa_id, upa_nome, turma_horario, data_inicio, data_fim, total_alunos, total_presencas, percentual_medio_presenca, tipo_encerramento)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [upaId, upaNome, turmaHorario, dataInicio, dataFim, alunos.length, totalPresencasGeral, percentualMedio, tipoEncerramento]
     );
     
     const turmaConcluidaId = result.insertId;
@@ -282,12 +302,6 @@ exports.encerrarTurma = async (req, res) => {
     }
     
     await pool.execute(
-      `DELETE FROM observacoes_semanais 
-       WHERE matricula_id IN (SELECT id FROM matriculas WHERE upa_id = ? AND turma_horario = ? AND status = 'matriculado')`,
-      [upaId, turmaHorario]
-    );
-    
-    await pool.execute(
       `DELETE FROM presencas 
        WHERE matricula_id IN (SELECT id FROM matriculas WHERE upa_id = ? AND turma_horario = ? AND status = 'matriculado')`,
       [upaId, turmaHorario]
@@ -300,7 +314,7 @@ exports.encerrarTurma = async (req, res) => {
     );
     
     res.json({ 
-      message: 'Turma encerrada com sucesso',
+      message: `Turma ${tipoEncerramento === 'concluida' ? 'concluída' : 'cancelada'} com sucesso`,
       total_alunos: alunos.length,
       turma_concluida_id: turmaConcluidaId
     });
@@ -311,11 +325,119 @@ exports.encerrarTurma = async (req, res) => {
   }
 };
 
+exports.getTurmasConcluidas = async (req, res) => {
+  try {
+    const enfermeiraId = req.userId;
+    
+    const [enfermeira] = await pool.execute(
+      'SELECT upa_id FROM enfermeiros WHERE id = ?',
+      [enfermeiraId]
+    );
+    
+    if (enfermeira.length === 0 || !enfermeira[0].upa_id) {
+      return res.json({ turmas: [] });
+    }
+    
+    const upaId = enfermeira[0].upa_id;
+    
+    const [turmas] = await pool.execute(
+      `SELECT * FROM turmas_concluidas 
+       WHERE upa_id = ? AND tipo_encerramento = 'concluida'
+       ORDER BY data_fim DESC`,
+      [upaId]
+    );
+    
+    res.json({ turmas });
+  } catch (error) {
+    console.error('Erro ao buscar turmas concluídas:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getDetalhesTurmaConcluida = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const [turma] = await pool.execute(
+      'SELECT * FROM turmas_concluidas WHERE id = ?',
+      [id]
+    );
+    
+    if (turma.length === 0) {
+      return res.status(404).json({ error: 'Turma não encontrada' });
+    }
+    
+    const [alunos] = await pool.execute(
+      `SELECT ac.*, u.nome_completo, u.email, u.telefone
+       FROM alunos_concluidos ac
+       JOIN usuarios u ON ac.usuario_id = u.id
+       WHERE ac.turma_concluida_id = ?
+       ORDER BY u.nome_completo ASC`,
+      [id]
+    );
+    
+    const [datas] = await pool.execute(
+      `SELECT DISTINCT DATE_FORMAT(p.data, '%d/%m/%Y') as data
+       FROM presencas p
+       JOIN matriculas m ON p.matricula_id = m.id
+       WHERE m.turma_horario = ? AND m.upa_id = ?
+       ORDER BY p.data ASC`,
+      [turma[0].turma_horario, turma[0].upa_id]
+    );
+    
+    const listaDatas = datas.map(d => d.data);
+    
+    const alunosComPresencas = [];
+    
+    for (const aluno of alunos) {
+      const presencasPorData = {};
+      const observacoesPorData = {};
+      
+      for (const data of listaDatas) {
+        const [presenca] = await pool.execute(
+          `SELECT status, observacoes 
+           FROM presencas p
+           JOIN matriculas m ON p.matricula_id = m.id
+           WHERE m.usuario_id = ? AND DATE_FORMAT(p.data, '%d/%m/%Y') = ?`,
+          [aluno.usuario_id, data]
+        );
+        
+        if (presenca.length > 0) {
+          presencasPorData[data] = presenca[0].status;
+          observacoesPorData[data] = presenca[0].observacoes;
+        } else {
+          presencasPorData[data] = null;
+          observacoesPorData[data] = null;
+        }
+      }
+      
+      alunosComPresencas.push({
+        id: aluno.id,
+        nome_completo: aluno.nome_completo,
+        email: aluno.email,
+        telefone: aluno.telefone,
+        percentual_presenca: aluno.percentual_presenca,
+        presencas: presencasPorData,
+        observacoes: observacoesPorData,
+      });
+    }
+    
+    res.json({
+      turma: turma[0],
+      alunos: alunosComPresencas,
+      datas: listaDatas
+    });
+  } catch (error) {
+    console.error('Erro ao buscar detalhes da turma concluída:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 async function getEvolucaoAluno(matriculaId) {
   const [observacoes] = await pool.execute(
-    `SELECT data, observacao_semanal 
-     FROM observacoes_semanais 
-     WHERE matricula_id = ? 
+    `SELECT data, observacoes as observacao_semanal
+     FROM presencas 
+     WHERE matricula_id = ? AND observacoes IS NOT NULL
      ORDER BY data ASC`,
     [matriculaId]
   );
@@ -344,7 +466,6 @@ async function getEvolucaoAluno(matriculaId) {
     taxa_sucesso: observacoes.length > 0 ? (semFumarCount / observacoes.length * 100).toFixed(2) : 0
   };
 }
-
 
 exports.getEvolucaoGeral = async (req, res) => {
   try {
@@ -385,23 +506,23 @@ exports.getEvolucaoGeral = async (req, res) => {
     
     if (alunosAtivos[0].total > 0) {
       const [fumandoResult] = await pool.execute(
-        `SELECT COUNT(DISTINCT o.matricula_id) as total
-         FROM observacoes_semanais o
-         INNER JOIN matriculas m ON o.matricula_id = m.id
+        `SELECT COUNT(DISTINCT p.matricula_id) as total
+         FROM presencas p
+         INNER JOIN matriculas m ON p.matricula_id = m.id
          WHERE m.upa_id = ? AND m.status = 'matriculado' 
-         AND o.observacao_semanal = '1- Está fumando'
-         AND o.data = (SELECT MAX(data) FROM observacoes_semanais WHERE matricula_id = o.matricula_id)`,
+         AND p.observacoes = '1- Está fumando'
+         AND p.data = (SELECT MAX(data) FROM presencas WHERE matricula_id = p.matricula_id AND observacoes IS NOT NULL)`,
         [upaId]
       );
       fumandoAtivos = fumandoResult[0].total || 0;
       
       const [semFumarResult] = await pool.execute(
-        `SELECT COUNT(DISTINCT o.matricula_id) as total
-         FROM observacoes_semanais o
-         INNER JOIN matriculas m ON o.matricula_id = m.id
+        `SELECT COUNT(DISTINCT p.matricula_id) as total
+         FROM presencas p
+         INNER JOIN matriculas m ON p.matricula_id = m.id
          WHERE m.upa_id = ? AND m.status = 'matriculado' 
-         AND o.observacao_semanal = '2- Sem fumar'
-         AND o.data = (SELECT MAX(data) FROM observacoes_semanais WHERE matricula_id = o.matricula_id)`,
+         AND p.observacoes = '2- Sem fumar'
+         AND p.data = (SELECT MAX(data) FROM presencas WHERE matricula_id = p.matricula_id AND observacoes IS NOT NULL)`,
         [upaId]
       );
       semFumarAtivos = semFumarResult[0].total || 0;
@@ -432,13 +553,13 @@ exports.getEvolucaoGeral = async (req, res) => {
     
     const [evolucaoMensal] = await pool.execute(
       `SELECT 
-        DATE_FORMAT(o.data, '%Y-%m') as mes,
-        SUM(CASE WHEN o.observacao_semanal = '1- Está fumando' THEN 1 ELSE 0 END) as fumando,
-        SUM(CASE WHEN o.observacao_semanal = '2- Sem fumar' THEN 1 ELSE 0 END) as sem_fumar
-       FROM observacoes_semanais o
-       INNER JOIN matriculas m ON o.matricula_id = m.id
-       WHERE m.upa_id = ? AND m.status = 'matriculado'
-       GROUP BY DATE_FORMAT(o.data, '%Y-%m')
+        DATE_FORMAT(p.data, '%Y-%m') as mes,
+        SUM(CASE WHEN p.observacoes = '1- Está fumando' THEN 1 ELSE 0 END) as fumando,
+        SUM(CASE WHEN p.observacoes = '2- Sem fumar' THEN 1 ELSE 0 END) as sem_fumar
+       FROM presencas p
+       INNER JOIN matriculas m ON p.matricula_id = m.id
+       WHERE m.upa_id = ? AND m.status = 'matriculado' AND p.observacoes IS NOT NULL
+       GROUP BY DATE_FORMAT(p.data, '%Y-%m')
        ORDER BY mes ASC
        LIMIT 12`,
       [upaId]
@@ -465,10 +586,11 @@ exports.getEvolucaoGeral = async (req, res) => {
     
     const [alunosDetalhados] = await pool.execute(
       `SELECT u.id, u.nome_completo, m.turma_horario,
-        (SELECT observacao_semanal FROM observacoes_semanais 
-         WHERE matricula_id = m.id AND data = (SELECT MAX(data) FROM observacoes_semanais WHERE matricula_id = m.id) LIMIT 1) as ultima_observacao,
-        IFNULL((SELECT COUNT(*) FROM observacoes_semanais WHERE matricula_id = m.id AND observacao_semanal = '1- Está fumando'), 0) as semanas_fumando,
-        IFNULL((SELECT COUNT(*) FROM observacoes_semanais WHERE matricula_id = m.id AND observacao_semanal = '2- Sem fumar'), 0) as semanas_sem_fumar
+        (SELECT observacoes FROM presencas 
+         WHERE matricula_id = m.id AND observacoes IS NOT NULL 
+         ORDER BY data DESC LIMIT 1) as ultima_observacao,
+        IFNULL((SELECT COUNT(*) FROM presencas WHERE matricula_id = m.id AND observacoes = '1- Está fumando'), 0) as semanas_fumando,
+        IFNULL((SELECT COUNT(*) FROM presencas WHERE matricula_id = m.id AND observacoes = '2- Sem fumar'), 0) as semanas_sem_fumar
        FROM usuarios u
        INNER JOIN matriculas m ON u.id = m.usuario_id
        WHERE m.upa_id = ? AND m.status = 'matriculado'
@@ -622,14 +744,9 @@ exports.getUsuariosMatriculadosComPresencas = async (req, res) => {
         [usuario.matricula_id, dataAtual]
       );
       
-      const [observacao] = await pool.execute(
-        'SELECT observacao_semanal FROM observacoes_semanais WHERE matricula_id = ? AND data = ?',
-        [usuario.matricula_id, dataAtual]
-      );
-      
       usuario.presenca_status = presenca.length > 0 ? presenca[0].status : null;
       usuario.presenca_observacoes = presenca.length > 0 ? presenca[0].observacoes : null;
-      usuario.observacao_semanal = observacao.length > 0 ? observacao[0].observacao_semanal : null;
+      usuario.observacao_semanal = presenca.length > 0 ? presenca[0].observacoes : null;
       
       turmasMap[turma].usuarios.push(usuario);
     }
@@ -679,12 +796,17 @@ exports.getUsuariosMatriculadosComPresencas = async (req, res) => {
   }
 };
 
-
 exports.salvarPresencasEmLote = async (req, res) => {
   try {
-    const { presencas, observacoes_semanais, data } = req.body;
+    const { presencas, data } = req.body;
+    
+    console.log('Dados recebidos no backend:');
+    console.log('Data:', data);
+    console.log('Presenças:', JSON.stringify(presencas, null, 2));
     
     for (let item of presencas) {
+      console.log(`Processando matricula ${item.matriculaId}: status=${item.status}, observacao=${item.observacao}`);
+      
       const [existing] = await pool.execute(
         'SELECT id FROM presencas WHERE matricula_id = ? AND data = ?',
         [item.matriculaId, data]
@@ -693,38 +815,17 @@ exports.salvarPresencasEmLote = async (req, res) => {
       if (existing.length > 0) {
         await pool.execute(
           'UPDATE presencas SET status = ?, observacoes = ? WHERE matricula_id = ? AND data = ?',
-          [item.status, item.observacoes || null, item.matriculaId, data]
+          [item.status, item.observacao || null, item.matriculaId, data]
         );
       } else {
         await pool.execute(
           'INSERT INTO presencas (matricula_id, data, status, observacoes) VALUES (?, ?, ?, ?)',
-          [item.matriculaId, data, item.status, item.observacoes || null]
+          [item.matriculaId, data, item.status, item.observacao || null]
         );
       }
     }
     
-    if (observacoes_semanais && observacoes_semanais.length > 0) {
-      for (let obs of observacoes_semanais) {
-        const [existing] = await pool.execute(
-          'SELECT id FROM observacoes_semanais WHERE matricula_id = ? AND data = ?',
-          [obs.matriculaId, data]
-        );
-        
-        if (existing.length > 0) {
-          await pool.execute(
-            'UPDATE observacoes_semanais SET observacao_semanal = ? WHERE matricula_id = ? AND data = ?',
-            [obs.observacao, obs.matriculaId, data]
-          );
-        } else {
-          await pool.execute(
-            'INSERT INTO observacoes_semanais (matricula_id, data, observacao_semanal) VALUES (?, ?, ?)',
-            [obs.matriculaId, data, obs.observacao]
-          );
-        }
-      }
-    }
-    
-    res.json({ message: 'Presenças e observações salvas com sucesso' });
+    res.json({ message: 'Presenças salvas com sucesso' });
   } catch (error) {
     console.error('Erro ao salvar presenças:', error);
     res.status(500).json({ error: error.message });
@@ -784,16 +885,11 @@ exports.getHistoricoDetalhado = async (req, res) => {
         
         for (let data of datas) {
           const [presenca] = await pool.execute(
-            'SELECT status FROM presencas WHERE matricula_id = ? AND data = ?',
+            'SELECT status, observacoes FROM presencas WHERE matricula_id = ? AND data = ?',
             [usuario.matricula_id, data.data]
           );
           presencasPorData[data.data_formatada] = presenca.length > 0 ? presenca[0].status : null;
-          
-          const [observacao] = await pool.execute(
-            'SELECT observacao_semanal FROM observacoes_semanais WHERE matricula_id = ? AND data = ?',
-            [usuario.matricula_id, data.data]
-          );
-          observacoesPorData[data.data_formatada] = observacao.length > 0 ? observacao[0].observacao_semanal : null;
+          observacoesPorData[data.data_formatada] = presenca.length > 0 ? presenca[0].observacoes : null;
         }
         
         usuariosComPresencas.push({

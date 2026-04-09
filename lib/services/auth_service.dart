@@ -403,11 +403,10 @@ Future<Map<String, dynamic>> getUsuariosMatriculadosComPresencas({String? data})
   }
 }
 
-Future<void> salvarPresencasEmLote(List<Map<String, dynamic>> presencas, List<Map<String, dynamic>> observacoesSemanais, String data) async {
+Future<void> salvarPresencasEmLote(List<Map<String, dynamic>> presencas, String data) async {
   try {
     await _api.post('/enfermeira/presencas-lote', {
       'presencas': presencas,
-      'observacoes_semanais': observacoesSemanais,
       'data': data,
     });
   } catch (e) {
@@ -442,14 +441,33 @@ Future<Map<String, dynamic>> getCronograma(int matriculaId) async {
   }
 }
 
-Future<void> encerrarTurma(int upaId, String turmaHorario) async {
+Future<void> encerrarTurma(int upaId, String turmaHorario, String tipoEncerramento) async {
   try {
     await _api.post('/enfermeira/encerrar-turma', {
       'upaId': upaId,
       'turmaHorario': turmaHorario,
+      'tipoEncerramento': tipoEncerramento,
     });
   } catch (e) {
     throw Exception('Erro ao encerrar turma: $e');
+  }
+}
+
+Future<Map<String, dynamic>> getDetalhesTurmaConcluida(int turmaConcluidaId) async {
+  try {
+    final response = await _api.get('/enfermeira/turmas-concluidas/$turmaConcluidaId');
+    return response;
+  } catch (e) {
+    throw Exception('Erro ao buscar detalhes da turma: $e');
+  }
+}
+
+Future<Map<String, dynamic>> getTurmasConcluidas() async {
+  try {
+    final response = await _api.get('/enfermeira/turmas-concluidas');
+    return response;
+  } catch (e) {
+    throw Exception('Erro ao buscar turmas concluídas: $e');
   }
 }
 
@@ -558,6 +576,48 @@ Future<void> deletarAulaCronograma(int aulaId) async {
     await _api.delete('/enfermeira/cronograma/$aulaId');
   } catch (e) {
     throw Exception('Erro ao deletar aula: $e');
+  }
+}
+
+Future<Map<String, dynamic>> getNotificacoes() async {
+  try {
+    final response = await _api.get('/user/notificacoes');
+    return response;
+  } catch (e) {
+    throw Exception('Erro ao buscar notificações: $e');
+  }
+}
+
+Future<void> marcarNotificacaoComoLida(int id) async {
+  try {
+    await _api.put('/user/notificacoes/$id/lida', {});
+  } catch (e) {
+    throw Exception('Erro ao marcar notificação: $e');
+  }
+}
+
+Future<void> marcarTodasNotificacoesComoLidas() async {
+  try {
+    await _api.put('/user/notificacoes/lidas/todas', {});
+  } catch (e) {
+    throw Exception('Erro ao marcar notificações: $e');
+  }
+}
+
+Future<void> limparTodasNotificacoes() async {
+  try {
+    await _api.delete('/user/notificacoes/limpar');
+  } catch (e) {
+    throw Exception('Erro ao limpar notificações: $e');
+  }
+}
+
+Future<Map<String, dynamic>> verificarMatriculaAtiva() async {
+  try {
+    final response = await _api.get('/enrollment/verificar-ativa');
+    return response;
+  } catch (e) {
+    throw Exception('Erro ao verificar matrícula: $e');
   }
 }
 

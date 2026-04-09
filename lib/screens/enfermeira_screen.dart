@@ -35,7 +35,7 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
   int _alunosPerPage = 5;
 
   int _selectedTabIndex = 0;
-  final List<String> _tabTitles = ['Dashboard', 'Em Espera', 'Matriculados', 'Cronogramas', 'Lista de Presença', 'Histórico'];
+  final List<String> _tabTitles = ['Dashboard', 'Em Espera', 'Matriculados', 'Cancelados', 'Cronogramas', 'Lista de Presença', 'Histórico', 'Turmas Concluídas'];
   
   String _upaNome = '';
 
@@ -1043,19 +1043,21 @@ Widget _buildAlunosDetalhados(Map<String, dynamic> data) {
                 },
               ),
             ),
-            Expanded(
-              child: IndexedStack(
-                index: _selectedTabIndex,
-                  children: [
-                    _buildDashboard(),
-                    _buildUsuariosList(),
-                    _buildUsuariosList(),
-                    _buildCronogramasList(), 
-                    _buildListaPresenca(),
-                    _buildHistoricoPresencas(),
-                  ],
+              Expanded(
+                child: IndexedStack(
+                  index: _selectedTabIndex,
+              children: [
+                _buildDashboard(),
+                _buildUsuariosList(),
+                _buildUsuariosList(),
+                _buildUsuariosList(),
+                _buildCronogramasList(), 
+                _buildListaPresenca(),
+                _buildHistoricoPresencas(),
+                _buildTurmasConcluidasList(), 
+              ],
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -1139,106 +1141,46 @@ Widget _buildTurmaPresenca(Map<String, dynamic> turma, int turmaIndex, DateTime 
       int vagasOcupadas = usuarios.length;
       int vagasTotais = turma['vagas_totais'] ?? 4;
       
-      Future<void> salvarPresencas() async {
-        setState(() => _salvando = true);
-        try {
-          final authService = AuthService();
-          final presencasParaSalvar = usuarios.map((u) => ({
-            'matriculaId': u['matricula_id'],
-            'status': u['presenca_status'] ?? 'falta',
-            'observacoes': u['presenca_observacoes'],
-          })).toList();
-          
-          final observacoesParaSalvar = usuarios
-              .where((u) => u['observacao_semanal'] != null && u['observacao_semanal'] != '')
-              .map((u) => ({
-                'matriculaId': u['matricula_id'],
-                'observacao': u['observacao_semanal'],
-              })).toList();
-          
-          await authService.salvarPresencasEmLote(
-            presencasParaSalvar,
-            observacoesParaSalvar,
-            '${_dataAtual.year}-${_dataAtual.month.toString().padLeft(2, '0')}-${_dataAtual.day.toString().padLeft(2, '0')}',
-          );
-          
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Presenças salvas com sucesso!'), backgroundColor: const Color(0xFF10B981)),
-            );
-          }
-          
-          final novaDataStr = '${_dataAtual.year}-${_dataAtual.month.toString().padLeft(2, '0')}-${_dataAtual.day.toString().padLeft(2, '0')}';
-          final newResponse = await AuthService().getUsuariosMatriculadosComPresencas(data: novaDataStr);
-          if (mounted) {
-            final novasTurmas = List<Map<String, dynamic>>.from(newResponse['turmas']);
-            onTurmaUpdate(novasTurmas[turmaIndex]);
-            setState(() => _salvando = false);
-          }
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Erro ao salvar: $e'), backgroundColor: Colors.red.shade400),
-            );
-            setState(() => _salvando = false);
-          }
-        }
-      }
-      
-      Future<void> encerrarTurma() async {
-        final confirm = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Encerrar Turma'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Tem certeza que deseja encerrar esta turma?'),
-                const SizedBox(height: 12),
-                Text('Turma: ${turma['nome']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                const Text('Isso irá arquivar todos os alunos e liberar as vagas.'),
-                const SizedBox(height: 12),
-                const Text('Esta ação não pode ser desfeita!', style: TextStyle(color: Colors.red, fontSize: 12)),
-              ],
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-              ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Confirmar')),
-            ],
-          ),
-        );
-        
-        if (confirm == true) {
-          setState(() => _encerrando = true);
-          try {
-            final authService = AuthService();
-            final upaId = widget.userData['upa_id'];
-            await authService.encerrarTurma(upaId, turma['nome']);
-            
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Turma encerrada com sucesso!'), backgroundColor: Color(0xFF10B981)),
-              );
-              final newResponse = await AuthService().getUsuariosMatriculadosComPresencas();
-              if (mounted) {
-                final novasTurmas = List<Map<String, dynamic>>.from(newResponse['turmas']);
-                onTurmaUpdate(novasTurmas[turmaIndex]);
-                setState(() => _encerrando = false);
-              }
-            }
-          } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Erro ao encerrar turma: $e'), backgroundColor: Colors.red.shade400),
-              );
-              setState(() => _encerrando = false);
-            }
-          }
-        }
-      }
-      
+Future<void> salvarPresencas() async {
+  setState(() => _salvando = true);
+  try {
+    final authService = AuthService();
+    
+    final presencasParaSalvar = usuarios.map((u) => ({
+      'matriculaId': u['matricula_id'],
+      'status': u['presenca_status'] ?? 'falta',
+      'observacao': u['observacao_semanal'], 
+    })).toList();
+    
+    await authService.salvarPresencasEmLote(
+      presencasParaSalvar,
+      '${_dataAtual.year}-${_dataAtual.month.toString().padLeft(2, '0')}-${_dataAtual.day.toString().padLeft(2, '0')}',
+    );
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Presenças salvas com sucesso!'), backgroundColor: const Color(0xFF10B981)),
+      );
+    }
+    
+    final novaDataStr = '${_dataAtual.year}-${_dataAtual.month.toString().padLeft(2, '0')}-${_dataAtual.day.toString().padLeft(2, '0')}';
+    final newResponse = await AuthService().getUsuariosMatriculadosComPresencas(data: novaDataStr);
+    if (mounted) {
+      final novasTurmas = List<Map<String, dynamic>>.from(newResponse['turmas']);
+      onTurmaUpdate(novasTurmas[turmaIndex]);
+      setState(() => _salvando = false);
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao salvar: $e'), backgroundColor: Colors.red.shade400),
+      );
+      setState(() => _salvando = false);
+    }
+  }
+}
+
+
       return Container(
         margin: const EdgeInsets.only(bottom: 24),
         decoration: BoxDecoration(
@@ -1375,22 +1317,16 @@ Container(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
 OutlinedButton.icon(
-  onPressed: _encerrando ? null : encerrarTurma,
+  onPressed: _encerrando ? null : () => _confirmarEncerrarTurma(turma),
   icon: _encerrando
-      ? const SizedBox(
-          width: 16,
-          height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        )
+      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
       : const Icon(Icons.archive, size: 16),
   label: const Text('Encerrar Turma'),
   style: OutlinedButton.styleFrom(
-    foregroundColor: const Color(0xFFEF4444), // 👈 AQUI
+    foregroundColor: const Color(0xFFEF4444),
     side: const BorderSide(color: Color(0xFFEF4444)),
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
   ),
 ),
                       const SizedBox(width: 12),
@@ -1885,6 +1821,553 @@ Widget _buildLegendaItem(Color cor, String texto) {
       ),
     ],
   );
+}
+
+Widget _buildTurmasConcluidasList() {
+  return FutureBuilder(
+    future: AuthService().getTurmasConcluidas(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      
+      if (snapshot.hasError) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Erro ao carregar turmas concluídas: ${snapshot.error}'),
+              ElevatedButton(
+                onPressed: () => setState(() {}),
+                child: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        );
+      }
+      
+      final turmas = List<Map<String, dynamic>>.from(snapshot.data!['turmas']);
+      
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: turmas.map((turma) => _buildTurmaConcluidaCard(turma)).toList(),
+        ),
+      );
+    },
+  );
+}
+
+
+Widget _buildTurmaConcluidaCard(Map<String, dynamic> turma) {
+  final cor = turma['tipo_encerramento'] == 'concluida' 
+      ? const Color(0xFF10B981) 
+      : const Color(0xFFEF4444);
+  
+  final texto = turma['tipo_encerramento'] == 'concluida' ? 'Concluída' : 'Cancelada';
+  
+  return Container(
+    margin: const EdgeInsets.only(bottom: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: cor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  turma['tipo_encerramento'] == 'concluida' 
+                      ? Icons.check_circle 
+                      : Icons.cancel,
+                  color: cor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      turma['turma_horario'],
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    Text(
+                      'UPA: ${turma['upa_nome']}',
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: cor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  texto,
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: cor),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              _buildInfoRow(
+                Icons.calendar_today,
+                'Período',
+                '${_formatarData(turma['data_inicio'])} - ${_formatarData(turma['data_fim'])}',
+              ),
+              _buildInfoRow(
+                Icons.people,
+                'Total Alunos',
+                turma['total_alunos'].toString(),
+              ),
+              _buildInfoRow(
+                Icons.trending_up,
+                'Média de Presença',
+                '${turma['percentual_medio_presenca']}%',
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: () => _verDetalhesTurmaConcluida(turma['id']),
+                  icon: const Icon(Icons.visibility, size: 18),
+                  label: const Text('Ver detalhes'),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: _accentColor),
+                    foregroundColor: _accentColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Future<void> _verDetalhesTurmaConcluida(int turmaConcluidaId) async {
+  try {
+    final response = await AuthService().getDetalhesTurmaConcluida(turmaConcluidaId);
+    final turma = response['turma'];
+    final alunos = List<Map<String, dynamic>>.from(response['alunos']);
+    final datas = List<String>.from(response['datas']);
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.3,
+          height: MediaQuery.of(context).size.height * 0.6,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _accentColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.history, color: _accentColor, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Histórico - ${turma['turma_horario']}',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                        ),
+                        Text(
+                          '${turma['upa_nome']} • ${turma['tipo_encerramento'] == 'concluida' ? 'Concluída' : 'Cancelada'}',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const Divider(),
+              const SizedBox(height: 12),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        color: const Color(0xFFF1F5F9),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 200, child: Text('Aluno', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+                            const SizedBox(width: 80, child: Text('%', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
+                            ...datas.map((data) => SizedBox(
+                              width: 90,
+                              child: Column(
+                                children: [
+                                  Text(
+                                    data,
+                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  const Text(
+                                    'P/O',
+                                    style: TextStyle(fontSize: 8, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            )),
+                          ],
+                        ),
+                      ),
+                      ...alunos.map((aluno) {
+                        // Converte percentual para double
+                        double percentual = 0;
+                        if (aluno['percentual_presenca'] != null) {
+                          if (aluno['percentual_presenca'] is String) {
+                            percentual = double.tryParse(aluno['percentual_presenca']) ?? 0;
+                          } else if (aluno['percentual_presenca'] is num) {
+                            percentual = (aluno['percentual_presenca'] as num).toDouble();
+                          }
+                        }
+                        
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 200,
+                                child: Text(
+                                  aluno['nome_completo'],
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(
+                                width: 80,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: percentual >= 75 
+                                        ? const Color(0xFF10B981).withOpacity(0.1) 
+                                        : const Color(0xFFEF4444).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${percentual.toStringAsFixed(1)}%',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: percentual >= 75 
+                                          ? const Color(0xFF10B981) 
+                                          : const Color(0xFFEF4444),
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                              ...datas.map((data) {
+                                final status = aluno['presencas'][data];
+                                final observacao = aluno['observacoes'][data];
+                                
+                                String statusText = '';
+                                Color statusColor = Colors.grey.shade400;
+                                if (status == 'presente') {
+                                  statusText = 'P';
+                                  statusColor = const Color(0xFF10B981);
+                                } else if (status == 'falta') {
+                                  statusText = 'F';
+                                  statusColor = const Color(0xFFEF4444);
+                                }
+                                
+                                String obsText = '';
+                                Color obsColor = Colors.grey.shade400;
+                                if (observacao == '1- Está fumando') {
+                                  obsText = 'F';
+                                  obsColor = const Color(0xFFF59E0B);
+                                } else if (observacao == '2- Sem fumar') {
+                                  obsText = 'SF';
+                                  obsColor = const Color(0xFF3B82F6);
+                                }
+                                
+                                return SizedBox(
+                                  width: 90,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        width: 32,
+                                        padding: const EdgeInsets.symmetric(vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: statusColor.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            statusText,
+                                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: statusColor),
+                                          ),
+                                        ),
+                                      ),
+                                      if (obsText.isNotEmpty) ...[
+                                        const SizedBox(width: 4),
+                                        Container(
+                                          width: 32,
+                                          padding: const EdgeInsets.symmetric(vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: obsColor.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              obsText,
+                                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: obsColor),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erro ao carregar detalhes: $e'), backgroundColor: Colors.red.shade400),
+    );
+  }
+}
+
+Future<void> _confirmarEncerrarTurma(Map<String, dynamic> turma) async {
+  String? tipoSelecionado;
+  
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) {
+        return Dialog(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: 420,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    size: 48,
+                    color: Color(0xFFF59E0B),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Encerrar Turma',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.5,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Turma: ${turma['nome']}\n\nSelecione o tipo de encerramento:',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF475569),
+                    height: 1.4,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    children: [
+                      RadioListTile<String>(
+                        title: const Text('Turma Concluída'),
+                        subtitle: const Text('O programa foi finalizado com sucesso'),
+                        value: 'concluida',
+                        groupValue: tipoSelecionado,
+                        onChanged: (value) {
+                          setState(() => tipoSelecionado = value);
+                        },
+                        activeColor: const Color(0xFF10B981),
+                      ),
+                      const Divider(),
+                      RadioListTile<String>(
+                        title: const Text('Turma Cancelada'),
+                        subtitle: const Text('O programa foi interrompido antes do fim'),
+                        value: 'cancelada',
+                        groupValue: tipoSelecionado,
+                        onChanged: (value) {
+                          setState(() => tipoSelecionado = value);
+                        },
+                        activeColor: const Color(0xFFEF4444),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: tipoSelecionado == null ? null : () async {
+                          Navigator.pop(context);
+                          await _encerrarTurma(turma, tipoSelecionado!);
+                        },
+                        icon: const Icon(Icons.check, size: 18),
+                        label: Text(
+                          tipoSelecionado == 'concluida' ? 'Concluir' : 'Cancelar Turma',
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: tipoSelecionado == 'concluida' 
+                              ? const Color(0xFF10B981) 
+                              : const Color(0xFFEF4444),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+Future<void> _encerrarTurma(Map<String, dynamic> turma, String tipoEncerramento) async {
+  try {
+    final authService = AuthService();
+    final upaId = widget.userData['upa_id'];
+    await authService.encerrarTurma(upaId, turma['nome'], tipoEncerramento);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Turma encerrada com sucesso!'),
+        backgroundColor: Color(0xFF10B981),
+      ),
+    );
+    
+    setState(() {});
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erro ao encerrar turma: $e'), backgroundColor: Colors.red.shade400),
+    );
+  }
 }
 
   Widget _buildHeader() {
@@ -2672,6 +3155,14 @@ String _formatarCpf(String cpf) {
   return cpf;
 }
 
+String _formatarData(String? data) {
+  if (data == null || data.isEmpty) return '-';
+  String dataLimpa = data.split('T')[0];
+  final partes = dataLimpa.split('-');
+  if (partes.length != 3) return dataLimpa;
+  return '${partes[2]}/${partes[1]}/${partes[0]}';
+}
+
   Widget _buildUsuarioCard(Map<String, dynamic> usuario) {
   final status = usuario['status'];
   final telefone = usuario['telefone'] ?? '';
@@ -2737,23 +3228,24 @@ String _formatarCpf(String cpf) {
               if (usuario['turma_horario'] != null)
                 _buildInfoRow(Icons.schedule, 'Turma', usuario['turma_horario']),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _verDetalhes(usuario),
-                      icon: const Icon(Icons.visibility, size: 18),
-                      label: const Text('Ver detalhes'),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: _accentColor),
-                        foregroundColor: _accentColor,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+             if (status != 'cancelada')
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _verDetalhes(usuario),
+                        icon: const Icon(Icons.visibility, size: 18),
+                        label: const Text('Ver detalhes'),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: _accentColor),
+                          foregroundColor: _accentColor,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -2792,43 +3284,43 @@ String _formatarCpf(String cpf) {
     );
   }
 
-  Future<void> _carregarUsuarios({int page = 1}) async {
-    setState(() {
-      _carregandoUsuarios = true;
-      _currentPage = page;
-    });
-    
-    String statusFilter = '';
-    if (_selectedTabIndex == 1) {
-      statusFilter = 'em_espera';
-    } else if (_selectedTabIndex == 2) {
-      statusFilter = 'matriculado';
-    } else if (_selectedTabIndex == 3) {
-      statusFilter = 'cancelada';
-    }
-    
-    try {
-      final authService = AuthService();
-      final response = await authService.getUsuariosDaUPA(
-        page: page,
-        limit: 10,
-        search: _searchQuery,
-        status: statusFilter,
-      );
-      
-      setState(() {
-        _usuarios = List<Map<String, dynamic>>.from(response['usuarios']);
-        _totalPages = response['totalPages'];
-        _totalUsuarios = response['total'];
-        _carregandoUsuarios = false;
-      });
-    } catch (e) {
-      setState(() => _carregandoUsuarios = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar usuários: $e'), backgroundColor: Colors.red.shade400),
-      );
-    }
+Future<void> _carregarUsuarios({int page = 1}) async {
+  setState(() {
+    _carregandoUsuarios = true;  
+    _currentPage = page;
+  });
+  
+  String statusFilter = '';
+  if (_selectedTabIndex == 1) {
+    statusFilter = 'em_espera';
+  } else if (_selectedTabIndex == 2) {
+    statusFilter = 'matriculado';
+  } else if (_selectedTabIndex == 3) {
+    statusFilter = 'cancelada';
   }
+  
+  try {
+    final authService = AuthService();
+    final response = await authService.getUsuariosDaUPA(
+      page: page,
+      limit: 10,
+      search: _searchQuery,
+      status: statusFilter,
+    );
+    
+    setState(() {
+      _usuarios = List<Map<String, dynamic>>.from(response['usuarios']);
+      _totalPages = response['totalPages'];
+      _totalUsuarios = response['total'];
+      _carregandoUsuarios = false;
+    });
+  } catch (e) {
+    setState(() => _carregandoUsuarios = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erro ao carregar usuários: $e'), backgroundColor: Colors.red.shade400),
+    );
+  }
+}
 
   void _buscarUsuarios() {
     if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();

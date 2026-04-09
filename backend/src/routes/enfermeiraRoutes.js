@@ -31,4 +31,7 @@ router.get('/turmas-cronograma', enfermeiraController.getTurmasComCronograma);
 router.post('/cronograma', enfermeiraController.adicionarAulaCronograma);
 router.delete('/cronograma/:id', enfermeiraController.deletarAulaCronograma);
 
+router.get('/turmas-concluidas', enfermeiraController.getTurmasConcluidas);
+router.get('/turmas-concluidas/:id', enfermeiraController.getDetalhesTurmaConcluida);
+
 module.exports = router;

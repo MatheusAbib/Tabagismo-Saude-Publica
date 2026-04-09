@@ -28,6 +28,11 @@ class _MyEnrollmentsScreenState extends State<MyEnrollmentsScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
+  int _currentPage = 1;
+  int _itemsPerPage = 4;
+  int _totalPages = 1;
+  List<Map<String, dynamic>> _paginatedEnrollments = [];
+
   @override
   void initState() {
     super.initState();
@@ -265,11 +270,11 @@ Widget _buildListaPresencas(List<dynamic> presencas) {
   );
 }
 
-
-  Future<void> _loadEnrollments() async {
+Future<void> _loadEnrollments() async {
   setState(() {
     _isLoading = true;
     _errorMessage = null;
+    _currentPage = 1;
   });
   
   try {
@@ -278,7 +283,6 @@ Widget _buildListaPresencas(List<dynamic> presencas) {
     if (response['success'] == true || response['data'] != null) {
       List<Map<String, dynamic>> enrollments = List<Map<String, dynamic>>.from(response['data']);
       
-      // Ordenar: canceladas sempre no final
       enrollments.sort((a, b) {
         bool aCancelada = a['status'] == 'cancelada';
         bool bCancelada = b['status'] == 'cancelada';
@@ -290,6 +294,9 @@ Widget _buildListaPresencas(List<dynamic> presencas) {
       
       setState(() {
         _enrollments = enrollments;
+        _totalPages = (_enrollments.length / _itemsPerPage).ceil();
+        if (_totalPages == 0) _totalPages = 1;
+        _updatePagination();
       });
     } else {
       setState(() {
@@ -304,6 +311,25 @@ Widget _buildListaPresencas(List<dynamic> presencas) {
     setState(() => _isLoading = false);
   }
 }
+
+void _updatePagination() {
+  int startIndex = (_currentPage - 1) * _itemsPerPage;
+  int endIndex = startIndex + _itemsPerPage;
+  if (endIndex > _enrollments.length) endIndex = _enrollments.length;
+  setState(() {
+    _paginatedEnrollments = _enrollments.sublist(startIndex, endIndex);
+  });
+}
+
+void _goToPage(int page) {
+  setState(() {
+    _currentPage = page;
+    _updatePagination();
+  });
+}
+
+void _nextPage() => _goToPage(_currentPage + 1);
+void _previousPage() => _goToPage(_currentPage - 1);
 
 void _verDetalhes(Map<String, dynamic> enrollment) {
   showDialog(
@@ -416,11 +442,9 @@ Future<void> _cancelarMatricula(Map<String, dynamic> enrollment) async {
         content: Text('Matrícula cancelada com sucesso!'),
         backgroundColor: _successColor,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
     
-    // Recarregar e ordenar novamente
     await _loadEnrollments();
   } catch (e) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -444,6 +468,8 @@ Color _getStatusColor(String status) {
       return Color(0xFF8B5CF6);
     case 'cancelada':
       return Color(0xFFEF4444);
+      case 'concluida':
+      return  Color(0xFF10B981);
     default:
       return Colors.grey;
   }
@@ -459,6 +485,8 @@ IconData _getStatusIcon(String status) {
       return Icons.verified;
     case 'cancelada':
       return Icons.cancel;
+    case 'concluida':
+      return Icons.celebration;
     default:
       return Icons.help_outline;
   }
@@ -474,6 +502,8 @@ String _getStatusText(String status) {
       return 'Matriculado';
     case 'cancelada':
       return 'Cancelada';
+    case 'concluida':
+      return 'Concluída';
     default:
       return status;
   }
@@ -647,23 +677,62 @@ Widget _buildInfoBanner() {
   }
 
 Widget _buildEnrollmentsList() {
-  return ListView.builder(
-    shrinkWrap: true,
-    physics: NeverScrollableScrollPhysics(),
-    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-    itemCount: _enrollments.length,
-    itemBuilder: (context, index) {
-      final enrollment = _enrollments[index];
-      return _buildEnrollmentCard(enrollment);
-    },
+  return Column(
+    children: [
+      ListView.builder(
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        itemCount: _paginatedEnrollments.length,
+        itemBuilder: (context, index) {
+          final enrollment = _paginatedEnrollments[index];
+          return _buildEnrollmentCard(enrollment);
+        },
+      ),
+      if (_totalPages > 1) _buildPagination(),
+    ],
   );
 }
 
- Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
-  Color statusColor = _getStatusColor(enrollment['status'] ?? 'em_espera');
-  IconData statusIcon = _getStatusIcon(enrollment['status'] ?? 'em_espera');
-  String statusText = _getStatusText(enrollment['status'] ?? 'em_espera');
-  bool isCanceled = enrollment['status'] == 'cancelada';
+Widget _buildPagination() {
+  return Container(
+    padding: EdgeInsets.symmetric(vertical: 20),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: Icon(Icons.chevron_left, color: _currentPage > 1 ? _accentColor : Colors.grey.shade400),
+          onPressed: _currentPage > 1 ? _previousPage : null,
+        ),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            color: _accentColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Text(
+            'Página $_currentPage de $_totalPages',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _accentColor),
+          ),
+        ),
+        IconButton(
+          icon: Icon(Icons.chevron_right, color: _currentPage < _totalPages ? _accentColor : Colors.grey.shade400),
+          onPressed: _currentPage < _totalPages ? _nextPage : null,
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
+  String statusDisplay = enrollment['status_display'] ?? enrollment['status'];
+  Color statusColor = _getStatusColor(statusDisplay);
+  IconData statusIcon = _getStatusIcon(statusDisplay);
+  String statusText = _getStatusText(statusDisplay);
+  bool isCanceled = statusDisplay == 'cancelada';
+  bool isConcluida = statusDisplay == 'concluida';
+  bool isEmEspera = statusDisplay == 'em_espera';
+  bool isMatriculado = enrollment['status'] == 'matriculado';
   
   return Container(
     margin: EdgeInsets.only(bottom: 16),
@@ -787,6 +856,29 @@ Widget _buildEnrollmentsList() {
                   ),
                 ],
               ),
+              if (isConcluida) ...[
+                SizedBox(height: 8),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.celebration, size: 16, color: const Color(0xFF10B981)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Parabéns! Você concluiu o programa com sucesso!',
+                          style: TextStyle(fontSize: 12, color: const Color(0xFF10B981), fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               SizedBox(height: 16),
               Divider(color: isCanceled ? Colors.grey.shade200 : Colors.grey.shade200),
               SizedBox(height: 12),
@@ -794,24 +886,28 @@ Widget _buildEnrollmentsList() {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    if (enrollment['status'] == 'em_espera')
+                    // Só em espera: botão Cancelar
+                    if (isEmEspera)
                       TextButton.icon(
                         onPressed: () => _confirmarCancelamento(enrollment),
                         icon: Icon(Icons.delete_outline, size: 18, color: _dangerColor),
                         label: Text('Cancelar', style: TextStyle(color: _dangerColor, fontWeight: FontWeight.w500)),
                       ),
-                    SizedBox(width: 8),
-                    OutlinedButton.icon(
-                      onPressed: () => _verCronograma(enrollment['id'], enrollment['turma_horario']),
-                      icon: Icon(Icons.calendar_month, size: 18, color: const Color(0xFF10B981)),
-                      label: Text('Cronograma', style: TextStyle(color: const Color(0xFF10B981))),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF10B981)),
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    
+                    if (!isConcluida && !isEmEspera)
+                      OutlinedButton.icon(
+                        onPressed: () => _verCronograma(enrollment['id'], enrollment['turma_horario']),
+                        icon: Icon(Icons.calendar_month, size: 18, color: const Color(0xFF10B981)),
+                        label: Text('Ver Cronograma', style: TextStyle(color: const Color(0xFF10B981))),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF10B981)),
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
-                    ),
+                    
                     SizedBox(width: 8),
+                    
                     OutlinedButton.icon(
                       onPressed: () => _verDetalhes(enrollment),
                       icon: Icon(Icons.visibility_outlined, size: 18, color: _accentColor),
@@ -822,17 +918,36 @@ Widget _buildEnrollmentsList() {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
-                    SizedBox(width: 8),
-                    OutlinedButton.icon(
-                      onPressed: () => _verHistoricoPresencas(enrollment['id']),
-                      icon: Icon(Icons.history, size: 18, color: _accentColor),
-                      label: Text('Lista de presença', style: TextStyle(color: _accentColor)),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: _accentColor),
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    
+                    if (isMatriculado)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: OutlinedButton.icon(
+                          onPressed: () => _verHistoricoPresencas(enrollment['id']),
+                          icon: Icon(Icons.history, size: 18, color: _accentColor),
+                          label: Text('Lista de presença', style: TextStyle(color: _accentColor)),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: _accentColor),
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
                       ),
-                    ),
+                    
+                    if (isMatriculado)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: OutlinedButton.icon(
+                          onPressed: () => _confirmarAbandonoMatricula(enrollment),
+                          icon: Icon(Icons.exit_to_app, size: 18, color: _dangerColor),
+                          label: Text('Abandonar', style: TextStyle(color: _dangerColor)),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: _dangerColor),
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
             ],
@@ -842,6 +957,231 @@ Widget _buildEnrollmentsList() {
     ),
   );
 }
+
+void _confirmarAbandonoMatricula(Map<String, dynamic> enrollment) {
+  final TextEditingController confirmController = TextEditingController();
+  bool isLoading = false;
+  
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) {
+        return Dialog(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: 420,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _dangerColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.exit_to_app,
+                    size: 48,
+                    color: Color(0xFFEF4444),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Abandonar Matrícula',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.5,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Tem certeza que deseja abandonar sua matrícula na ${enrollment['upa_nome']}?\n\n'
+                  'Turma: ${enrollment['turma_horario']}\n\n'
+                  'Esta ação não pode ser desfeita e você perderá o acesso ao cronograma e às atividades.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF475569),
+                    height: 1.4,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Para confirmar, digite a frase abaixo:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Text(
+                          'CONFIRMAR ABANDONO',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: _dangerColor,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: confirmController,
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(
+                          hintText: 'Digite a frase acima',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: _dangerColor, width: 2),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                if (confirmController.text.trim().toUpperCase() != 'CONFIRMAR ABANDONO') {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Digite a frase corretamente para confirmar'),
+                                      backgroundColor: Color(0xFFEF4444),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                
+                                setState(() => isLoading = true);
+                                await _abandonarMatricula(enrollment);
+                                if (mounted) {
+                                  Navigator.pop(context);
+                                }
+                              },
+                        icon: isLoading
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.check, size: 18),
+                        label: Text(
+                          isLoading ? 'Processando...' : 'Confirmar Abandono',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _dangerColor,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+Future<void> _abandonarMatricula(Map<String, dynamic> enrollment) async {
+  setState(() => _isLoading = true);
+  
+  try {
+    await _enrollmentService.cancelEnrollment(enrollment['id']);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Matrícula abandonada com sucesso!'),
+        backgroundColor: _successColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+    
+    await _loadEnrollments();
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Erro ao abandonar matrícula: $e'),
+        backgroundColor: _dangerColor,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    setState(() => _isLoading = false);
+  }
+}
+
 
 String _formatarData(String dataStr) {
   try {
@@ -1300,54 +1640,70 @@ Widget _buildDetailCard(String label, String value, IconData icon, {Color? color
     ),
   );
 }
-  Widget _buildComorbidadesSection(String titulo, List<dynamic> comorbidades) {
-    if (comorbidades.isEmpty) {
-      return SizedBox.shrink();
-    }
-
-    List<String> itens = [];
-    for (var item in comorbidades) {
-      if (item is Map) {
-        String valor = item['valor'] ?? '';
+Widget _buildComorbidadesSection(String titulo, List<dynamic> comorbidades) {
+  List<String> itens = [];
+  for (var item in comorbidades) {
+    if (item is Map) {
+      String valor = item['valor'] ?? '';
+      if (valor != 'nenhum') {
         if (item['outroTexto'] != null && item['outroTexto'].toString().isNotEmpty) {
           valor = '${valor}: ${item['outroTexto']}';
         }
         itens.add(valor);
-      } else if (item is String) {
-        itens.add(item);
       }
+    } else if (item is String && item != 'nenhum') {
+      itens.add(item);
     }
+  }
 
-    if (itens.isEmpty) {
-      return SizedBox.shrink();
-    }
-
-    return Container(
-      padding: EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.medical_information_outlined, size: 18, color: _accentColor),
-              SizedBox(width: 8),
-              Text(
-                titulo,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: _primaryDark,
-                  fontFamily: 'Inter',
-                ),
+  return Container(
+    padding: EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: Colors.grey.shade50,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: Colors.grey.shade200),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.medical_information_outlined, size: 18, color: _accentColor),
+            SizedBox(width: 8),
+            Text(
+              titulo,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: _primaryDark,
+                fontFamily: 'Inter',
               ),
-            ],
-          ),
-          SizedBox(height: 10),
+            ),
+          ],
+        ),
+        SizedBox(height: 10),
+        if (itens.isEmpty)
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: Colors.grey.shade500),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Nenhuma comorbidade registrada',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade500,
+                      fontStyle: FontStyle.italic,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -1369,10 +1725,10 @@ Widget _buildDetailCard(String label, String value, IconData icon, {Color? color
               );
             }).toList(),
           ),
-        ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 
   String _formatDate(String? dateStr) {
     if (dateStr == null) return 'Data não disponível';
@@ -1390,10 +1746,12 @@ String _getStatusText(String status) {
       return 'Em Espera';
     case 'confirmada':
       return 'Confirmada';
-    case 'matriculado':    
+    case 'matriculado':
       return 'Matriculado';
     case 'cancelada':
       return 'Cancelada';
+    case 'concluida':
+      return 'Concluída';
     default:
       return status;
   }
@@ -1402,13 +1760,15 @@ String _getStatusText(String status) {
 Color _getStatusColor(String status) {
   switch (status) {
     case 'em_espera':
-      return Color(0xFFF59E0B);
+      return const Color(0xFFF59E0B);
     case 'confirmada':
-      return Color(0xFF10B981);
-    case 'matriculado':     
-      return Color(0xFF8B5CF6);
+      return const Color(0xFF10B981);
+    case 'matriculado':
+      return const Color(0xFF8B5CF6);
     case 'cancelada':
-      return Color(0xFFEF4444);
+      return const Color(0xFFEF4444);
+    case 'concluida':
+      return const Color(0xFF10B981);
     default:
       return Colors.grey;
   }
@@ -1420,10 +1780,12 @@ IconData _getStatusIcon(String status) {
       return Icons.hourglass_empty;
     case 'confirmada':
       return Icons.check_circle;
-    case 'matriculado':     
+    case 'matriculado':
       return Icons.verified;
     case 'cancelada':
       return Icons.cancel;
+    case 'concluida':
+      return Icons.celebration;
     default:
       return Icons.help_outline;
   }

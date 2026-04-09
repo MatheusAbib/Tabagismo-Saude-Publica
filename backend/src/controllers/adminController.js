@@ -1,5 +1,7 @@
 const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
+const notificacaoController = require('./notificacaoController');
+
 
 exports.getStats = async (req, res) => {
   try {
@@ -178,16 +180,30 @@ exports.getAdminEvolucaoGeral = async (req, res) => {
   try {
     const [alunosAtivos] = await pool.execute('SELECT COUNT(DISTINCT u.id) as total FROM usuarios u INNER JOIN matriculas m ON u.id = m.usuario_id WHERE m.status = "matriculado"');
     
-    const [alunosConcluidos] = await pool.execute('SELECT IFNULL(SUM(total_alunos), 0) as total FROM turmas_concluidas');
+    const [alunosConcluidos] = await pool.execute('SELECT IFNULL(SUM(total_alunos), 0) as total FROM turmas_concluidas WHERE tipo_encerramento = "concluida"');
     
     let fumandoAtivos = 0;
     let semFumarAtivos = 0;
     
     if (alunosAtivos[0].total > 0) {
-      const [fumandoResult] = await pool.execute('SELECT COUNT(DISTINCT o.matricula_id) as total FROM observacoes_semanais o INNER JOIN matriculas m ON o.matricula_id = m.id WHERE m.status = "matriculado" AND o.observacao_semanal = "1- Está fumando" AND o.data = (SELECT MAX(data) FROM observacoes_semanais WHERE matricula_id = o.matricula_id)');
+      const [fumandoResult] = await pool.execute(
+        `SELECT COUNT(DISTINCT p.matricula_id) as total 
+         FROM presencas p 
+         INNER JOIN matriculas m ON p.matricula_id = m.id 
+         WHERE m.status = "matriculado" 
+         AND p.observacoes = "1- Está fumando" 
+         AND p.data = (SELECT MAX(data) FROM presencas WHERE matricula_id = p.matricula_id AND observacoes IS NOT NULL)`
+      );
       fumandoAtivos = fumandoResult[0].total || 0;
       
-      const [semFumarResult] = await pool.execute('SELECT COUNT(DISTINCT o.matricula_id) as total FROM observacoes_semanais o INNER JOIN matriculas m ON o.matricula_id = m.id WHERE m.status = "matriculado" AND o.observacao_semanal = "2- Sem fumar" AND o.data = (SELECT MAX(data) FROM observacoes_semanais WHERE matricula_id = o.matricula_id)');
+      const [semFumarResult] = await pool.execute(
+        `SELECT COUNT(DISTINCT p.matricula_id) as total 
+         FROM presencas p 
+         INNER JOIN matriculas m ON p.matricula_id = m.id 
+         WHERE m.status = "matriculado" 
+         AND p.observacoes = "2- Sem fumar" 
+         AND p.data = (SELECT MAX(data) FROM presencas WHERE matricula_id = p.matricula_id AND observacoes IS NOT NULL)`
+      );
       semFumarAtivos = semFumarResult[0].total || 0;
     }
     
@@ -195,16 +211,45 @@ exports.getAdminEvolucaoGeral = async (req, res) => {
     let semFumarConcluidos = 0;
     
     if (alunosConcluidos[0].total > 0) {
-      const [fumandoConcluidosResult] = await pool.execute('SELECT COUNT(*) as total FROM alunos_concluidos ac WHERE ac.evolucao LIKE "%1- Está fumando%"');
+      const [fumandoConcluidosResult] = await pool.execute(
+        `SELECT COUNT(*) as total 
+         FROM alunos_concluidos ac 
+         WHERE ac.evolucao LIKE "%1- Está fumando%"`
+      );
       fumandoConcluidos = fumandoConcluidosResult[0].total || 0;
       
-      const [semFumarConcluidosResult] = await pool.execute('SELECT COUNT(*) as total FROM alunos_concluidos ac WHERE ac.evolucao LIKE "%2- Sem fumar%"');
+      const [semFumarConcluidosResult] = await pool.execute(
+        `SELECT COUNT(*) as total 
+         FROM alunos_concluidos ac 
+         WHERE ac.evolucao LIKE "%2- Sem fumar%"`
+      );
       semFumarConcluidos = semFumarConcluidosResult[0].total || 0;
     }
     
-    const [evolucaoMensal] = await pool.execute('SELECT DATE_FORMAT(o.data, "%Y-%m") as mes, SUM(CASE WHEN o.observacao_semanal = "1- Está fumando" THEN 1 ELSE 0 END) as fumando, SUM(CASE WHEN o.observacao_semanal = "2- Sem fumar" THEN 1 ELSE 0 END) as sem_fumar FROM observacoes_semanais o INNER JOIN matriculas m ON o.matricula_id = m.id WHERE m.status = "matriculado" GROUP BY DATE_FORMAT(o.data, "%Y-%m") ORDER BY mes ASC LIMIT 12');
+    const [evolucaoMensal] = await pool.execute(
+      `SELECT DATE_FORMAT(p.data, "%Y-%m") as mes, 
+              SUM(CASE WHEN p.observacoes = "1- Está fumando" THEN 1 ELSE 0 END) as fumando, 
+              SUM(CASE WHEN p.observacoes = "2- Sem fumar" THEN 1 ELSE 0 END) as sem_fumar 
+       FROM presencas p 
+       INNER JOIN matriculas m ON p.matricula_id = m.id 
+       WHERE m.status = "matriculado" AND p.observacoes IS NOT NULL
+       GROUP BY DATE_FORMAT(p.data, "%Y-%m") 
+       ORDER BY mes ASC 
+       LIMIT 12`
+    );
     
-    const [alunosDetalhados] = await pool.execute('SELECT u.id, u.nome_completo, m.turma_horario, (SELECT observacao_semanal FROM observacoes_semanais WHERE matricula_id = m.id AND data = (SELECT MAX(data) FROM observacoes_semanais WHERE matricula_id = m.id) LIMIT 1) as ultima_observacao, IFNULL((SELECT COUNT(*) FROM observacoes_semanais WHERE matricula_id = m.id AND observacao_semanal = "1- Está fumando"), 0) as semanas_fumando, IFNULL((SELECT COUNT(*) FROM observacoes_semanais WHERE matricula_id = m.id AND observacao_semanal = "2- Sem fumar"), 0) as semanas_sem_fumar FROM usuarios u INNER JOIN matriculas m ON u.id = m.usuario_id WHERE m.status = "matriculado" ORDER BY u.nome_completo ASC');
+    const [alunosDetalhados] = await pool.execute(
+      `SELECT u.id, u.nome_completo, m.turma_horario, 
+        (SELECT observacoes FROM presencas 
+         WHERE matricula_id = m.id AND observacoes IS NOT NULL 
+         ORDER BY data DESC LIMIT 1) as ultima_observacao,
+        IFNULL((SELECT COUNT(*) FROM presencas WHERE matricula_id = m.id AND observacoes = "1- Está fumando"), 0) as semanas_fumando,
+        IFNULL((SELECT COUNT(*) FROM presencas WHERE matricula_id = m.id AND observacoes = "2- Sem fumar"), 0) as semanas_sem_fumar
+       FROM usuarios u 
+       INNER JOIN matriculas m ON u.id = m.usuario_id 
+       WHERE m.status = "matriculado" 
+       ORDER BY u.nome_completo ASC`
+    );
     
     const totalAtivos = alunosAtivos[0].total || 0;
     const totalConcluidos = alunosConcluidos[0].total || 0;
@@ -233,7 +278,6 @@ exports.getAdminEvolucaoGeral = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 exports.getUPAs = async (req, res) => {
   try {
@@ -417,7 +461,14 @@ exports.atualizarMatricula = async (req, res) => {
   try {
     const { matriculaId, status } = req.body;
     
-    console.log('Dados recebidos:', { matriculaId, status });
+    const [matricula] = await pool.execute(
+      'SELECT usuario_id, upa_nome, turma_horario FROM matriculas WHERE id = ?',
+      [matriculaId]
+    );
+    
+    if (matricula.length === 0) {
+      return res.status(404).json({ error: 'Matrícula não encontrada' });
+    }
     
     const [result] = await pool.execute(
       'UPDATE matriculas SET status = ? WHERE id = ?',
@@ -428,7 +479,20 @@ exports.atualizarMatricula = async (req, res) => {
       return res.status(404).json({ error: 'Matrícula não encontrada' });
     }
     
-    res.json({ message: 'Matrícula atualizada com sucesso' });
+    if (status === 'matriculado') {
+await notificacaoController.criarNotificacao(
+  matricula[0].usuario_id,
+  'Matrícula Confirmada',
+  'Parabéns! Sua matrícula foi confirmada.\n\n'
+  + `UPA: ${matricula[0].upa_nome}\n`
+  + `Turma: ${matricula[0].turma_horario}\n\n`
+  + 'Acesse "Minhas Matrículas" para mais detalhes.',
+  'matricula',
+  '/my-enrollments'
+);
+    }
+    
+    res.json({ message: 'Status atualizado com sucesso' });
   } catch (error) {
     console.error('Erro ao atualizar matrícula:', error);
     res.status(500).json({ error: error.message });

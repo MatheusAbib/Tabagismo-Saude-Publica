@@ -14,5 +14,6 @@ router.get('/minhas-presencas', enrollmentController.getMinhasPresencas);
 router.get('/minhas-presencas/:matriculaId', enrollmentController.getMinhasPresencasPorMatricula);
 
 router.get('/cronograma/:matriculaId', enrollmentController.getCronograma);
+router.get('/verificar-ativa', enrollmentController.verificarMatriculaAtiva);
 
 module.exports = router;

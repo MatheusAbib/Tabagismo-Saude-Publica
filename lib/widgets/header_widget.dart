@@ -7,6 +7,9 @@ import 'package:tabagismo_app/screens/fagerstrom_test_screen.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/services/sintoma_service.dart';
 
+import 'dart:async';
+import 'package:tabagismo_app/screens/notification_service.dart';
+
 import 'package:fl_chart/fl_chart.dart' as fl_chart;
 
 class HeaderWidget extends StatefulWidget {
@@ -34,6 +37,415 @@ class _HeaderWidgetState extends State<HeaderWidget> {
   final _sintomaService = SintomaService();
   final Color _primaryColor = Color(0xFF0F2B3D);
   final Color _accentColor = Color(0xFF2C7DA0);
+  
+  StreamController<Map<String, dynamic>> _notificationStream = StreamController.broadcast();
+  Timer? _notificationTimer;
+  int _naoLidas = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startNotificationPolling();
+  }
+
+  void _startNotificationPolling() {
+    _notificationTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      await _carregarNotificacoes();
+    });
+    _carregarNotificacoes();
+  }
+
+  Future<void> _carregarNotificacoes() async {
+    try {
+      final response = await NotificationService.getNotificacoes();
+      if (mounted) {
+        setState(() {
+          _naoLidas = response['naoLidas'] ?? 0;
+        });
+        _notificationStream.add({
+          'naoLidas': response['naoLidas'],
+          'notificacoes': response['notificacoes'],
+        });
+      }
+    } catch (e) {
+      print('Erro ao carregar notificações: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _notificationTimer?.cancel();
+    _notificationStream.close();
+    super.dispose();
+  }
+
+Widget _buildNotificationBell() {
+  return Container(
+    height: 40,
+    margin: const EdgeInsets.only(left: 10),  
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showNotificationsDialog(),
+        borderRadius: BorderRadius.circular(30),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const Icon(Icons.notifications_none, color: Colors.white, size: 18),
+              if (_naoLidas > 0)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Transform.translate(
+                    offset: const Offset(8, -8),
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        _naoLidas > 9 ? '9+' : '$_naoLidas',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+
+  void _showNotificationsDialog() async {
+  try {
+    final response = await NotificationService.getNotificacoes();
+    final notificacoes = List<Map<String, dynamic>>.from(response['notificacoes']);
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          width: 500,
+          height: 550,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _accentColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.notifications, color: _accentColor),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Notificações',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                  const Spacer(),
+                  if (notificacoes.isNotEmpty) ...[
+                    TextButton(
+                      onPressed: () async {
+                        await NotificationService.marcarTodasComoLidas();
+                        Navigator.pop(context);
+                        _showNotificationsDialog();
+                        _carregarNotificacoes();
+                      },
+                      child: const Text('Marcar todas como lidas'),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.delete_sweep, color: Color(0xFFEF4444)),
+                      onPressed: () => _confirmarLimparNotificacoes(),
+                      tooltip: 'Limpar todas',
+                    ),
+                  ],
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: notificacoes.isEmpty
+                    ? const Center(child: Text('Nenhuma notificação'))
+                    : ListView.builder(
+                        itemCount: notificacoes.length,
+                        itemBuilder: (context, index) {
+                          final notif = notificacoes[index];
+                          return _buildNotificationCard(notif);
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erro ao carregar notificações: $e'), backgroundColor: Colors.red),
+    );
+  }
+}
+
+void _confirmarLimparNotificacoes() {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return Dialog(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 420,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.delete_sweep,
+                  size: 48,
+                  color: Color(0xFFEF4444),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Limpar Notificações',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                  letterSpacing: -0.5,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Tem certeza que deseja remover todas as notificações?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF475569),
+                  height: 1.4,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Esta ação não pode ser desfeita.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF64748B),
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await NotificationService.limparTodas();
+                        Navigator.pop(context);
+                        _carregarNotificacoes();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                           SnackBar(
+                            content: Text('Todas as notificações foram removidas!'),
+                            backgroundColor: Color(0xFF10B981),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.check, size: 18),
+                      label: const Text('Sim, limpar tudo'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFEF4444),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+String _formatarDataHora(String? dataStr) {
+  if (dataStr == null) return '';
+  try {
+    DateTime date = DateTime.parse(dataStr);
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    
+    if (diff.inDays > 0) {
+      return '${date.day}/${date.month}/${date.year}';
+    } else if (diff.inHours > 0) {
+      return '${diff.inHours}h atrás';
+    } else if (diff.inMinutes > 0) {
+      return '${diff.inMinutes}min atrás';
+    } else {
+      return 'Agora mesmo';
+    }
+  } catch (e) {
+    return '';
+  }
+}
+
+Widget _buildNotificationCard(Map<String, dynamic> notif) {
+  Color getTipoColor(String tipo) {
+    switch (tipo) {
+      case 'sucesso': return const Color(0xFF10B981);
+      case 'matricula': return const Color(0xFF8B5CF6);
+      case 'sintoma': return const Color(0xFF3B82F6);
+      case 'fagerstrom': return const Color(0xFFF59E0B);
+      case 'outro': return const Color(0xFFF97316); 
+      default: return const Color(0xFFF97316); 
+    }
+  }
+  
+  IconData getTipoIcon(String tipo) {
+    switch (tipo) {
+      case 'matricula': return Icons.school;
+      case 'sintoma': return Icons.monitor_heart;
+      case 'fagerstrom': return Icons.assessment;
+      default: return Icons.hourglass_empty;
+    }
+  }
+  
+  final dataHora = _formatarDataHora(notif['data_criacao']);
+  
+  return Card(
+    margin: const EdgeInsets.only(bottom: 8),
+    color: notif['lida'] == 1 ? Colors.grey.shade50 : Colors.white,
+    child: ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: getTipoColor(notif['tipo']).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(getTipoIcon(notif['tipo']), color: getTipoColor(notif['tipo'])),
+      ),
+      title: Text(
+        notif['titulo'],
+        style: TextStyle(
+          fontWeight: notif['lida'] == 1 ? FontWeight.normal : FontWeight.bold,
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(notif['mensagem']),
+          if (dataHora.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                dataHora,
+                style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+              ),
+            ),
+        ],
+      ),
+      trailing: notif['lida'] == 0
+          ? IconButton(
+              icon: const Icon(Icons.check_circle_outline, size: 18),
+              onPressed: () async {
+                await NotificationService.marcarComoLida(notif['id']);
+                Navigator.pop(context);
+                _showNotificationsDialog();
+                _carregarNotificacoes();
+              },
+            )
+          : null,
+      onTap: () {
+        if (notif['acao_url'] != null) {
+          Navigator.pop(context);
+        }
+      },
+    ),
+  );
+}
+  
+
 
   void _showLogoutConfirmationDialog() {
     showDialog(
@@ -149,6 +561,8 @@ class _HeaderWidgetState extends State<HeaderWidget> {
       },
     );
   }
+
+
 
   void _performLogout() async {
     await _authService.logout();
@@ -660,10 +1074,10 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withOpacity(0.1),
+                          color: const Color(0xFF2C7DA0).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.lock_outline, color: Color(0xFF10B981), size: 24),
+                        child: const Icon(Icons.lock_outline, color: Color(0xFF2C7DA0), size: 24),
                       ),
                       const SizedBox(width: 12),
                       const Text(
@@ -718,7 +1132,14 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Text('Cancelar'),
+                        child: const Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -815,10 +1236,10 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.1),
+                            color: const Color(0xFF2C7DA0).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.edit_outlined, color: Color(0xFF10B981), size: 24),
+                          child: const Icon(Icons.edit_outlined, color: Color(0xFF2C7DA0), size: 24),
                         ),
                         const SizedBox(width: 12),
                         const Text(
@@ -921,7 +1342,14 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: const Text('Cancelar'),
+                        child: const Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -1128,35 +1556,35 @@ class _HeaderWidgetState extends State<HeaderWidget> {
             ],
           ),
           Row(
-            children: [
-              Container(
-                height: 40,
-                margin: const EdgeInsets.only(right: 10),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: _openUPAScreen,
-                    borderRadius: BorderRadius.circular(30),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.12),
+                children: [
+                  Container(
+                    height: 40,
+                    margin: const EdgeInsets.only(right: 10),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _openUPAScreen,
                         borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Turmas de Apoio',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Turmas de Apoio',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -1305,6 +1733,8 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                   ],
                 ),
               ),
+                _buildNotificationBell(), 
+
             ],
           ),
         ],

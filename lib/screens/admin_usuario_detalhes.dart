@@ -656,67 +656,10 @@ Widget _buildStatItem(String label, String value, Color color) {
     );
   }
 
-  Widget _buildSintomasCard() {
-    if (_sintomas.isEmpty) {
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 4)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.show_chart, color: Color(0xFF8B5CF6), size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Evolução dos Sintomas',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                  ),
-                ],
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(
-                child: Text('Usuário ainda não registrou sintomas', style: TextStyle(color: Color(0xFF64748B))),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
 
-    final sintomasReverso = _sintomas.reversed.toList();
-    List<double> ansiedade = [];
-    List<double> irritabilidade = [];
-    List<double> vontadeFumar = [];
-    List<String> labels = [];
 
-    for (var s in sintomasReverso) {
-      ansiedade.add((s['ansiedade'] ?? 0).toDouble());
-      irritabilidade.add((s['irritabilidade'] ?? 0).toDouble());
-      vontadeFumar.add((s['vontade_fumar'] ?? 0).toDouble());
-      labels.add(s['data'].toString().split('-').reversed.join('/'));
-    }
-
+Widget _buildSintomasCard() {
+  if (_sintomas.isEmpty) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -739,10 +682,10 @@ Widget _buildStatItem(String label, String value, Color color) {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                    color: const Color(0xFF2C7DA0).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.show_chart, color: Color(0xFF8B5CF6), size: 22),
+                  child: const Icon(Icons.show_chart, color: Color(0xFF2C7DA0), size: 22),
                 ),
                 const SizedBox(width: 12),
                 const Text(
@@ -752,78 +695,10 @@ Widget _buildStatItem(String label, String value, Color color) {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 250,
-                  child: LineChart(
-                    LineChartData(
-                      gridData: const FlGridData(show: true),
-                      titlesData: FlTitlesData(
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (value, meta) {
-                              final index = value.toInt();
-                              if (index >= 0 && index < labels.length) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Text(labels[index], style: const TextStyle(fontSize: 10)),
-                                );
-                              }
-                              return const Text('');
-                            },
-                          ),
-                        ),
-                        leftTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: true, reservedSize: 30),
-                        ),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      ),
-                      borderData: FlBorderData(show: true),
-                      minX: 0,
-                      maxX: (sintomasReverso.length - 1).toDouble(),
-                      minY: 0,
-                      maxY: 10,
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: List.generate(ansiedade.length, (i) => FlSpot(i.toDouble(), ansiedade[i])),
-                          isCurved: true,
-                          color: const Color(0xFF3B82F6),
-                          barWidth: 3,
-                          dotData: const FlDotData(show: true),
-                        ),
-                        LineChartBarData(
-                          spots: List.generate(irritabilidade.length, (i) => FlSpot(i.toDouble(), irritabilidade[i])),
-                          isCurved: true,
-                          color: const Color(0xFFEF4444),
-                          barWidth: 3,
-                          dotData: const FlDotData(show: true),
-                        ),
-                        LineChartBarData(
-                          spots: List.generate(vontadeFumar.length, (i) => FlSpot(i.toDouble(), vontadeFumar[i])),
-                          isCurved: true,
-                          color: const Color(0xFFF59E0B),
-                          barWidth: 3,
-                          dotData: const FlDotData(show: true),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 16,
-                  children: [
-                    _buildLegenda(const Color(0xFF3B82F6), 'Ansiedade'),
-                    _buildLegenda(const Color(0xFFEF4444), 'Irritabilidade'),
-                    _buildLegenda(const Color(0xFFF59E0B), 'Vontade de Fumar'),
-                  ],
-                ),
-              ],
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(
+              child: Text('Usuário ainda não registrou sintomas', style: TextStyle(color: Color(0xFF64748B))),
             ),
           ),
         ],
@@ -831,17 +706,215 @@ Widget _buildStatItem(String label, String value, Color color) {
     );
   }
 
-  Widget _buildLegenda(Color cor, String texto) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 16, height: 16, decoration: BoxDecoration(color: cor, borderRadius: BorderRadius.circular(4))),
-        const SizedBox(width: 6),
-        Text(texto, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-      ],
-    );
-  }
+  final sintomasReverso = _sintomas.reversed.toList();
+  
+  List<double> ansiedade = [];
+  List<double> irritabilidade = [];
+  List<double> insonia = [];
+  List<double> fome = [];
+  List<double> dificuldadeConcentracao = [];
+  List<double> vontadeFumar = [];
+  List<String> labels = [];
 
+for (var s in sintomasReverso) {
+  ansiedade.add((s['ansiedade'] ?? 0).toDouble());
+  irritabilidade.add((s['irritabilidade'] ?? 0).toDouble());
+  insonia.add((s['insonia'] ?? 0).toDouble());
+  fome.add((s['fome'] ?? 0).toDouble());
+  dificuldadeConcentracao.add((s['dificuldade_concentracao'] ?? 0).toDouble());
+  vontadeFumar.add((s['vontade_fumar'] ?? 0).toDouble());
+  
+  String dataStr = s['data'].toString();
+  String dataFormatada = '';
+  
+  if (dataStr.contains('T')) {
+    dataStr = dataStr.split('T')[0];
+  }
+  
+  final dataParts = dataStr.split('-');
+  if (dataParts.length >= 3) {
+    dataFormatada = '${dataParts[2]}/${dataParts[1]}';
+  } else {
+    dataFormatada = dataStr;
+  }
+  
+  labels.add(dataFormatada);
+}
+
+  return Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 4)),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2C7DA0).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.show_chart, color: Color(0xFF2C7DA0), size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Evolução dos Sintomas',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 350,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: labels.length * 60 + 100,
+                    child: LineChart(
+LineChartData(
+  clipData: const FlClipData.all(),
+  gridData: const FlGridData(show: true),
+  titlesData: FlTitlesData(
+    bottomTitles: AxisTitles(
+      sideTitles: SideTitles(
+        showTitles: true,
+        interval: 1,
+        getTitlesWidget: (value, meta) {
+          final index = value.toInt();
+          if (index >= 0 && index < labels.length) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Transform.rotate(
+                angle: -0.5,
+                child: Text(
+                  labels[index],
+                  style: const TextStyle(fontSize: 9),
+                ),
+              ),
+            );
+          }
+          return const Text('');
+        },
+        reservedSize: 50,
+      ),
+    ),
+    leftTitles: AxisTitles(
+      sideTitles: SideTitles(
+        showTitles: true,
+        reservedSize: 35,
+        getTitlesWidget: _leftTitleWidgets,
+      ),
+    ),
+    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+  ),
+  borderData: FlBorderData(show: true),
+  minX: 0,
+  maxX: (sintomasReverso.length - 1).toDouble(),
+  minY: 0,
+  maxY: 10,
+  lineBarsData: [
+                          LineChartBarData(
+                            spots: List.generate(ansiedade.length, (i) => FlSpot(i.toDouble(), ansiedade[i])),
+                            isCurved: true,
+                            color: const Color(0xFF3B82F6),
+                            barWidth: 3,
+                            dotData: const FlDotData(show: true),
+                          ),
+                          LineChartBarData(
+                            spots: List.generate(irritabilidade.length, (i) => FlSpot(i.toDouble(), irritabilidade[i])),
+                            isCurved: true,
+                            color: const Color(0xFFEF4444),
+                            barWidth: 3,
+                            dotData: const FlDotData(show: true),
+                          ),
+                          LineChartBarData(
+                            spots: List.generate(insonia.length, (i) => FlSpot(i.toDouble(), insonia[i])),
+                            isCurved: true,
+                            color: const Color(0xFF8B5CF6),
+                            barWidth: 3,
+                            dotData: const FlDotData(show: true),
+                          ),
+                          LineChartBarData(
+                            spots: List.generate(fome.length, (i) => FlSpot(i.toDouble(), fome[i])),
+                            isCurved: true,
+                            color: const Color(0xFFF97316),
+                            barWidth: 3,
+                            dotData: const FlDotData(show: true),
+                          ),
+                          LineChartBarData(
+                            spots: List.generate(dificuldadeConcentracao.length, (i) => FlSpot(i.toDouble(), dificuldadeConcentracao[i])),
+                            isCurved: true,
+                            color: const Color(0xFF10B981),
+                            barWidth: 3,
+                            dotData: const FlDotData(show: true),
+                          ),
+                          LineChartBarData(
+                            spots: List.generate(vontadeFumar.length, (i) => FlSpot(i.toDouble(), vontadeFumar[i])),
+                            isCurved: true,
+                            color: const Color(0xFFF59E0B),
+                            barWidth: 3,
+                            dotData: const FlDotData(show: true),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: [
+                  _buildLegenda(const Color(0xFF3B82F6), 'Ansiedade'),
+                  _buildLegenda(const Color(0xFFEF4444), 'Irritabilidade'),
+                  _buildLegenda(const Color(0xFF8B5CF6), 'Insônia'),
+                  _buildLegenda(const Color(0xFFF97316), 'Fome'),
+                  _buildLegenda(const Color(0xFF10B981), 'Dificuldade Concentração'),
+                  _buildLegenda(const Color(0xFFF59E0B), 'Vontade de Fumar'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _leftTitleWidgets(double value, TitleMeta meta) {
+  const style = TextStyle(fontSize: 10, color: Color(0xFF64748B));
+  return Text(value.toInt().toString(), style: style);
+}
+
+Widget _buildLegenda(Color cor, String texto) {
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(width: 14, height: 14, decoration: BoxDecoration(color: cor, borderRadius: BorderRadius.circular(4))),
+      const SizedBox(width: 6),
+      Text(texto, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+    ],
+  );
+}
   String _formatarTelefone(String? telefone) {
   if (telefone == null || telefone.isEmpty) return '-';
   String limpo = telefone.replaceAll(RegExp(r'[^\d]'), '');
