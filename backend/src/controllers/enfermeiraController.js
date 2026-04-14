@@ -37,33 +37,61 @@ exports.getUsuariosEmEspera = async (req, res) => {
   }
 };
 
-
 exports.atualizarStatusMatricula = async (req, res) => {
   try {
-    const { matriculaId, status } = req.body;
+    const { matriculaId, status, turmaEscolhida } = req.body;
+    
+    await pool.query('START TRANSACTION');
     
     const [matricula] = await pool.execute(
-      'SELECT usuario_id, upa_nome FROM matriculas WHERE id = ?',
+      'SELECT usuario_id, upa_id, upa_nome, turma_horario, segunda_opcao_turma, status as status_atual FROM matriculas WHERE id = ?',
       [matriculaId]
     );
     
     if (matricula.length === 0) {
+      await pool.query('ROLLBACK');
       return res.status(404).json({ error: 'Matrícula não encontrada' });
     }
     
+    let turmaParaAlocar = matricula[0].turma_horario;
+    
+    // Se veio o nome da turma diretamente (padrão do frontend)
+    if (turmaEscolhida && turmaEscolhida !== 'primeira' && turmaEscolhida !== 'segunda') {
+      turmaParaAlocar = turmaEscolhida;
+    }
+    // Se turmaEscolhida é 'segunda' e existe segunda opção
+    else if (turmaEscolhida === 'segunda' && matricula[0].segunda_opcao_turma) {
+      turmaParaAlocar = matricula[0].segunda_opcao_turma;
+    }
+    
+    // SÓ atualiza vagas_ocupadas quando mudar de 'em_espera' para 'matriculado'
+    if (status === 'matriculado' && matricula[0].status_atual !== 'matriculado') {
+      const [turma] = await pool.execute(
+        `SELECT id FROM turmas 
+         WHERE upa_id = ? AND CONCAT(dia_semana, ' - ', horario) = ?`,
+        [matricula[0].upa_id, turmaParaAlocar]
+      );
+      
+      if (turma.length > 0) {
+        await pool.execute(
+          'UPDATE turmas SET vagas_ocupadas = vagas_ocupadas + 1 WHERE id = ?',
+          [turma[0].id]
+        );
+      }
+    }
+    
     await pool.execute(
-      'UPDATE matriculas SET status = ? WHERE id = ?',
-      [status, matriculaId]
+      'UPDATE matriculas SET status = ?, turma_horario = ? WHERE id = ?',
+      [status, turmaParaAlocar, matriculaId]
     );
+    
+    await pool.query('COMMIT');
     
     if (status === 'matriculado') {
       await notificacaoController.criarNotificacao(
         matricula[0].usuario_id,
         'Matrícula Confirmada',
-        'Parabéns! Sua matrícula foi confirmada.\n\n'
-        + `UPA: ${matricula[0].upa_nome}\n`
-        + `Turma: ${matricula[0].turma_horario}\n\n`
-        + 'Acesse "Minhas Matrículas" para mais detalhes.',
+        'Parabéns! Sua matrícula foi confirmada.\n\nUPA: ' + matricula[0].upa_nome + '\n\nTurma: ' + turmaParaAlocar + '\n\nAcesse "Minhas Matrículas" para mais detalhes.',
         'matricula',
         '/my-enrollments'
       );
@@ -71,6 +99,7 @@ exports.atualizarStatusMatricula = async (req, res) => {
     
     res.json({ message: 'Status atualizado com sucesso' });
   } catch (error) {
+    await pool.query('ROLLBACK');
     console.error('Erro ao atualizar status:', error);
     res.status(500).json({ error: error.message });
   }
@@ -220,7 +249,7 @@ exports.getPresencasPorMatricula = async (req, res) => {
 
 exports.encerrarTurma = async (req, res) => {
   try {
-    const { upaId, turmaHorario, tipoEncerramento } = req.body; // tipoEncerramento: 'concluida' ou 'cancelada'
+    const { upaId, turmaHorario, tipoEncerramento } = req.body;
     const enfermeiraId = req.userId;
     
     const [enfermeira] = await pool.execute(
@@ -245,6 +274,19 @@ exports.encerrarTurma = async (req, res) => {
     
     if (alunos.length === 0) {
       return res.status(404).json({ error: 'Nenhum aluno matriculado nesta turma' });
+    }
+    
+    const [turma] = await pool.execute(
+      `SELECT id FROM turmas 
+       WHERE upa_id = ? AND CONCAT(dia_semana, ' - ', horario) = ?`,
+      [upaId, turmaHorario]
+    );
+    
+    if (turma.length > 0) {
+      await pool.execute(
+        'UPDATE turmas SET vagas_ocupadas = 0 WHERE id = ?',
+        [turma[0].id]
+      );
     }
     
     let totalPresencasGeral = 0;
@@ -298,6 +340,19 @@ exports.encerrarTurma = async (req, res) => {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [turmaConcluidaId, aluno.usuario_id, aluno.nome_completo, aluno.email, aluno.telefone, 
          aluno.percentual, aluno.presentes, aluno.total_aulas - aluno.presentes, JSON.stringify(evolucao)]
+      );
+      
+      const titulo = tipoEncerramento === 'concluida' ? 'Turma Concluída!' : 'Turma Cancelada';
+      const mensagem = tipoEncerramento === 'concluida'
+        ? `Parabéns! Você concluiu o programa com sucesso na turma ${turmaHorario} da ${upaNome}. Seu percentual de presença foi de ${aluno.percentual}%!`
+        : `Infelizmente a turma ${turmaHorario} da ${upaNome} foi cancelada. Entre em contato com a UPA para mais informações.`;
+      
+      await notificacaoController.criarNotificacao(
+        aluno.usuario_id,
+        titulo,
+        mensagem,
+        tipoEncerramento === 'concluida' ? 'sucesso' : 'alerta',
+        '/my-enrollments'
       );
     }
     

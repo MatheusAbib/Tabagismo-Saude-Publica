@@ -824,17 +824,17 @@ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
                   ),
                 ],
               ),
-              if (enrollment['segunda_opcao_turma'] != null && enrollment['segunda_opcao_turma'].isNotEmpty) ...[
+              if (isEmEspera && enrollment['segunda_opcao_turma'] != null && enrollment['segunda_opcao_turma'].isNotEmpty) ...[
                 SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.swap_horiz, size: 16, color: isCanceled ? Colors.grey.shade400 : _warningColor),
+                    Icon(Icons.swap_horiz, size: 16, color: _warningColor),
                     SizedBox(width: 8),
                     Text(
                       '2ª opção: ${enrollment['segunda_opcao_turma']}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isCanceled ? Colors.grey.shade500 : _warningColor,
+                        color: _warningColor,
                         fontFamily: 'Inter',
                       ),
                     ),

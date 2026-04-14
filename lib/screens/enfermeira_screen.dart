@@ -6,6 +6,7 @@ import 'package:tabagismo_app/services/pdf_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:tabagismo_app/screens/cronograma_screen.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
+import 'historico_turma_screen.dart';
 import 'dart:async';
 
 class EnfermeiraScreen extends StatefulWidget {
@@ -35,7 +36,15 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
   int _alunosPerPage = 5;
 
   int _selectedTabIndex = 0;
-  final List<String> _tabTitles = ['Dashboard', 'Em Espera', 'Matriculados', 'Cancelados', 'Cronogramas', 'Lista de Presença', 'Histórico', 'Turmas Concluídas'];
+  final List<String> _tabTitles = ['Dashboard', 'Usuários', 'Cronogramas', 'Lista de Presença', 'Turmas Concluídas'];
+
+  String _statusFiltro = 'todos'; 
+  final List<Map<String, dynamic>> _filtros = [
+  {'valor': 'todos', 'label': 'Todos', 'cor': Color(0xFF64748B)},
+  {'valor': 'em_espera', 'label': 'Em Espera', 'cor': Color(0xFFF59E0B)},
+  {'valor': 'matriculado', 'label': 'Matriculados', 'cor': Color(0xFF10B981)},
+  {'valor': 'cancelada', 'label': 'Cancelados', 'cor': Color(0xFFEF4444)},
+];
   
   String _upaNome = '';
 
@@ -1036,8 +1045,11 @@ Widget _buildAlunosDetalhados(Map<String, dynamic> data) {
                     _searchQuery = '';
                     _searchController.clear();
                     _currentPage = 1;
+                    if (index == 1) {
+                      _statusFiltro = 'todos';
+                    }
                   });
-                  if (index != 0 && index != 4 && index != 5) {
+                  if (index == 1) {
                     _carregarUsuarios(page: 1);
                   }
                 },
@@ -1046,16 +1058,13 @@ Widget _buildAlunosDetalhados(Map<String, dynamic> data) {
               Expanded(
                 child: IndexedStack(
                   index: _selectedTabIndex,
-              children: [
-                _buildDashboard(),
-                _buildUsuariosList(),
-                _buildUsuariosList(),
-                _buildUsuariosList(),
-                _buildCronogramasList(), 
-                _buildListaPresenca(),
-                _buildHistoricoPresencas(),
-                _buildTurmasConcluidasList(), 
-              ],
+                    children: [
+                      _buildDashboard(),
+                      _buildUsuariosList(),   
+                      _buildCronogramasList(), 
+                      _buildListaPresenca(),
+                      _buildTurmasConcluidasList(), 
+                    ],
                 ),
               ),
           ],
@@ -1231,38 +1240,49 @@ Container(
           ],
         ),
       ),
-      Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: vagasOcupadas >= vagasTotais 
-                ? Colors.red.withOpacity(0.1) 
-                : const Color(0xFF10B981).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '$vagasOcupadas/$vagasTotais vagas',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: vagasOcupadas >= vagasTotais ? Colors.red : const Color(0xFF10B981),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: vagasOcupadas >= vagasTotais 
+                    ? Colors.red.withOpacity(0.1) 
+                    : const Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '$vagasOcupadas/$vagasTotais vagas',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: vagasOcupadas >= vagasTotais ? Colors.red : const Color(0xFF10B981),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: () => _verCronogramaTurma(turma),
+                icon: Icon(Icons.calendar_month, size: 16, color: _accentColor),
+                label: Text('Cronograma', style: TextStyle(fontSize: 12, color: _accentColor)),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: _accentColor),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () => _abrirHistoricoTurma(turma),
+                  icon: Icon(Icons.history, size: 16, color: _accentColor),
+                  label: Text('Histórico', style: TextStyle(fontSize: 12, color: _accentColor)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: _accentColor),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(width: 8),
-          OutlinedButton.icon(
-            onPressed: () => _verCronogramaTurma(turma),
-            icon: Icon(Icons.calendar_month, size: 16, color: _accentColor),
-            label: Text('Cronograma', style: TextStyle(fontSize: 12, color: _accentColor)),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: _accentColor),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        ],
-      ),
     ],
   ),
 ),
@@ -1351,6 +1371,17 @@ OutlinedButton.icon(
         ),
       );
     },
+  );
+}
+void _abrirHistoricoTurma(Map<String, dynamic> turma) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => HistoricoTurmaScreen(
+        turmaNome: turma['nome'],
+        upaNome: _upaNome,
+      ),
+    ),
   );
 }
 
@@ -1523,284 +1554,6 @@ void _verCronograma(int matriculaId, String turmaHorario) {
   );
 }
 
-
-Widget _buildHistoricoPresencas() {
-  return FutureBuilder(
-    future: AuthService().getHistoricoDetalhado(),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      
-      if (snapshot.hasError) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Erro ao carregar: ${snapshot.error}'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => setState(() {}),
-                child: const Text('Tentar novamente'),
-              ),
-            ],
-          ),
-        );
-      }
-      
-      final responseDetalhado = snapshot.data as Map<String, dynamic>;
-      final turmasDetalhado = List<Map<String, dynamic>>.from(responseDetalhado['turmas']);
-      
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Histórico de Presenças por Turma',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-            ),
-            const SizedBox(height: 16),
-            ...turmasDetalhado.map((turma) => _buildTurmaHistorico(turma)).toList(),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-Widget _buildTurmaHistorico(Map<String, dynamic> turma) {
-  final datas = List<String>.from(turma['datas']);
-  final usuarios = List<Map<String, dynamic>>.from(turma['usuarios']);
-  
-  Map<String, Color> statusColors = {
-    'presente': const Color(0xFF10B981),
-    'falta': const Color(0xFFEF4444),
-    'justificada': const Color(0xFFF59E0B),
-  };
-  
-  for (var usuario in usuarios) {
-    int presentes = 0;
-    int total = 0;
-    for (var data in datas) {
-      final status = usuario['presencas'][data];
-      if (status != null) {
-        total++;
-        if (status == 'presente') {
-          presentes++;
-        }
-      }
-    }
-    usuario['percentual'] = total > 0 ? (presentes / total * 100).toStringAsFixed(0) : '0';
-  }
-  
-String getStatusText(String? status) {
-  switch (status) {
-    case 'presente': return 'P';
-    case 'falta': return 'F';
-    default: return '-';
-  }
-}
-  
-  String getObservacaoText(String? observacao) {
-    if (observacao == '1- Está fumando') return 'F';
-    if (observacao == '2- Sem fumar') return 'SM';
-    return '-';
-  }
-  
-  Color getObservacaoColor(String? observacao) {
-    if (observacao == '1- Está fumando') return const Color(0xFFF59E0B);
-    if (observacao == '2- Sem fumar') return const Color(0xFF3B82F6);
-    return const Color(0xFF94A3B8);
-  }
-  
-  return Container(
-    margin: const EdgeInsets.only(bottom: 24),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          child: Row(
-            children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _accentColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.calendar_today, size: 18, color: Color(0xFF2C7DA0)),
-                ),
-              const SizedBox(width: 12),
-              Text(
-                turma['turma'],
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-              ),
-              const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _accentColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${usuarios.length} alunos',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _accentColor),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                color: const Color(0xFFF8FAFC),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(width: 70, child: Text('%', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11), textAlign: TextAlign.center)),
-                    const SizedBox(width: 200, child: Text('Aluno', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11))),
-                    ...datas.map((data) => SizedBox(
-                      width: 80,
-                      child: Text(
-                        data,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 9),
-                        textAlign: TextAlign.center,
-                      ),
-                    )),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              ...usuarios.map((usuario) => Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 60,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: int.parse(usuario['percentual']) >= 75 
-                              ? const Color(0xFF10B981).withOpacity(0.1) 
-                              : const Color(0xFFEF4444).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${usuario['percentual']}%',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: int.parse(usuario['percentual']) >= 75 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      width: 192,
-                      child: Text(
-                        usuario['nome'],
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    ...datas.map((data) {
-                      final status = usuario['presencas'][data];
-                      final observacao = usuario['observacoes'][data];
-                      final color = status != null ? statusColors[status] : Colors.grey.shade400;
-                      final text = getStatusText(status);
-                      final obsText = getObservacaoText(observacao);
-                      final obsColor = getObservacaoColor(observacao);
-                      return SizedBox(
-                        width: 80,
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              decoration: BoxDecoration(
-                                color: color != null ? color.withOpacity(0.15) : Colors.grey.shade400.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  text,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: color,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (obsText != '-')
-                              Container(
-                                margin: const EdgeInsets.only(top: 2),
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: obsColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  obsText,
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w600,
-                                    color: obsColor,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              )),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(10),
-          child: Wrap(
-            spacing: 16,
-            runSpacing: 8,
-            children: [
-              _buildLegendaItem(const Color(0xFF10B981), 'Presente (P)'),
-              _buildLegendaItem(const Color(0xFFEF4444), 'Falta (F)'),
-              _buildLegendaItem(Colors.grey.shade400, 'Não registrado (-)'),
-              const SizedBox(width: 16),
-              _buildLegendaItem(const Color(0xFFF59E0B), 'Fumando (F)'),
-              _buildLegendaItem(const Color(0xFF3B82F6), 'Sem fumar (SF)'),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
 
 Widget _buildLegendaItem(Color cor, String texto) {
   return Row(
@@ -3068,72 +2821,129 @@ Container(
   );
 }
 
-  Widget _buildUsuariosList() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Buscar por nome ou email...',
-                    prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, color: Color(0xFF64748B)),
-                            onPressed: _limparBusca,
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+Widget _buildUsuariosList() {
+  return Column(
+    children: [
+      Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar por nome ou email...',
+                      prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: Color(0xFF64748B)),
+                              onPressed: _limparBusca,
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: _accentColor, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 2),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
+                    onChanged: (_) => _buscarUsuarios(),
                   ),
-                  onChanged: (_) => _buscarUsuarios(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildFiltrosChips(),
+          ],
+        ),
+      ),
+      Expanded(
+        child: _carregandoUsuarios
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _searchQuery.isEmpty 
+                          ? _getFiltroTitulo()
+                          : 'Resultados para: "$_searchQuery"',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Total: $_totalUsuarios usuários',
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                    const SizedBox(height: 16),
+                    ..._usuarios.map((usuario) => _buildUsuarioCard(usuario)),
+                    const SizedBox(height: 16),
+                    _buildPagination(),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-            ],
+      ),
+    ],
+  );
+}
+
+Widget _buildFiltrosChips() {
+  return SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: Row(
+      children: _filtros.map((filtro) {
+        final isSelected = _statusFiltro == filtro['valor'];
+        return Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: FilterChip(
+            label: Text(filtro['label']),
+            selected: isSelected,
+            onSelected: (selected) {
+              setState(() {
+                _statusFiltro = filtro['valor'];
+                _currentPage = 1; 
+                _carregarUsuarios(page: 1);
+              });
+            },
+            backgroundColor: Colors.white,
+            selectedColor: (filtro['cor'] as Color).withOpacity(0.1),
+            checkmarkColor: filtro['cor'],
+            labelStyle: TextStyle(
+              color: isSelected ? filtro['cor'] : const Color(0xFF64748B),
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
+            side: BorderSide(
+              color: isSelected ? filtro['cor'] : const Color(0xFFE2E8F0),
+              width: 1,
+            ),
           ),
-        ),
-        Expanded(
-          child: _carregandoUsuarios
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _searchQuery.isEmpty ? 'Usuários da UPA' : 'Resultados para: "$_searchQuery"',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-                      ),
-                      const SizedBox(height: 8),
-                      Text('Total: $_totalUsuarios usuários', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                      const SizedBox(height: 16),
-                      ..._usuarios.map((usuario) => _buildUsuarioCard(usuario)),
-                      const SizedBox(height: 16),
-                      _buildPagination(),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
-        ),
-      ],
-    );
+        );
+      }).toList(),
+    ),
+  );
+}
+
+String _getFiltroTitulo() {
+  switch (_statusFiltro) {
+    case 'todos': return 'Todos os Usuários';
+    case 'em_espera': return 'Usuários em Espera';
+    case 'matriculado': return 'Usuários Matriculados';
+    case 'cancelada': return 'Usuários Cancelados';
+    default: return 'Usuários';
   }
+}
 
   String _formatarTelefone(String telefone) {
   if (telefone.isEmpty) return 'Não informado';
@@ -3291,25 +3101,47 @@ Future<void> _carregarUsuarios({int page = 1}) async {
   });
   
   String statusFilter = '';
-  if (_selectedTabIndex == 1) {
-    statusFilter = 'em_espera';
-  } else if (_selectedTabIndex == 2) {
-    statusFilter = 'matriculado';
-  } else if (_selectedTabIndex == 3) {
-    statusFilter = 'cancelada';
+  if (_statusFiltro != 'todos') {
+    statusFilter = _statusFiltro;
   }
   
   try {
     final authService = AuthService();
     final response = await authService.getUsuariosDaUPA(
       page: page,
-      limit: 10,
+      limit: 8,
       search: _searchQuery,
       status: statusFilter,
     );
     
+    List<Map<String, dynamic>> usuarios = List<Map<String, dynamic>>.from(response['usuarios']);
+    
+    if (_statusFiltro == 'todos') {
+      usuarios.sort((a, b) {
+        final ordemStatus = {
+          'em_espera': 0,    
+          'matriculado': 1,  
+          'cancelada': 2,   
+        };
+        
+        final statusA = a['status'] ?? '';
+        final statusB = b['status'] ?? '';
+        
+        final ordemA = ordemStatus[statusA] ?? 3;
+        final ordemB = ordemStatus[statusB] ?? 3;
+        
+        if (ordemA != ordemB) {
+          return ordemA.compareTo(ordemB);
+        }
+        
+        final dataA = a['created_at'] ?? '';
+        final dataB = b['created_at'] ?? '';
+        return dataB.compareTo(dataA);
+      });
+    }
+    
     setState(() {
-      _usuarios = List<Map<String, dynamic>>.from(response['usuarios']);
+      _usuarios = usuarios;
       _totalPages = response['totalPages'];
       _totalUsuarios = response['total'];
       _carregandoUsuarios = false;

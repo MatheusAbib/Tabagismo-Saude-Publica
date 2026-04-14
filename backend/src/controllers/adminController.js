@@ -459,41 +459,68 @@ exports.getUPAsParaEnfermeira = async (req, res) => {
 
 exports.atualizarMatricula = async (req, res) => {
   try {
-    const { matriculaId, status } = req.body;
+    const { matriculaId, status, turmaEscolhida } = req.body;
     
-    const [matricula] = await pool.execute(
-      'SELECT usuario_id, upa_nome, turma_horario FROM matriculas WHERE id = ?',
+    await pool.query('START TRANSACTION');
+    
+    const [matricula] = await pool.query(
+      'SELECT usuario_id, upa_id, upa_nome, turma_horario, segunda_opcao_turma, status as status_atual FROM matriculas WHERE id = ?',
       [matriculaId]
     );
     
     if (matricula.length === 0) {
+      await pool.query('ROLLBACK');
       return res.status(404).json({ error: 'Matrícula não encontrada' });
     }
     
-    const [result] = await pool.execute(
-      'UPDATE matriculas SET status = ? WHERE id = ?',
-      [status, matriculaId]
+    let turmaParaAlocar = matricula[0].turma_horario;
+    
+    // Se turmaEscolhida é 'segunda' e existe segunda opção, usa ela
+    if (turmaEscolhida === 'segunda' && matricula[0].segunda_opcao_turma) {
+      turmaParaAlocar = matricula[0].segunda_opcao_turma;
+    }
+    
+    // Se veio o nome da turma diretamente
+    if (turmaEscolhida !== 'primeira' && turmaEscolhida !== 'segunda' && turmaEscolhida !== null) {
+      turmaParaAlocar = turmaEscolhida;
+    }
+    
+    // SÓ atualiza vagas_ocupadas quando mudar de 'em_espera' para 'matriculado'
+    if (status === 'matriculado' && matricula[0].status_atual !== 'matriculado') {
+      const [turma] = await pool.query(
+        `SELECT id FROM turmas 
+         WHERE upa_id = ? AND CONCAT(dia_semana, ' - ', horario) = ?`,
+        [matricula[0].upa_id, turmaParaAlocar]
+      );
+      
+      if (turma.length > 0) {
+        await pool.query(
+          'UPDATE turmas SET vagas_ocupadas = vagas_ocupadas + 1 WHERE id = ?',
+          [turma[0].id]
+        );
+      }
+    }
+    
+    await pool.query(
+      'UPDATE matriculas SET status = ?, turma_horario = ? WHERE id = ?',
+      [status, turmaParaAlocar, matriculaId]
     );
     
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Matrícula não encontrada' });
-    }
+    await pool.query('COMMIT');
     
     if (status === 'matriculado') {
-await notificacaoController.criarNotificacao(
-  matricula[0].usuario_id,
-  'Matrícula Confirmada',
-  'Parabéns! Sua matrícula foi confirmada.\n\n'
-  + `UPA: ${matricula[0].upa_nome}\n`
-  + `Turma: ${matricula[0].turma_horario}\n\n`
-  + 'Acesse "Minhas Matrículas" para mais detalhes.',
-  'matricula',
-  '/my-enrollments'
-);
+      await notificacaoController.criarNotificacao(
+        matricula[0].usuario_id,
+        'Matrícula Confirmada',
+        'Parabéns! Sua matrícula foi confirmada.\n\nUPA: ' + matricula[0].upa_nome + '\n\nTurma: ' + turmaParaAlocar + '\n\nAcesse "Minhas Matrículas" para mais detalhes.',
+        'matricula',
+        '/my-enrollments'
+      );
     }
     
     res.json({ message: 'Status atualizado com sucesso' });
   } catch (error) {
+    await pool.query('ROLLBACK');
     console.error('Erro ao atualizar matrícula:', error);
     res.status(500).json({ error: error.message });
   }

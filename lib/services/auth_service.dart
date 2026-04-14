@@ -188,11 +188,32 @@ Future<void> atualizarUsuario(int id, Map<String, dynamic> dados) async {
   }
 }
 
-Future<void> atualizarMatricula(int matriculaId, String status) async {
+Future<Map<String, dynamic>> getHistoricoPorTurma(String turmaHorario) async {
+  try {
+    final response = await _api.get('/enfermeira/historico-detalhado');
+    
+    final turmas = List<Map<String, dynamic>>.from(response['turmas']);
+    final turmaEncontrada = turmas.firstWhere(
+      (t) => t['turma'] == turmaHorario,
+      orElse: () => {'datas': [], 'usuarios': []}
+    );
+    
+    return {
+      'datas': turmaEncontrada['datas'] ?? [],
+      'usuarios': turmaEncontrada['usuarios'] ?? []
+    };
+  } catch (e) {
+    print('Erro detalhado: $e');
+    throw Exception('Erro ao buscar histórico da turma: $e');
+  }
+}
+
+Future<void> atualizarMatricula(int matriculaId, String status, String turmaEscolhida) async {
   try {
     await _api.put('/admin/matricula', {
       'matriculaId': matriculaId,
       'status': status,
+      'turmaEscolhida': turmaEscolhida,
     });
   } catch (e) {
     throw Exception('Erro ao atualizar matrícula: $e');
@@ -426,7 +447,32 @@ Future<Map<String, dynamic>> getHistoricoDetalhado() async {
 Future<Map<String, dynamic>> getMinhasPresencasPorMatricula(int matriculaId) async {
   try {
     final response = await _api.get('/enfermeira/presencas/$matriculaId');
-    return response;
+    
+    final presencas = response['presencas'] as List? ?? [];
+    
+    int presentes = 0;
+    int faltas = 0;
+    
+    for (var p in presencas) {
+      if (p['status'] == 'presente') {
+        presentes++;
+      } else if (p['status'] == 'falta') {
+        faltas++;
+      }
+    }
+    
+    final total = presentes + faltas;
+    final percentual = total > 0 ? (presentes / total * 100).toStringAsFixed(1) : '0';
+    
+    return {
+      'presencas': presencas,
+      'estatisticas': {
+        'percentual': percentual,
+        'presentes': presentes,
+        'faltas': faltas,
+        'total': total
+      }
+    };
   } catch (e) {
     throw Exception('Erro ao buscar presenças: $e');
   }

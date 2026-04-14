@@ -968,6 +968,7 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
   final _enrollmentService = EnrollmentService();
   final _authService = AuthService();
   
+  
   final Color _primaryDark = Color(0xFF0F2B3D);
   final Color _accentColor = Color(0xFF2C7DA0);
   final Color _successColor = Color(0xFF10B981);
@@ -982,6 +983,8 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
   bool _isLoadingScore = true;
   bool _isSubmitting = false;
   bool _carregandoTurmas = true;
+  String? _outroMedicamento;
+
   
   List<Map<String, dynamic>> _turmasComVagas = [];
 
@@ -1198,16 +1201,16 @@ Future<void> _submitEnrollment() async {
 
     setState(() => _isSubmitting = true);
     try {
-      final data = {
-        'upaId': widget.upa['id'],
-        'upaNome': widget.upa['nome'],
-        'turmaHorario': _turmaSelecionada,
-        'segundaOpcaoTurma': _segundaOpcaoTurma,
-        'escolaridade': _escolaridade,
-        'scoreFagestrom': _scoreFagestrom,
-        'medicamento': _medicamento,
-        'comorbidades': _comorbidades,
-      };
+final data = {
+  'upaId': widget.upa['id'],
+  'upaNome': widget.upa['nome'],
+  'turmaHorario': _turmaSelecionada,
+  'segundaOpcaoTurma': _segundaOpcaoTurma,
+  'escolaridade': _escolaridade,
+  'scoreFagestrom': _scoreFagestrom,
+  'medicamento': _medicamento == 'Outro' ? (_outroMedicamento ?? '') : _medicamento,
+  'comorbidades': _comorbidades,
+};
       await _enrollmentService.enroll(data);
       Navigator.pop(context);
       _showSnackBar('Matrícula realizada com sucesso! Você está na lista de espera.', _successColor);
@@ -1243,7 +1246,7 @@ Future<void> _submitEnrollment() async {
                 context,
                 MaterialPageRoute(
                   builder: (context) => MyEnrollmentsScreen(
-                    userData: widget.userData, // Agora usa widget.userData
+                    userData: widget.userData, 
                     onNameUpdated: widget.onNameUpdated,
                   ),
                 ),
@@ -1340,14 +1343,14 @@ title: Column(
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _primaryDark, fontFamily: 'Poppins'),
             ),
             SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _buildDropdownField('Escolaridade', _escolaridades, _escolaridade, (value) => setState(() => _escolaridade = value))),
-                SizedBox(width: 12),
-                Expanded(child: _buildDropdownField('Medicamento', _medicamentos, _medicamento, (value) => setState(() => _medicamento = value))),
-              ],
-            ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildDropdownField('Escolaridade', _escolaridades, _escolaridade, (value) => setState(() => _escolaridade = value))),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildMedicamentoField()),
+                ],
+              ),
             SizedBox(height: 16),
             _buildScoreFieldCompact(),
             SizedBox(height: 24),
@@ -1385,6 +1388,59 @@ title: Column(
         ),
       ),
     ),
+  );
+}
+
+Widget _buildMedicamentoField() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text('Medicamento', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F2B3D))),
+      const SizedBox(height: 8),
+      DropdownButtonFormField<String>(
+        value: _medicamento,
+        decoration: InputDecoration(
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _accentColor, width: 2)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        icon: Icon(Icons.arrow_drop_down, color: _accentColor),
+        items: _medicamentos.map((item) => DropdownMenuItem(value: item, child: Text(item, style: const TextStyle(fontFamily: 'Inter')))).toList(),
+        onChanged: (value) {
+          setState(() {
+            _medicamento = value;
+            if (value != 'Outro') {
+              _outroMedicamento = null;
+            }
+          });
+        },
+        validator: (v) => v == null ? 'Selecione o medicamento' : null,
+      ),
+      if (_medicamento == 'Outro')
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: TextFormField(
+            decoration: InputDecoration(
+              hintText: 'Digite o medicamento',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              isDense: true,
+            ),
+            onChanged: (text) {
+              _outroMedicamento = text;
+            },
+            validator: (value) {
+              if (_medicamento == 'Outro' && (value == null || value.isEmpty)) {
+                return 'Digite o nome do medicamento';
+              }
+              return null;
+            },
+          ),
+        ),
+    ],
   );
 }
 

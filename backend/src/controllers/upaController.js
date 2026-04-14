@@ -102,36 +102,33 @@ exports.atualizarUPAComTurmas = async (req, res) => {
     
     console.log('Atualizando UPA:', { id, nome, endereco, cidade, telefone, horario, turmas });
     
-    await pool.execute('START TRANSACTION');
+    await pool.query('START TRANSACTION');
     
-    await pool.execute(
+    await pool.query(
       'UPDATE upas SET nome = ?, endereco = ?, cidade = ?, telefone = ?, horario = ? WHERE id = ?',
       [nome, endereco, cidade, telefone || null, horario || null, id]
     );
     
-    // Deletar apenas as turmas que não estão mais selecionadas
     if (turmas && turmas.length > 0) {
-      // Deletar todas e recriar (mais simples)
-      await pool.execute('DELETE FROM turmas WHERE upa_id = ?', [id]);
+      await pool.query('DELETE FROM turmas WHERE upa_id = ?', [id]);
       
       for (const turma of turmas) {
-        await pool.execute(
+        await pool.query(
           'INSERT INTO turmas (upa_id, dia_semana, horario, vagas_totais, vagas_ocupadas) VALUES (?, ?, ?, ?, 0)',
           [id, turma.dia_semana, turma.horario, turma.vagas_totais || 4]
         );
       }
     }
     
-    await pool.execute('COMMIT');
+    await pool.query('COMMIT');
     
     res.json({ message: 'UPA atualizada com sucesso' });
   } catch (error) {
-    await pool.execute('ROLLBACK');
+    await pool.query('ROLLBACK');
     console.error('Erro detalhado:', error);
     res.status(500).json({ message: 'Erro ao atualizar UPA', error: error.message });
   }
 };
-
 
 exports.getUPAsLista = async (req, res) => {
   try {

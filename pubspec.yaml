@@ -9,6 +9,7 @@ environment:
   sdk: ^3.11.4
 
 dependencies:
+  flutter_svg: ^2.0.9
   calendar_date_picker2: ^2.0.1
   pdf: ^3.10.7
   printing: ^5.11.1

@@ -35,7 +35,10 @@ String _searchEnfermeira = '';
 TextEditingController _searchEnfermeiraController = TextEditingController();
 
   
-
+bool _isLoadingDashboard = true;
+bool _isLoadingUsuarios = true;
+bool _isLoadingUPAs = true;
+bool _isLoadingEnfermeiras = true;
 
   List<Map<String, dynamic>> _upas = [];
     bool _carregandoUPAs = true;
@@ -54,8 +57,8 @@ TextEditingController _searchEnfermeiraController = TextEditingController();
 void initState() {
   super.initState();
   _carregarEstatisticas();
-  _carregarUsuarios();
-  _carregarUPAs();
+  _carregarUsuarios(showLoading: true);
+  _carregarUPAs(showLoading: true);
   _carregarEnfermeiras();
 }
   
@@ -625,7 +628,10 @@ Future<void> _carregarEstatisticas() async {
     String _searchQuery = '';
     TextEditingController _searchController = TextEditingController();
 
-Future<void> _carregarUsuarios({int page = 1}) async {
+Future<void> _carregarUsuarios({int page = 1, bool showLoading = true}) async {
+  if (showLoading) {
+    setState(() => _carregandoUsuarios = true);
+  }
   _currentPage = page;
   
   try {
@@ -636,22 +642,35 @@ Future<void> _carregarUsuarios({int page = 1}) async {
       search: _searchQuery,
     );
     
-    _usuarios = List<Map<String, dynamic>>.from(response['usuarios']);
-    _totalPages = response['totalPages'];
-    _totalUsuariosLista = response['total'];
-    _carregandoUsuarios = false;
-    
-    if (mounted) {
-      setState(() {});
-    }
+    setState(() {
+      _usuarios = List<Map<String, dynamic>>.from(response['usuarios']);
+      _totalPages = response['totalPages'];
+      _totalUsuariosLista = response['total'];
+      _carregandoUsuarios = false;
+    });
   } catch (e) {
-    _carregandoUsuarios = false;
-    if (mounted) {
-      setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar usuários: $e'), backgroundColor: Colors.red.shade400),
-      );
-    }
+    setState(() => _carregandoUsuarios = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erro ao carregar usuários: $e'), backgroundColor: Colors.red.shade400),
+    );
+  }
+}
+
+void _reloadCurrentTab() {
+  switch (_selectedIndex) {
+    case 0: // Dashboard
+      setState(() => _isLoadingDashboard = true);
+      _carregarEstatisticas();
+      break;
+    case 1: 
+      _carregarUsuarios(page: _currentPage, showLoading: true);
+      break;
+    case 2: 
+      _carregarUPAs(page: _currentPageUPAs, showLoading: true);
+      break;
+    case 3:
+      _carregarEnfermeiras();
+      break;
   }
 }
 
@@ -987,16 +1006,17 @@ void _editarUsuario(Map<String, dynamic> usuario) {
           Container(
             color: Colors.white,
             child: TabBar(
-              indicatorColor: _accentColor,
-              labelColor: _accentColor,
-              unselectedLabelColor: const Color(0xFF64748B),
-              tabs: _tabTitles.map((title) => Tab(text: title)).toList(),
-              onTap: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
-              },
-            ),
+                indicatorColor: _accentColor,
+                labelColor: _accentColor,
+                unselectedLabelColor: const Color(0xFF64748B),
+                tabs: _tabTitles.map((title) => Tab(text: title)).toList(),
+                onTap: (index) {
+                  setState(() {
+                    _selectedIndex = index;
+                  });
+                  _reloadCurrentTab(); 
+                },
+              ),
           ),
             // Conteúdo
             Expanded(
@@ -1108,39 +1128,43 @@ Widget _buildUsuariosList() {
 Widget _buildPagination() {
   if (_totalPages <= 1) return const SizedBox.shrink();
   
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      IconButton(
-        icon: const Icon(Icons.chevron_left),
-        onPressed: _currentPage > 1 ? () => _carregarUsuarios(page: _currentPage - 1) : null,
-        style: IconButton.styleFrom(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 16),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.chevron_left),
+          onPressed: _currentPage > 1 ? () => _carregarUsuarios(page: _currentPage - 1) : null,
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
         ),
-      ),
-      const SizedBox(width: 8),
-Container(
-  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-  decoration: BoxDecoration(
-    color: _accentColor.withOpacity(0.1),
-    borderRadius: BorderRadius.circular(8),
-  ),
-  child: Text(
-    'Página $_currentPageUPAs de $_totalPagesUPAs',
-    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _accentColor),
-  ),
-),
-      const SizedBox(width: 8),
-      IconButton(
-        icon: const Icon(Icons.chevron_right),
-        onPressed: _currentPage < _totalPages ? () => _carregarUsuarios(page: _currentPage + 1) : null,
-        style: IconButton.styleFrom(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: _accentColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            'Página $_currentPage de $_totalPages',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _accentColor),
+          ),
         ),
-      ),
-    ],
+        const SizedBox(width: 8),
+        IconButton(
+          icon: const Icon(Icons.chevron_right),
+          onPressed: _currentPage < _totalPages ? () => _carregarUsuarios(page: _currentPage + 1) : null,
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -1288,7 +1312,7 @@ int _adminEvolucaoPerPage = 5;
 Widget _buildStatsRow(Map<String, dynamic> data) {
   return Row(
     children: [
-      Expanded(
+      Flexible(
         child: _buildStatCard(
           'Total Usuários',
           _parseToInt(data['totalUsuarios']),
@@ -1297,16 +1321,16 @@ Widget _buildStatsRow(Map<String, dynamic> data) {
         ),
       ),
       const SizedBox(width: 16),
-    Expanded(
-      child: _buildStatCard(
-        'Enfermeiras',
-        _parseToInt(data['totalEnfermeiras']),
-        Icons.medical_services,
-        _accentColor,
+      Flexible(
+        child: _buildStatCard(
+          'Enfermeiras',
+          _parseToInt(data['totalEnfermeiras']),
+          Icons.medical_services,
+          _accentColor,
+        ),
       ),
-    ),
       const SizedBox(width: 16),
-      Expanded(
+      Flexible(
         child: _buildStatCard(
           'Matrículas',
           _parseToInt(data['totalMatriculas']),
@@ -1315,7 +1339,7 @@ Widget _buildStatsRow(Map<String, dynamic> data) {
         ),
       ),
       const SizedBox(width: 16),
-      Expanded(
+      Flexible(
         child: _buildStatCard(
           'UPAs',
           _parseToInt(data['totalUPAs']),
@@ -2090,60 +2114,59 @@ Future<void> _exportarPDF(Map<String, dynamic> data, Map<String, dynamic> evoluc
   }
 }
 
+Widget _buildStatCard(String titulo, int valor, IconData icon, Color cor) {
+  return Container(
+    width: double.infinity, 
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.03),
+          blurRadius: 20,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: cor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, size: 24, color: cor),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          titulo,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF64748B),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          valor.toString(),
+          style: const TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF0F172A),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
-  Widget _buildStatCard(String titulo, int valor, IconData icon, Color cor) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: cor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, size: 24, color: cor),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              titulo,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF64748B),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              valor.toString(),
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+Future<void> _carregarUPAs({int page = 1, bool showLoading = true}) async {
+  if (showLoading) {
+    setState(() => _carregandoUPAs = true);
   }
-
-
-  Future<void> _carregarUPAs({int page = 1}) async {
   setState(() {
-    _carregandoUPAs = true;
     _currentPageUPAs = page;
   });
   
@@ -2159,7 +2182,7 @@ Future<void> _exportarPDF(Map<String, dynamic> data, Map<String, dynamic> evoluc
       _upas = List<Map<String, dynamic>>.from(response['upas']);
       _totalPagesUPAs = response['totalPages'];
       _totalUPAsLista = response['total'];
-      _carregandoUPAs = false;
+      _carregandoUPAs  = false;
     });
   } catch (e) {
     setState(() => _carregandoUPAs = false);
@@ -2168,7 +2191,6 @@ Future<void> _exportarPDF(Map<String, dynamic> data, Map<String, dynamic> evoluc
     );
   }
 }
-
 
 String _formatarTelefoneExibicao(String? telefone) {
   if (telefone == null || telefone.isEmpty) return 'Telefone não informado';
@@ -2266,6 +2288,47 @@ void _abrirModalUPA({Map<String, dynamic>? upa}) async {
       carregandoTurmas = false;
     }
   }
+
+  List<String> _getDiasPermitidos(String horarioFuncionamento) {
+  if (horarioFuncionamento.contains('Segunda a Sexta')) {
+    return ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira'];
+  } else if (horarioFuncionamento.contains('Segunda a Sábado')) {
+    return ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+  } else if (horarioFuncionamento.contains('Domingo a Domingo')) {
+    return ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+  }
+  return ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+}
+
+List<String> _getHorariosPermitidos(String horarioFuncionamento) {
+  RegExp regExp = RegExp(r'(\d{2})h');
+  List<String> horariosPermitidos = [];
+  
+  int horaFechamento = 24;
+  if (horarioFuncionamento.contains('às')) {
+    String parteFechamento = horarioFuncionamento.split('às').last.trim();
+    var match = regExp.firstMatch(parteFechamento);
+    if (match != null) {
+      horaFechamento = int.parse(match.group(1)!);
+    }
+  } else if (horarioFuncionamento.contains('24 horas')) {
+    horaFechamento = 24;
+  }
+  
+  if (horaFechamento >= 20) {
+    horariosPermitidos = ['08:00 - 10:00', '10:00 - 12:00', '14:00 - 16:00', '16:00 - 18:00', '18:00 - 20:00'];
+  } else if (horaFechamento >= 18) {
+    horariosPermitidos = ['08:00 - 10:00', '10:00 - 12:00', '14:00 - 16:00', '16:00 - 18:00'];
+  } else if (horaFechamento >= 17) {
+    horariosPermitidos = ['08:00 - 10:00', '10:00 - 12:00', '14:00 - 16:00'];
+  } else if (horaFechamento >= 12) {
+    horariosPermitidos = ['08:00 - 10:00', '10:00 - 12:00'];
+  } else {
+    horariosPermitidos = ['08:00 - 10:00'];
+  }
+  
+  return horariosPermitidos;
+}
   
   final List<String> horariosPadrao = [
     '24 horas',
@@ -2304,6 +2367,8 @@ void _abrirModalUPA({Map<String, dynamic>? upa}) async {
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setState) {
+          List<String> diasPermitidos = _getDiasPermitidos(horarioSelecionado ?? '');
+          List<String> horariosPermitidos = _getHorariosPermitidos(horarioSelecionado ?? '');
           return Dialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             child: Container(
@@ -2474,31 +2539,38 @@ void _abrirModalUPA({Map<String, dynamic>? upa}) async {
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF0F172A)),
                     ),
                     const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      value: horarioSelecionado,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        hintText: 'Selecione o horário padrão',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      items: horariosPadrao.map((horario) {
-                        return DropdownMenuItem<String>(
-                          value: horario,
-                          child: Text(horario, style: const TextStyle(fontSize: 13)),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          horarioSelecionado = value;
-                          mostrarCampoPersonalizado = value == 'Outro (especificar manualmente)';
-                          if (value != 'Outro (especificar manualmente)') {
-                            horarioPersonalizadoController.text = value ?? '';
-                          }
-                        });
-                      },
-                    ),
+                        DropdownButtonFormField<String>(
+                          value: horarioSelecionado,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            hintText: 'Selecione o horário padrão',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                            filled: true,
+                            fillColor: Colors.white,
+                          ),
+                          items: horariosPadrao.map((horario) {
+                            return DropdownMenuItem<String>(
+                              value: horario,
+                              child: Text(horario, style: const TextStyle(fontSize: 13)),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              horarioSelecionado = value;
+                              mostrarCampoPersonalizado = value == 'Outro (especificar manualmente)';
+                              if (value != 'Outro (especificar manualmente)') {
+                                horarioPersonalizadoController.text = value ?? '';
+                                diasPermitidos = _getDiasPermitidos(value ?? '');
+                                horariosPermitidos = _getHorariosPermitidos(value ?? '');
+                                
+                                turmasSelecionadas.removeWhere((t) => 
+                                  !diasPermitidos.contains(t['dia_semana']) || 
+                                  !horariosPermitidos.contains(t['horario'])
+                                );
+                              }
+                            });
+                          },
+                        ),
                     
                     if (mostrarCampoPersonalizado) ...[
                       const SizedBox(height: 12),
@@ -2540,57 +2612,87 @@ void _abrirModalUPA({Map<String, dynamic>? upa}) async {
                             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                           ),
                           const SizedBox(height: 16),
-                          ...diasSemana.map((dia) {
-                            return Column(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        flex: 2,
-                                        child: Text(dia, style: TextStyle(fontWeight: FontWeight.w500)),
+                        ...diasSemana.map((dia) {
+                          bool diaPermitido = diasPermitidos.contains(dia);
+                          
+                          return Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 2,
+                                      child: Row(
+                                        children: [
+                                          if (!diaPermitido)
+                                            Icon(Icons.block, size: 14, color: Colors.grey.shade400),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            dia,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w500,
+                                              color: diaPermitido ? null : Colors.grey.shade400,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      Expanded(
-                                        flex: 3,
-                                        child: Wrap(
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          children: horariosTurmas.map((horario) {
-                                            String turmaKey = '$dia - $horario';
-                                            bool isSelected = turmasSelecionadas.any((t) => t['dia_semana'] == dia && t['horario'] == horario);
-                                            
-                                            return FilterChip(
-                                              label: Text(horario, style: TextStyle(fontSize: 11)),
-                                              selected: isSelected,
-                                              onSelected: (selected) {
-                                                setState(() {
-                                                  if (selected) {
-                                                    turmasSelecionadas.add({
-                                                      'dia_semana': dia,
-                                                      'horario': horario,
-                                                      'vagas_totais': 4,
-                                                      'vagas_ocupadas': 0,
-                                                    });
-                                                  } else {
-                                                    turmasSelecionadas.removeWhere((t) => t['dia_semana'] == dia && t['horario'] == horario);
-                                                  }
-                                                });
-                                              },
-                                              backgroundColor: Colors.grey.shade100,
-                                              selectedColor: _accentColor.withOpacity(0.2),
-                                              checkmarkColor: _accentColor,
+                                    ),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: horariosTurmas.map((horario) {
+                                          bool horarioPermitido = horariosPermitidos.contains(horario);
+                                          String turmaKey = '$dia - $horario';
+                                          bool isSelected = turmasSelecionadas.any((t) => t['dia_semana'] == dia && t['horario'] == horario);
+                                          
+                                          if (!diaPermitido || !horarioPermitido) {
+                                            return Tooltip(
+                                              message: !diaPermitido 
+                                                  ? 'UPA não funciona neste dia' 
+                                                  : 'UPA não atende neste horário',
+                                              child: FilterChip(
+                                                label: Text(horario, style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                                                selected: false,
+                                                onSelected: null,
+                                                backgroundColor: Colors.grey.shade100,
+                                              ),
                                             );
-                                          }).toList(),
-                                        ),
+                                          }
+                                          
+                                          return FilterChip(
+                                            label: Text(horario, style: TextStyle(fontSize: 11)),
+                                            selected: isSelected,
+                                            onSelected: (selected) {
+                                              setState(() {
+                                                if (selected) {
+                                                  turmasSelecionadas.add({
+                                                    'dia_semana': dia,
+                                                    'horario': horario,
+                                                    'vagas_totais': 4,
+                                                    'vagas_ocupadas': 0,
+                                                  });
+                                                } else {
+                                                  turmasSelecionadas.removeWhere((t) => t['dia_semana'] == dia && t['horario'] == horario);
+                                                }
+                                              });
+                                            },
+                                            backgroundColor: Colors.grey.shade100,
+                                            selectedColor: _accentColor.withOpacity(0.2),
+                                            checkmarkColor: _accentColor,
+                                          );
+                                        }).toList(),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                                Divider(height: 8, color: Colors.grey.shade200),
-                              ],
-                            );
-                          }).toList(),
+                              ),
+                              Divider(height: 8, color: Colors.grey.shade200),
+                            ],
+                          );
+                        }).toList(),
                         ],
                       ),
                     ),
@@ -2789,6 +2891,10 @@ Future<void> _confirmarDeletarUPA(Map<String, dynamic> upa) async {
 }
 
 Widget _buildUPAsList() {
+     if (_carregandoUPAs) {
+    return const Center(child: CircularProgressIndicator());
+  }
+  
   return Column(
     children: [
       Padding(
@@ -2944,9 +3050,8 @@ leading: Container(
   );
 }
 
-
 Future<void> _carregarEnfermeiras() async {
-  setState(() => _carregandoEnfermeiras = true);
+  setState(() => _carregandoEnfermeiras  = true);
   try {
     final authService = AuthService();
     final enfermeiras = await authService.getEnfermeiras();
@@ -2954,7 +3059,7 @@ Future<void> _carregarEnfermeiras() async {
     setState(() {
       _enfermeiras = enfermeiras;
       _upasLista = upas;
-      _carregandoEnfermeiras = false;
+      _carregandoEnfermeiras  = false;
     });
   } catch (e) {
     setState(() => _carregandoEnfermeiras = false);
@@ -3275,7 +3380,9 @@ Future<void> _confirmarDeletarEnfermeira(Map<String, dynamic> enfermeira) async 
 Widget _buildEnfermeirasList() {
   final enfermeirasFiltradas = _getEnfermeirasFiltradas();
   final grupos = _agruparEnfermeirasPorUPA(enfermeirasFiltradas);
-  
+    if (_carregandoEnfermeiras) {
+    return const Center(child: CircularProgressIndicator());
+  }
   return Column(
     children: [
       Padding(
@@ -3471,44 +3578,46 @@ leading: Container(
   );
 }
 
-
-
 Widget _buildPaginacaoUPAs() {
   if (_totalPagesUPAs <= 1) return const SizedBox.shrink();
   
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      IconButton(
-        icon: const Icon(Icons.chevron_left),
-        onPressed: _currentPageUPAs > 1 ? () => _carregarUPAs(page: _currentPageUPAs - 1) : null,
-        style: IconButton.styleFrom(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      ),
-      const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: _accentColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              'Página $_currentPage de $_totalPages',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _accentColor),
-            ),
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 16),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.chevron_left),
+          onPressed: _currentPageUPAs > 1 ? () => _carregarUPAs(page: _currentPageUPAs - 1) : null,
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
-      const SizedBox(width: 8),
-      IconButton(
-        icon: const Icon(Icons.chevron_right),
-        onPressed: _currentPageUPAs < _totalPagesUPAs ? () => _carregarUPAs(page: _currentPageUPAs + 1) : null,
-        style: IconButton.styleFrom(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-      ),
-    ],
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: _accentColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            'Página $_currentPageUPAs de $_totalPagesUPAs',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _accentColor),
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          icon: const Icon(Icons.chevron_right),
+          onPressed: _currentPageUPAs < _totalPagesUPAs ? () => _carregarUPAs(page: _currentPageUPAs + 1) : null,
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+      ],
+    ),
   );
 }
 }

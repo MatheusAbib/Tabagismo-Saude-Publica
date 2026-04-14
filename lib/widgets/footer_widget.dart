@@ -122,20 +122,6 @@ class FooterWidget extends StatelessWidget {
                   fontFamily: 'Inter',
                 ),
               ),
-              Row(
-                children: [
-                  Icon(Icons.favorite, color: Color(0xFFEF4444), size: 12),
-                  SizedBox(width: 6),
-                  Text(
-                    'Versão 2.0',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
-                      fontSize: 11,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ],
@@ -238,11 +224,9 @@ class FooterWidget extends StatelessWidget {
         SizedBox(height: 12),
         _buildResourceItem(Icons.menu_book_outlined, 'Material educativo gratuito'),
         SizedBox(height: 12),
-        _buildResourceItem(Icons.group_outlined, 'Grupos de apoio online'),
+        _buildResourceItem(Icons.group_outlined, 'Turmas de apoio'),
         SizedBox(height: 12),
         _buildResourceItem(Icons.flag_outlined, 'Metas personalizadas'),
-        SizedBox(height: 12),
-        _buildResourceItem(Icons.psychology_outlined, 'Técnicas de relaxamento'),
       ],
     );
   }

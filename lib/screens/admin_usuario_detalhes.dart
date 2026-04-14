@@ -49,32 +49,38 @@ class _AdminUsuarioDetalhesScreenState extends State<AdminUsuarioDetalhesScreen>
     }
   }
 
-  Future<void> _alocarTurma() async {
-    if (_matricula == null) return;
-    
-    setState(() => _atualizandoMatricula = true);
-    try {
-      final authService = AuthService();
-      await authService.atualizarMatricula(
-        _matricula!['id'],
-        'matriculado',
-      );
-      
-      setState(() {
-        _matricula!['status'] = 'matriculado';
-        _atualizandoMatricula = false;
-      });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuário matriculado com sucesso!'), backgroundColor: Color(0xFF10B981)),
-      );
-    } catch (e) {
-      setState(() => _atualizandoMatricula = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao alocar turma: $e'), backgroundColor: Colors.red.shade400),
-      );
-    }
+Future<void> _alocarTurma(String opcao) async {
+  if (_matricula == null) return;
+  
+  String turmaEscolhida;
+  if (opcao == 'primeira') {
+    turmaEscolhida = _matricula!['turma_horario'];
+  } else {
+    turmaEscolhida = _matricula!['segunda_opcao_turma'];
   }
+  
+  setState(() => _atualizandoMatricula = true);
+  try {
+    final authService = AuthService();
+    await authService.atualizarMatricula(
+      _matricula!['id'],
+      'matriculado',
+      turmaEscolhida,
+    );
+    
+    await _carregarDados();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Usuário matriculado com sucesso!'), backgroundColor: Color(0xFF10B981)),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erro ao alocar turma: $e'), backgroundColor: Colors.red.shade400),
+    );
+  } finally {
+    setState(() => _atualizandoMatricula = false);
+  }
+}
 
   void _mostrarDetalhesMatricula() {
     if (_matricula == null) return;
@@ -128,19 +134,41 @@ class _AdminUsuarioDetalhesScreenState extends State<AdminUsuarioDetalhesScreen>
                 const SizedBox(height: 12),
                 _buildComorbidadesWidget(),
                 const SizedBox(height: 24),
-                if (_matricula!['status'] == 'em_espera') ...[
+            if (_matricula!['status'] == 'em_espera') ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _atualizandoMatricula ? null : () {
+                          Navigator.pop(context);
+                          _alocarTurma('primeira');
+                        },
+                        icon: const Icon(Icons.check_circle, size: 18),
+                        label: const Text('Alocar na 1ª opção'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_matricula!['segunda_opcao_turma'] != null) ...[
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
-                        child: ElevatedButton.icon(
+                        child: OutlinedButton.icon(
                           onPressed: _atualizandoMatricula ? null : () {
                             Navigator.pop(context);
-                            _alocarTurma();
+                            _alocarTurma('segunda');
                           },
                           icon: const Icon(Icons.check_circle, size: 18),
-                          label: const Text('Alocar na 1ª opção'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
+                          label: const Text('Alocar na 2ª opção'),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF10B981)),
+                            foregroundColor: const Color(0xFF10B981),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
@@ -148,30 +176,8 @@ class _AdminUsuarioDetalhesScreenState extends State<AdminUsuarioDetalhesScreen>
                       ),
                     ],
                   ),
-                  if (_matricula!['segunda_opcao_turma'] != null) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _atualizandoMatricula ? null : () {
-                              Navigator.pop(context);
-                              _alocarTurma();
-                            },
-                            icon: const Icon(Icons.check_circle, size: 18),
-                            label: const Text('Alocar na 2ª opção'),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xFF10B981)),
-                              foregroundColor: const Color(0xFF10B981),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
+              ],
               ],
             ),
           ),
