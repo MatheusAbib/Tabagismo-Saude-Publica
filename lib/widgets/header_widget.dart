@@ -37,6 +37,8 @@ class _HeaderWidgetState extends State<HeaderWidget> {
   final _sintomaService = SintomaService();
   final Color _primaryColor = Color(0xFF0F2B3D);
   final Color _accentColor = Color(0xFF2C7DA0);
+  final Color _primaryMedium = Color.fromARGB(255, 19, 56, 85);
+
   
   StreamController<Map<String, dynamic>> _notificationStream = StreamController.broadcast();
   Timer? _notificationTimer;
@@ -79,373 +81,442 @@ class _HeaderWidgetState extends State<HeaderWidget> {
     super.dispose();
   }
 
-Widget _buildNotificationBell() {
-  return Container(
-    height: 40,
-    margin: const EdgeInsets.only(left: 10),  
-    child: Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _showNotificationsDialog(),
-        borderRadius: BorderRadius.circular(30),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-              width: 1,
-            ),
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              const Icon(Icons.notifications_none, color: Colors.white, size: 18),
-              if (_naoLidas > 0)
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Transform.translate(
-                    offset: const Offset(8, -8),
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        _naoLidas > 9 ? '9+' : '$_naoLidas',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
+
+  InputDecoration _buildInputDecoration(String label, IconData icon) {
+  return InputDecoration(
+    labelText: label,
+    labelStyle: TextStyle(
+      fontSize: 14,
+      color: Colors.grey.shade600,
     ),
+    floatingLabelStyle: TextStyle(
+      fontWeight: FontWeight.w600,
+      color: _accentColor,
+    ),
+    prefixIcon: Icon(icon, color: _accentColor, size: 20),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: const Color.fromARGB(255, 219, 219, 219), width: 1), 
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: _accentColor, width: 1.5), 
+    ),
+    filled: true,
+    fillColor: Colors.grey.shade50,
+    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
   );
 }
 
+  Widget _buildNotificationBell() {
+    return Container(
+      height: 40,
+      margin: const EdgeInsets.only(left: 10),  
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showNotificationsDialog(),
+          borderRadius: BorderRadius.circular(30),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 1,
+              ),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                const Icon(Icons.notifications_none, color: Colors.white, size: 18),
+                if (_naoLidas > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Transform.translate(
+                      offset: const Offset(8, -8),
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          _naoLidas > 9 ? '9+' : '$_naoLidas',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-  void _showNotificationsDialog() async {
+ void _showNotificationsDialog() async {
   try {
     final response = await NotificationService.getNotificacoes();
     final notificacoes = List<Map<String, dynamic>>.from(response['notificacoes']);
-    
+
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          width: 500,
-          height: 550,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _accentColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(Icons.notifications, color: _accentColor),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Notificações',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                  ),
-                  const Spacer(),
-                  if (notificacoes.isNotEmpty) ...[
-                    TextButton(
-                      onPressed: () async {
-                        await NotificationService.marcarTodasComoLidas();
-                        Navigator.pop(context);
-                        _showNotificationsDialog();
-                        _carregarNotificacoes();
-                      },
-                      child: const Text('Marcar todas como lidas'),
-                    ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      icon: const Icon(Icons.delete_sweep, color: Color(0xFFEF4444)),
-                      onPressed: () => _confirmarLimparNotificacoes(),
-                      tooltip: 'Limpar todas',
-                    ),
-                  ],
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const Divider(),
-              Expanded(
-                child: notificacoes.isEmpty
-                    ? const Center(child: Text('Nenhuma notificação'))
-                    : ListView.builder(
-                        itemCount: notificacoes.length,
-                        itemBuilder: (context, index) {
-                          final notif = notificacoes[index];
-                          return _buildNotificationCard(notif);
-                        },
+      builder: (context) {
+        final isSmallScreen = MediaQuery.of(context).size.width < 600;
+
+        return Dialog(
+          insetPadding: const EdgeInsets.all(5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            width: MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.95,
+            height: MediaQuery.of(context).size.height > 600 ? 550 : MediaQuery.of(context).size.height * 0.8,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!isSmallScreen)
+                  Row(
+                    children: [
+                      _buildHeaderIcon(),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Notificações',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                       ),
-              ),
-            ],
+                      const Spacer(),
+                      if (notificacoes.isNotEmpty) _buildActions(notificacoes),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+
+                if (isSmallScreen) ...[
+                  Row(
+                    children: [
+                      _buildHeaderIcon(),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Notificações',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  if (notificacoes.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _buildActions(notificacoes),
+                  ],
+                ],
+
+                const Divider(),
+
+                Expanded(
+                  child: notificacoes.isEmpty
+                      ? const Center(child: Text('Nenhuma notificação'))
+                      : ListView.builder(
+                          itemCount: notificacoes.length,
+                          itemBuilder: (context, index) {
+                            final notif = notificacoes[index];
+                            return _buildNotificationCard(notif);
+                          },
+                        ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   } catch (e) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Erro ao carregar notificações: $e'), backgroundColor: Colors.red),
+      SnackBar(
+        content: Text('Erro ao carregar notificações: $e'),
+        backgroundColor: Colors.red,
+      ),
     );
   }
 }
 
-void _confirmarLimparNotificacoes() {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return Dialog(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        child: Container(
-          width: 420,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.delete_sweep,
-                  size: 48,
-                  color: Color(0xFFEF4444),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Limpar Notificações',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
-                  letterSpacing: -0.5,
-                  fontFamily: 'Poppins',
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Tem certeza que deseja remover todas as notificações?',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Color(0xFF475569),
-                  height: 1.4,
-                  fontFamily: 'Inter',
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Esta ação não pode ser desfeita.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF64748B),
-                  fontFamily: 'Inter',
-                ),
-              ),
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        await NotificationService.limparTodas();
-                        Navigator.pop(context);
-                        _carregarNotificacoes();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                           SnackBar(
-                            content: Text('Todas as notificações foram removidas!'),
-                            backgroundColor: Color(0xFF10B981),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.check, size: 18),
-                      label: const Text('Sim, limpar tudo'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEF4444),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
-
-String _formatarDataHora(String? dataStr) {
-  if (dataStr == null) return '';
-  try {
-    DateTime date = DateTime.parse(dataStr);
-    final now = DateTime.now();
-    final diff = now.difference(date);
-    
-    if (diff.inDays > 0) {
-      return '${date.day}/${date.month}/${date.year}';
-    } else if (diff.inHours > 0) {
-      return '${diff.inHours}h atrás';
-    } else if (diff.inMinutes > 0) {
-      return '${diff.inMinutes}min atrás';
-    } else {
-      return 'Agora mesmo';
-    }
-  } catch (e) {
-    return '';
-  }
-}
-
-Widget _buildNotificationCard(Map<String, dynamic> notif) {
-  Color getTipoColor(String tipo) {
-    switch (tipo) {
-      case 'sucesso': return const Color(0xFF10B981);
-      case 'matricula': return const Color(0xFF8B5CF6);
-      case 'sintoma': return const Color(0xFF3B82F6);
-      case 'fagerstrom': return const Color(0xFFF59E0B);
-      case 'outro': return const Color(0xFFF97316); 
-      default: return const Color(0xFFF97316); 
-    }
-  }
-  
-  IconData getTipoIcon(String tipo) {
-    switch (tipo) {
-      case 'matricula': return Icons.school;
-      case 'sintoma': return Icons.monitor_heart;
-      case 'fagerstrom': return Icons.assessment;
-      default: return Icons.hourglass_empty;
-    }
-  }
-  
-  final dataHora = _formatarDataHora(notif['data_criacao']);
-  
-  return Card(
-    margin: const EdgeInsets.only(bottom: 8),
-    color: notif['lida'] == 1 ? Colors.grey.shade50 : Colors.white,
-    child: ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: getTipoColor(notif['tipo']).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(getTipoIcon(notif['tipo']), color: getTipoColor(notif['tipo'])),
-      ),
-      title: Text(
-        notif['titulo'],
-        style: TextStyle(
-          fontWeight: notif['lida'] == 1 ? FontWeight.normal : FontWeight.bold,
-        ),
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(notif['mensagem']),
-          if (dataHora.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                dataHora,
-                style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
-              ),
-            ),
-        ],
-      ),
-      trailing: notif['lida'] == 0
-          ? IconButton(
-              icon: const Icon(Icons.check_circle_outline, size: 18),
-              onPressed: () async {
-                await NotificationService.marcarComoLida(notif['id']);
-                Navigator.pop(context);
-                _showNotificationsDialog();
-                _carregarNotificacoes();
-              },
-            )
-          : null,
-      onTap: () {
-        if (notif['acao_url'] != null) {
-          Navigator.pop(context);
-        }
-      },
+Widget _buildHeaderIcon() {
+  return Container(
+    padding: const EdgeInsets.all(8),
+    decoration: BoxDecoration(
+      color: _accentColor.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(10),
     ),
+    child: Icon(Icons.notifications, color: _accentColor),
   );
 }
-  
 
+Widget _buildActions(List notificacoes) {
+  return Row(
+    children: [
+      TextButton(
+        onPressed: () async {
+          await NotificationService.marcarTodasComoLidas();
+          Navigator.pop(context);
+          _showNotificationsDialog();
+          _carregarNotificacoes();
+        },
+        child: const Text('Marcar todas como lidas'),
+      ),
+      const SizedBox(width: 4),
+      IconButton(
+        icon: const Icon(Icons.delete_sweep, color: Color(0xFFEF4444)),
+        onPressed: () => _confirmarLimparNotificacoes(),
+        tooltip: 'Limpar todas',
+      ),
+    ],
+  );
+}
+
+  void _confirmarLimparNotificacoes() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: MediaQuery.of(context).size.width > 500 ? 420 : MediaQuery.of(context).size.width * 0.9,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.delete_sweep,
+                    size: 48,
+                    color: Color(0xFFEF4444),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Limpar Notificações',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Tem certeza que deseja remover todas as notificações?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF475569),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Esta ação não pode ser desfeita.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          await NotificationService.limparTodas();
+                          Navigator.pop(context);
+                          _carregarNotificacoes();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Todas as notificações foram removidas!'),
+                              backgroundColor: Color(0xFF10B981),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.check, size: 18),
+                        label: const Text('Sim, limpar tudo'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEF4444),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatarDataHora(String? dataStr) {
+    if (dataStr == null) return '';
+    try {
+      DateTime date = DateTime.parse(dataStr);
+      final now = DateTime.now();
+      final diff = now.difference(date);
+      
+      if (diff.inDays > 0) {
+        return '${date.day}/${date.month}/${date.year}';
+      } else if (diff.inHours > 0) {
+        return '${diff.inHours}h atrás';
+      } else if (diff.inMinutes > 0) {
+        return '${diff.inMinutes}min atrás';
+      } else {
+        return 'Agora mesmo';
+      }
+    } catch (e) {
+      return '';
+    }
+  }
+
+  Widget _buildNotificationCard(Map<String, dynamic> notif) {
+    Color getTipoColor(String tipo) {
+      switch (tipo) {
+        case 'sucesso': return const Color(0xFF10B981);
+        case 'matricula': return const Color(0xFF8B5CF6);
+        case 'sintoma': return const Color(0xFF3B82F6);
+        case 'fagerstrom': return const Color(0xFFF59E0B);
+        case 'outro': return const Color(0xFFF97316); 
+        default: return const Color(0xFFF97316); 
+      }
+    }
+    
+    IconData getTipoIcon(String tipo) {
+      switch (tipo) {
+        case 'matricula': return Icons.school;
+        case 'sintoma': return Icons.monitor_heart;
+        case 'fagerstrom': return Icons.assessment;
+        default: return Icons.hourglass_empty;
+      }
+    }
+    
+    final dataHora = _formatarDataHora(notif['data_criacao']);
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: notif['lida'] == 1 ? Colors.grey.shade50 : Colors.white,
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: getTipoColor(notif['tipo']).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(getTipoIcon(notif['tipo']), color: getTipoColor(notif['tipo'])),
+        ),
+        title: Text(
+          notif['titulo'],
+          style: TextStyle(
+            fontWeight: notif['lida'] == 1 ? FontWeight.normal : FontWeight.bold,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(notif['mensagem']),
+            if (dataHora.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  dataHora,
+                  style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+                ),
+              ),
+          ],
+        ),
+        trailing: notif['lida'] == 0
+            ? IconButton(
+                icon: const Icon(Icons.check_circle_outline, size: 18),
+                onPressed: () async {
+                  await NotificationService.marcarComoLida(notif['id']);
+                  Navigator.pop(context);
+                  _showNotificationsDialog();
+                  _carregarNotificacoes();
+                },
+              )
+            : null,
+        onTap: () {
+          if (notif['acao_url'] != null) {
+            Navigator.pop(context);
+          }
+        },
+      ),
+    );
+  }
 
   void _showLogoutConfirmationDialog() {
     showDialog(
@@ -456,7 +527,7 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
           elevation: 0,
           backgroundColor: Colors.transparent,
           child: Container(
-            width: 420,
+            width: MediaQuery.of(context).size.width > 500 ? 420 : MediaQuery.of(context).size.width * 0.9,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -562,8 +633,6 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
     );
   }
 
-
-
   void _performLogout() async {
     await _authService.logout();
     Navigator.pushAndRemoveUntil(
@@ -595,10 +664,13 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
           builder: (context, setState) {
             return Dialog(
               elevation: 0,
+                insetPadding: const EdgeInsets.all(5),
               backgroundColor: Colors.transparent,
               child: Container(
-                width: 700,
-                constraints: BoxConstraints(maxHeight: 800),
+                width: MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.95,
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height > 800 ? 800 : MediaQuery.of(context).size.height * 0.9,
+                ),
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -675,28 +747,11 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Observações (opcional)',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF475569),
+                                    TextField(
+                                      maxLines: 3,
+                                      decoration: _buildInputDecoration('Observações (opcional)', Icons.edit_note),
+                                      onChanged: (value) => observacoes = value,
                                     ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  TextField(
-                                    maxLines: 3,
-                                    decoration: InputDecoration(
-                                      hintText: 'Como foi seu dia? Algum gatilho específico?',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        borderSide: BorderSide.none,
-                                      ),
-                                      filled: true,
-                                      fillColor: Colors.white,
-                                    ),
-                                    onChanged: (value) => observacoes = value,
-                                  ),
                                 ],
                               ),
                             ),
@@ -777,11 +832,11 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
         context: context,
         builder: (BuildContext context) {
           return Dialog(
-            insetPadding: const EdgeInsets.all(20),
+            insetPadding: const EdgeInsets.all(5),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             child: Container(
-              width: 700,
-              height: 500,
+              width: MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.95,
+              height: MediaQuery.of(context).size.height > 600 ? 500 : MediaQuery.of(context).size.height * 0.8,
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
@@ -858,15 +913,16 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
             children: [
               Icon(icon, size: 18, color: cor),
               const SizedBox(width: 8),
-              Text(
-                titulo,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF0F172A),
+              Expanded(
+                child: Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
               ),
-              const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
@@ -958,7 +1014,7 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Container(
-        width: 600,
+        width: MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.85,
         height: 350,
         child: fl_chart.LineChart(
           fl_chart.LineChartData(
@@ -1061,10 +1117,11 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
           return Dialog(
+            insetPadding: const EdgeInsets.all(5),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             child: Container(
               padding: const EdgeInsets.all(24),
-              width: 450,
+              width: MediaQuery.of(context).size.width > 500 ? 450 : MediaQuery.of(context).size.width * 0.9,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1091,36 +1148,24 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 20),
                   TextField(
                     controller: currentPasswordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Senha Atual',
-                      prefixIcon: Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
+                    decoration: _buildInputDecoration('Senha Atual', Icons.lock_outline),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: newPasswordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Nova Senha',
-                      prefixIcon: Icon(Icons.lock_reset),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
+                    decoration: _buildInputDecoration('Nova Senha', Icons.lock_reset),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: confirmPasswordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Confirmar Nova Senha',
-                      prefixIcon: Icon(Icons.verified_user),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    TextField(
+                      controller: confirmPasswordController,
+                      obscureText: true,
+                      decoration: _buildInputDecoration('Confirmar Nova Senha', Icons.verified_user),
                     ),
-                  ),
                   const SizedBox(height: 24),
                   Row(
                     children: [
@@ -1132,14 +1177,14 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                        child: const Text(
-                        'Cancelar',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
+                          child: const Text(
+                            'Cancelar',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -1223,10 +1268,11 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
         builder: (context) => StatefulBuilder(
           builder: (context, setState) {
             return Dialog(
+              insetPadding: const EdgeInsets.all(5),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               child: Container(
                 padding: const EdgeInsets.all(24),
-                width: 480,
+                width: MediaQuery.of(context).size.width > 500 ? 480 : MediaQuery.of(context).size.width * 0.9,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1254,22 +1300,14 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    TextField(
-                      controller: nomeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nome Completo',
-                        prefixIcon: Icon(Icons.person),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      TextField(
+                        controller: nomeController,
+                        decoration: _buildInputDecoration('Nome Completo', Icons.person),
                       ),
-                    ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
+                  DropdownButtonFormField<String>(
                       value: sexoSelecionado,
-                      decoration: const InputDecoration(
-                        labelText: 'Sexo',
-                        prefixIcon: Icon(Icons.wc),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                      ),
+                      decoration: _buildInputDecoration('Sexo', Icons.wc),
                       items: ['Masculino', 'Feminino', 'Outro'].map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
@@ -1285,11 +1323,7 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
                     const SizedBox(height: 16),
                     TextField(
                       controller: emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                      ),
+                      decoration: _buildInputDecoration('Email', Icons.email),
                     ),
                     const SizedBox(height: 16),
                     Container(
@@ -1321,16 +1355,11 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: telefoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Telefone',
-                        hintText: '(11) 91234-5678',
-                        prefixIcon: Icon(Icons.phone),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      TextField(
+                        controller: telefoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: _buildInputDecoration('Telefone', Icons.phone),
                       ),
-                    ),
                     const SizedBox(height: 24),
                     Row(
                       children: [
@@ -1342,14 +1371,14 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                        child: const Text(
-                        'Cancelar',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
+                            child: const Text(
+                              'Cancelar',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -1489,112 +1518,225 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            _primaryColor,
-            const Color(0xFF1A4A6F),
+Widget build(BuildContext context) {
+  final isMobile = MediaQuery.of(context).size.width < 768;
+  final isTablet = MediaQuery.of(context).size.width >= 768 && MediaQuery.of(context).size.width < 1200;
+  
+  double horizontalPadding = isMobile ? 16 : (isTablet ? 32 : 50);
+  
+  return Container(
+    color:  _primaryMedium,
+    padding: EdgeInsets.only(
+      top: MediaQuery.of(context).padding.top + 12,
+      left: horizontalPadding,
+      right: horizontalPadding,
+      bottom: 12,
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            if (widget.showBackButton)
+              Container(
+                margin: EdgeInsets.only(right: 5),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+                  onPressed: widget.onBackPressed ?? () => Navigator.pop(context),
+                  padding: const EdgeInsets.all(10),
+                  constraints: const BoxConstraints(),
+                ),
+              ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(35),
+              ),
+              child: const Icon(
+                Icons.smoke_free_outlined,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Desfumo',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                Text(
+                  'Apoio ao Tabagismo',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+        isMobile ? _buildMobileMenu() : _buildDesktopMenu(),
+      ],
+    ),
+  );
+}
+
+  Widget _buildMobileMenu() {
+    return Row(
+      children: [
+        _buildNotificationBell(),
+        PopupMenuButton<String>(
+          offset: const Offset(0, 52),
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-        ],
-      ),
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 12,
-        left: 50,
-        right: 50,
-        bottom: 12,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              if (widget.showBackButton)
-                Container(
-                  margin: EdgeInsets.only(right: 5),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
-                    onPressed: widget.onBackPressed ?? () => Navigator.pop(context),
-                    padding: const EdgeInsets.all(10),
-                    constraints: const BoxConstraints(),
-                  ),
-                ),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(35),
-                ),
-                child: const Icon(Icons.smoking_rooms_outlined, color: Colors.white, size: 29),
+          child: Container(
+            height: 40,
+            width: 40,
+            margin: const EdgeInsets.only(left: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 1,
               ),
-              const SizedBox(width: 14),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            child: const Icon(Icons.menu, color: Colors.white, size: 24),
+          ),
+          onSelected: (String value) {
+            if (value == 'turmas_apoio') {
+              _openUPAScreen();
+            } else if (value == 'diario') {
+              _showSintomasModal();
+            } else if (value == 'grafico') {
+              _showSintomasGrafico();
+            } else if (value == 'teste_fagerstrom') {
+              _openFagerstromTest();
+            } else if (value == 'minhas_matriculas') {
+              _openMyEnrollments();
+            } else if (value == 'alterar_senha') {
+              _changePassword();
+            } else if (value == 'editar_dados') {
+              _editData();
+            } else if (value == 'sair') {
+              _logout();
+            }
+          },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            const PopupMenuItem<String>(
+              value: 'turmas_apoio',
+              child: Row(
                 children: [
-                  Text(
-                    'Desfumo',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 23,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                      fontFamily: 'Poppins',
-                    ),
-                  ),
+                  Icon(Icons.location_on_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Text('Turmas de Apoio', style: TextStyle(fontSize: 14)),
                 ],
               ),
-            ],
-          ),
-          Row(
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem<String>(
+              value: 'diario',
+              child: Row(
                 children: [
-                  Container(
-                    height: 40,
-                    margin: const EdgeInsets.only(right: 10),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _openUPAScreen,
-                        borderRadius: BorderRadius.circular(30),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Turmas de Apoio',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                  Icon(Icons.monitor_heart_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Text('Diário de Sintomas', style: TextStyle(fontSize: 14)),
+                ],
               ),
-              Container(
-                height: 40,
+            ),
+            const PopupMenuItem<String>(
+              value: 'grafico',
+              child: Row(
+                children: [
+                  Icon(Icons.show_chart, size: 20),
+                  SizedBox(width: 12),
+                  Text('Gráfico de Sintomas', style: TextStyle(fontSize: 14)),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem<String>(
+              value: 'teste_fagerstrom',
+              child: Row(
+                children: [
+                  Icon(Icons.assessment_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Text('Teste de Fagerström', style: TextStyle(fontSize: 14)),
+                ],
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'minhas_matriculas',
+              child: Row(
+                children: [
+                  Icon(Icons.list_alt_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Text('Minhas Matrículas', style: TextStyle(fontSize: 14)),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem<String>(
+              value: 'alterar_senha',
+              child: Row(
+                children: [
+                  Icon(Icons.lock_outline, size: 20),
+                  SizedBox(width: 12),
+                  Text('Alterar Senha', style: TextStyle(fontSize: 14)),
+                ],
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'editar_dados',
+              child: Row(
+                children: [
+                  Icon(Icons.edit_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Text('Editar Dados', style: TextStyle(fontSize: 14)),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem<String>(
+              value: 'sair',
+              child: Row(
+                children: [
+                  Icon(Icons.logout_outlined, size: 20, color: Colors.red.shade400),
+                  const SizedBox(width: 12),
+                  Text('Sair', style: TextStyle(fontSize: 14, color: Colors.red.shade400)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopMenu() {
+    return Row(
+      children: [
+        Container(
+          height: 40,
+          margin: const EdgeInsets.only(right: 10),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _openUPAScreen,
+              borderRadius: BorderRadius.circular(30),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(30),
@@ -1603,142 +1745,166 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
                     width: 1,
                   ),
                 ),
-                child: PopupMenuButton<String>(
-                  offset: const Offset(0, 52),
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.person_outline, color: Colors.white, size: 16),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Bem-vindo, ${widget.userName.split(' ').first}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Icon(
-                          Icons.arrow_drop_down,
-                          color: Colors.white.withOpacity(0.9),
-                          size: 20,
-                        ),
-                      ],
-                    ),
-                  ),
-                  onSelected: (String value) {
-                    if (value == 'diario') {
-                      _showSintomasModal();
-                    } else if (value == 'grafico') {
-                      _showSintomasGrafico();
-                    } else if (value == 'teste_fagerstrom') {
-                      _openFagerstromTest();
-                    } else if (value == 'minhas_matriculas') {
-                      _openMyEnrollments();
-                    } else if (value == 'alterar_senha') {
-                      _changePassword();
-                    } else if (value == 'editar_dados') {
-                      _editData();
-                    } else if (value == 'sair') {
-                      _logout();
-                    }
-                  },
-                  itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                    const PopupMenuItem<String>(
-                      value: 'diario',
-                      child: Row(
-                        children: [
-                          Icon(Icons.monitor_heart_outlined, size: 20),
-                          SizedBox(width: 12),
-                          Text('Diário de Sintomas', style: TextStyle(fontSize: 14)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'grafico',
-                      child: Row(
-                        children: [
-                          Icon(Icons.show_chart, size: 20),
-                          SizedBox(width: 12),
-                          Text('Gráfico de Sintomas', style: TextStyle(fontSize: 14)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    const PopupMenuItem<String>(
-                      value: 'teste_fagerstrom',
-                      child: Row(
-                        children: [
-                          Icon(Icons.assessment_outlined, size: 20),
-                          SizedBox(width: 12),
-                          Text('Teste de Fagerström', style: TextStyle(fontSize: 14)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'minhas_matriculas',
-                      child: Row(
-                        children: [
-                          Icon(Icons.list_alt_outlined, size: 20),
-                          SizedBox(width: 12),
-                          Text('Minhas Matrículas', style: TextStyle(fontSize: 14)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    const PopupMenuItem<String>(
-                      value: 'alterar_senha',
-                      child: Row(
-                        children: [
-                          Icon(Icons.lock_outline, size: 20),
-                          SizedBox(width: 12),
-                          Text('Alterar Senha', style: TextStyle(fontSize: 14)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'editar_dados',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_outlined, size: 20),
-                          SizedBox(width: 12),
-                          Text('Editar Dados', style: TextStyle(fontSize: 14)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    PopupMenuItem<String>(
-                      value: 'sair',
-                      child: Row(
-                        children: [
-                          Icon(Icons.logout_outlined, size: 20, color: Colors.red.shade400),
-                          const SizedBox(width: 12),
-                          Text('Sair', style: TextStyle(fontSize: 14, color: Colors.red.shade400)),
-                        ],
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Turmas de Apoio',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
               ),
-                _buildNotificationBell(), 
-
+            ),
+          ),
+        ),
+        Container(
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          child: PopupMenuButton<String>(
+            offset: const Offset(0, 52),
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.person_outline, color: Colors.white, size: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Bem-vindo, ${widget.userName.split(' ').first}',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.arrow_drop_down,
+                    color: Colors.white.withOpacity(0.9),
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+            onSelected: (String value) {
+              if (value == 'diario') {
+                _showSintomasModal();
+              } else if (value == 'grafico') {
+                _showSintomasGrafico();
+              } else if (value == 'teste_fagerstrom') {
+                _openFagerstromTest();
+              } else if (value == 'minhas_matriculas') {
+                _openMyEnrollments();
+              } else if (value == 'alterar_senha') {
+                _changePassword();
+              } else if (value == 'editar_dados') {
+                _editData();
+              } else if (value == 'sair') {
+                _logout();
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'diario',
+                child: Row(
+                  children: [
+                    Icon(Icons.monitor_heart_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Diário de Sintomas', style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'grafico',
+                child: Row(
+                  children: [
+                    Icon(Icons.show_chart, size: 20),
+                    SizedBox(width: 12),
+                    Text('Gráfico de Sintomas', style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem<String>(
+                value: 'teste_fagerstrom',
+                child: Row(
+                  children: [
+                    Icon(Icons.assessment_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Teste de Fagerström', style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'minhas_matriculas',
+                child: Row(
+                  children: [
+                    Icon(Icons.list_alt_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Minhas Matrículas', style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem<String>(
+                value: 'alterar_senha',
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_outline, size: 20),
+                    SizedBox(width: 12),
+                    Text('Alterar Senha', style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'editar_dados',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Editar Dados', style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem<String>(
+                value: 'sair',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout_outlined, size: 20, color: Colors.red.shade400),
+                    const SizedBox(width: 12),
+                    Text('Sair', style: TextStyle(fontSize: 14, color: Colors.red.shade400)),
+                  ],
+                ),
+              ),
             ],
           ),
-        ],
-      ),
+        ),
+        _buildNotificationBell(),
+      ],
     );
   }
 }

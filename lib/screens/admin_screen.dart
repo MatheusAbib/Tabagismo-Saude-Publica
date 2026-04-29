@@ -26,247 +26,132 @@ class _AdminScreenState extends State<AdminScreen> {
   int _totalRegistrosSintomas = 0;
   int _totalEnfermeiras = 0;
 
+  List<Map<String, dynamic>> _enfermeiras = [];
+  bool _carregandoEnfermeiras = true;
+  List<Map<String, dynamic>> _upasLista = [];
+  String _searchEnfermeira = '';
+  TextEditingController _searchEnfermeiraController = TextEditingController();
   
-
-List<Map<String, dynamic>> _enfermeiras = [];
-bool _carregandoEnfermeiras = true;
-List<Map<String, dynamic>> _upasLista = [];
-String _searchEnfermeira = '';
-TextEditingController _searchEnfermeiraController = TextEditingController();
-
-  
-bool _isLoadingDashboard = true;
-bool _isLoadingUsuarios = true;
-bool _isLoadingUPAs = true;
-bool _isLoadingEnfermeiras = true;
+  bool _isLoadingDashboard = true;
+  bool _isLoadingUsuarios = true;
+  bool _isLoadingUPAs = true;
+  bool _isLoadingEnfermeiras = true;
 
   List<Map<String, dynamic>> _upas = [];
-    bool _carregandoUPAs = true;
-    int _currentPageUPAs = 1;
-    int _totalPagesUPAs = 1;
-    int _totalUPAsLista = 0;
-    String _searchQueryUPAs = '';
-    TextEditingController _searchUPAsController = TextEditingController();
+  bool _carregandoUPAs = true;
+  int _currentPageUPAs = 1;
+  int _totalPagesUPAs = 1;
+  int _totalUPAsLista = 0;
+  String _searchQueryUPAs = '';
+  TextEditingController _searchUPAsController = TextEditingController();
   
   final List<String> _tabTitles = ['Dashboard', 'Usuários', 'UPAs', 'Enfermeiras'];
   
   final Color _primaryColor = const Color(0xFF0F2B3D);
   final Color _accentColor = const Color(0xFF2C7DA0);
+final Color _dangerColor = const Color(0xFFEF4444);
+  final Color _primaryMedium = Color.fromARGB(255, 19, 56, 85);
 
-@override
-void initState() {
-  super.initState();
-  _carregarEstatisticas();
-  _carregarUsuarios(showLoading: true);
-  _carregarUPAs(showLoading: true);
-  _carregarEnfermeiras();
-}
-  
-void _showLogoutConfirmationDialog() {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return Dialog(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        child: Container(
-          width: 420,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.logout_rounded,
-                  size: 48,
-                  color: Color(0xFFEF4444),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Sair da conta',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Tem certeza que deseja sair?',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Color(0xFF475569),
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _performLogout();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEF4444),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        'Sair',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      );
-    },
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarEstatisticas();
+    _carregarUsuarios(showLoading: true);
+    _carregarUPAs(showLoading: true);
+    _carregarEnfermeiras();
+  }
+
+  InputDecoration _buildInputDecoration(String label, IconData icon, {String? hint}) {
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    labelStyle: TextStyle(
+      fontSize: 14,
+      color: Colors.grey.shade600,
+    ),
+    floatingLabelStyle: TextStyle(
+      fontWeight: FontWeight.w600,
+      color: _accentColor,
+    ),
+    prefixIcon: Icon(icon, color: _accentColor, size: 20),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: const Color.fromARGB(255, 219, 219, 219), width: 1),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: _accentColor, width: 1.5),
+    ),
+    filled: true,
+    fillColor: Colors.grey.shade50,
+    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
   );
 }
-
-void _performLogout() async {
-  final authService = AuthService();
-  await authService.logout();
   
-  if (mounted) {
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()), 
-      (route) => false,
-    );
-  }
-}
-
-void _logout() {
-  _showLogoutConfirmationDialog();
-}
-
-Future<void> _changePassword() async {
-  final currentPasswordController = TextEditingController();
-  final newPasswordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
-  bool isLoading = false;
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) {
+  void _showLogoutConfirmationDialog() {
+    final isMobile = MediaQuery.of(context).size.width < 500;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
           child: Container(
+            width: isMobile ? MediaQuery.of(context).size.width * 0.9 : 420,
             padding: const EdgeInsets.all(24),
-            width: 450,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2C7DA0).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.lock_outline, color: Color(0xFF2C7DA0), size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Alterar Senha',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.logout_rounded,
+                    size: 48,
+                    color: Color(0xFFEF4444),
+                  ),
                 ),
                 const SizedBox(height: 20),
-                TextField(
-                  controller: currentPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Senha Atual',
-                    prefixIcon: Icon(Icons.lock_outline),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                const Text(
+                  'Sair da conta',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.5,
                   ),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: newPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Nova Senha',
-                    prefixIcon: Icon(Icons.lock_reset),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                const SizedBox(height: 12),
+                const Text(
+                  'Tem certeza que deseja sair?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF475569),
+                    height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: confirmPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Confirmar Nova Senha',
-                    prefixIcon: Icon(Icons.verified_user),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                  ),
-                ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 Row(
                   children: [
                     Expanded(
@@ -274,67 +159,44 @@ Future<void> _changePassword() async {
                         onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Color(0xFFE2E8F0)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                          child: const Text(
-                            'Cancelar',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF64748B),
-                            ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: isLoading ? null : () async {
-                          if (newPasswordController.text != confirmPasswordController.text) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('As senhas não coincidem'), backgroundColor: Colors.red),
-                            );
-                            return;
-                          }
-                          setState(() => isLoading = true);
-                          try {
-                            final authService = AuthService();
-                            await authService.changeUserPassword(
-                              currentPasswordController.text,
-                              newPasswordController.text,
-                            );
-                            if (mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Senha alterada com sucesso!'), backgroundColor: Color(0xFF10B981)),
-                              );
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Erro ao alterar senha: $e'), backgroundColor: Colors.red.shade400),
-                              );
-                            }
-                          } finally {
-                            setState(() => isLoading = false);
-                          }
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _performLogout();
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          backgroundColor: const Color(0xFFEF4444),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: isLoading
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.save, size: 18, color: Colors.white),
-                                  SizedBox(width: 8),
-                                  Text('Salvar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
-                                ],
-                              ),
+                        child: const Text(
+                          'Sair',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -344,26 +206,120 @@ Future<void> _changePassword() async {
           ),
         );
       },
+    );
+  }
+
+
+  Future<bool?> _showConfirmDeleteDialog({
+  required String title,
+  required String message,
+  String confirmText = 'Excluir',
+}) {
+  return showDialog<bool>(
+    context: context,
+    builder: (context) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Container(
+        width: 420,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _dangerColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.warning_amber_rounded, color: _dangerColor, size: 48),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0F172A),
+                fontFamily: 'Poppins',
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF475569), height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text(
+                      'Cancelar',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _dangerColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      confirmText,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }
 
-  Future<void> _editData() async {
-  try {
+  void _performLogout() async {
     final authService = AuthService();
-    final response = await authService.getUserData();
-    final userData = response['user'];
+    await authService.logout();
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()), 
+        (route) => false,
+      );
+    }
+  }
 
-    final nomeController = TextEditingController(text: userData['nomeCompleto']);
-    String? sexoSelecionado = userData['sexo'];
-    final emailController = TextEditingController(text: userData['email']);
-    final telefoneController = MaskedTextController(
-      mask: '(00) 00000-0000',
-      text: userData['telefone'] != null ? _formatTelefone(userData['telefone']) : '',
-    );
-    
-    final cpf = userData['cpf'] != null ? _formatCpf(userData['cpf']) : 'Não informado';
+  void _logout() {
+    _showLogoutConfirmationDialog();
+  }
+
+  Future<void> _changePassword() async {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
     bool isLoading = false;
+    final isMobile = MediaQuery.of(context).size.width < 500;
 
     showDialog(
       context: context,
@@ -374,7 +330,7 @@ Future<void> _changePassword() async {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             child: Container(
               padding: const EdgeInsets.all(24),
-              width: 480,
+              width: isMobile ? MediaQuery.of(context).size.width * 0.9 : 450,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,11 +343,11 @@ Future<void> _changePassword() async {
                           color: const Color(0xFF2C7DA0).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.edit_outlined, color: Color(0xFF2C7DA0), size: 24),
+                        child: const Icon(Icons.lock_outline, color: Color(0xFF2C7DA0), size: 24),
                       ),
                       const SizedBox(width: 12),
                       const Text(
-                        'Editar Dados',
+                        'Alterar Senha',
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
                       ),
                       const Spacer(),
@@ -403,81 +359,21 @@ Future<void> _changePassword() async {
                   ),
                   const SizedBox(height: 20),
                   TextField(
-                    controller: nomeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome Completo',
-                      prefixIcon: Icon(Icons.person),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: sexoSelecionado,
-                    decoration: const InputDecoration(
-                      labelText: 'Sexo',
-                      prefixIcon: Icon(Icons.wc),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
-                    items: ['Masculino', 'Feminino', 'Outro'].map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        sexoSelecionado = newValue;
-                      });
-                    },
+                    controller: currentPasswordController,
+                    obscureText: true,
+                    decoration: _buildInputDecoration('Senha Atual', Icons.lock_outline),
                   ),
                   const SizedBox(height: 16),
                   TextField(
-                    controller: emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade400),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.assignment_ind, color: Colors.grey.shade600, size: 20),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'CPF',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                              Text(
-                                cpf,
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                    controller: newPasswordController,
+                    obscureText: true,
+                    decoration: _buildInputDecoration('Nova Senha', Icons.lock_reset),
                   ),
                   const SizedBox(height: 16),
                   TextField(
-                    controller: telefoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Telefone',
-                      hintText: '(11) 91234-5678',
-                      prefixIcon: Icon(Icons.phone),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
+                    controller: confirmPasswordController,
+                    obscureText: true,
+                    decoration: _buildInputDecoration('Confirmar Nova Senha', Icons.verified_user),
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -490,7 +386,7 @@ Future<void> _changePassword() async {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                            child: const Text(
+                          child: const Text(
                             'Cancelar',
                             style: TextStyle(
                               fontSize: 15,
@@ -503,51 +399,36 @@ Future<void> _changePassword() async {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: isLoading
-                              ? null
-                              : () async {
-                                  if (telefoneController.text.isEmpty) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Telefone é obrigatório'), backgroundColor: Colors.red),
-                                    );
-                                    return;
-                                  }
-
-                                  String telefoneLimpo = telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
-                                  if (telefoneLimpo.length != 11) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Telefone inválido (DDD + 9 dígitos)'), backgroundColor: Colors.red),
-                                    );
-                                    return;
-                                  }
-
-                                  setState(() => isLoading = true);
-
-                                  try {
-                                    final authService = AuthService();
-                                    await authService.updateUserData({
-                                      'nomeCompleto': nomeController.text,
-                                      'sexo': sexoSelecionado,
-                                      'email': emailController.text,
-                                      'telefone': telefoneLimpo,
-                                    });
-
-                                    if (mounted) {
-                                      Navigator.pop(context);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Dados atualizados com sucesso!'), backgroundColor: Color(0xFF10B981)),
-                                      );
-                                    }
-                                  } catch (e) {
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Erro ao atualizar dados: $e'), backgroundColor: Colors.red.shade400),
-                                      );
-                                    }
-                                  } finally {
-                                    setState(() => isLoading = false);
-                                  }
-                                },
+                          onPressed: isLoading ? null : () async {
+                            if (newPasswordController.text != confirmPasswordController.text) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('As senhas não coincidem'), backgroundColor: Colors.red),
+                              );
+                              return;
+                            }
+                            setState(() => isLoading = true);
+                            try {
+                              final authService = AuthService();
+                              await authService.changeUserPassword(
+                                currentPasswordController.text,
+                                newPasswordController.text,
+                              );
+                              if (mounted) {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Senha alterada com sucesso!'), backgroundColor: Color(0xFF10B981)),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Erro ao alterar senha: $e'), backgroundColor: Colors.red.shade400),
+                                );
+                              }
+                            } finally {
+                              setState(() => isLoading = false);
+                            }
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF10B981),
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -574,16 +455,216 @@ Future<void> _changePassword() async {
         },
       ),
     );
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar dados: $e'), backgroundColor: Colors.red.shade400),
+  }
+
+  Future<void> _editData() async {
+    try {
+      final authService = AuthService();
+      final response = await authService.getUserData();
+      final userData = response['user'];
+      final isMobile = MediaQuery.of(context).size.width < 500;
+
+      final nomeController = TextEditingController(text: userData['nomeCompleto']);
+      String? sexoSelecionado = userData['sexo'];
+      final emailController = TextEditingController(text: userData['email']);
+      final telefoneController = MaskedTextController(
+        mask: '(00) 00000-0000',
+        text: userData['telefone'] != null ? _formatTelefone(userData['telefone']) : '',
       );
+      final cpf = userData['cpf'] != null ? _formatCpf(userData['cpf']) : 'Não informado';
+      bool isLoading = false;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                width: isMobile ? MediaQuery.of(context).size.width * 0.9 : 480,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2C7DA0).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.edit_outlined, color: Color(0xFF2C7DA0), size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Editar Dados',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                      TextField(
+                        controller: nomeController,
+                        decoration: _buildInputDecoration('Nome Completo', Icons.person),
+                      ),
+                    const SizedBox(height: 16),
+                 DropdownButtonFormField<String>(
+                      value: sexoSelecionado,
+                      decoration: _buildInputDecoration('Sexo', Icons.wc),
+                      items: ['Masculino', 'Feminino', 'Outro'].map((String value) {
+                        return DropdownMenuItem<String>(value: value, child: Text(value));
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() => sexoSelecionado = newValue);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: emailController,
+                      decoration: _buildInputDecoration('Email', Icons.email),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade400),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.assignment_ind, color: Colors.grey.shade600, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'CPF',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                                Text(
+                                  cpf,
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: telefoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: _buildInputDecoration('Telefone', Icons.phone),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text(
+                              'Cancelar',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: isLoading ? null : () async {
+                              if (telefoneController.text.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Telefone é obrigatório'), backgroundColor: Colors.red),
+                                );
+                                return;
+                              }
+                              String telefoneLimpo = telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
+                              if (telefoneLimpo.length != 11) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Telefone inválido (DDD + 9 dígitos)'), backgroundColor: Colors.red),
+                                );
+                                return;
+                              }
+                              setState(() => isLoading = true);
+                              try {
+                                final authService = AuthService();
+                                await authService.updateUserData({
+                                  'nomeCompleto': nomeController.text,
+                                  'sexo': sexoSelecionado,
+                                  'email': emailController.text,
+                                  'telefone': telefoneLimpo,
+                                });
+                                if (mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Dados atualizados com sucesso!'), backgroundColor: Color(0xFF10B981)),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Erro ao atualizar dados: $e'), backgroundColor: Colors.red.shade400),
+                                  );
+                                }
+                              } finally {
+                                setState(() => isLoading = false);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: isLoading
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                : const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.save, size: 18, color: Colors.white),
+                                      SizedBox(width: 8),
+                                      Text('Salvar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao carregar dados: $e'), backgroundColor: Colors.red.shade400),
+        );
+      }
     }
   }
-}
 
-  String _formatTelefone(String telefone) {
+    String _formatTelefone(String telefone) {
     if (telefone.length == 11) {
       return '(${telefone.substring(0, 2)}) ${telefone.substring(2, 7)}-${telefone.substring(7)}';
     }
@@ -596,276 +677,238 @@ Future<void> _changePassword() async {
     }
     return cpf;
   }
-  
 
-Future<void> _carregarEstatisticas() async {
-  setState(() => _isLoading = true);
-  try {
-    final authService = AuthService();
-    final response = await authService.getAdminStats();
-    
-    setState(() {
-      _totalUsuarios = response['totalUsuarios'] ?? 0;
-      _totalEnfermeiras = response['totalEnfermeiras'] ?? 0;
-      _totalMatriculas = response['totalMatriculas'] ?? 0;
-      _totalUPAs = response['totalUPAs'] ?? 0;
-      _totalRegistrosSintomas = response['totalRegistrosSintomas'] ?? 0;
-      _isLoading = false;
-    });
-  } catch (e) {
-    setState(() => _isLoading = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Erro ao carregar estatísticas: $e'), backgroundColor: Colors.red.shade400),
+  Future<void> _carregarEstatisticas() async {
+    setState(() => _isLoading = true);
+    try {
+      final authService = AuthService();
+      final response = await authService.getAdminStats();
+      setState(() {
+        _totalUsuarios = response['totalUsuarios'] ?? 0;
+        _totalEnfermeiras = response['totalEnfermeiras'] ?? 0;
+        _totalMatriculas = response['totalMatriculas'] ?? 0;
+        _totalUPAs = response['totalUPAs'] ?? 0;
+        _totalRegistrosSintomas = response['totalRegistrosSintomas'] ?? 0;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar estatísticas: $e'), backgroundColor: Colors.red.shade400),
+      );
+    }
+  }
+
+  List<Map<String, dynamic>> _usuarios = [];
+  bool _carregandoUsuarios = true;
+  int _currentPage = 1;
+  int _totalPages = 1;
+  int _totalUsuariosLista = 0;
+  String _searchQuery = '';
+  TextEditingController _searchController = TextEditingController();
+
+  Future<void> _carregarUsuarios({int page = 1, bool showLoading = true}) async {
+    if (showLoading) setState(() => _carregandoUsuarios = true);
+    _currentPage = page;
+    try {
+      final authService = AuthService();
+      final response = await authService.getUsuariosPaginados(
+        page: page,
+        limit: 8,
+        search: _searchQuery,
+      );
+      setState(() {
+        _usuarios = List<Map<String, dynamic>>.from(response['usuarios']);
+        _totalPages = response['totalPages'];
+        _totalUsuariosLista = response['total'];
+        _carregandoUsuarios = false;
+      });
+    } catch (e) {
+      setState(() => _carregandoUsuarios = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar usuários: $e'), backgroundColor: Colors.red.shade400),
+      );
+    }
+  }
+
+  void _reloadCurrentTab() {
+    switch (_selectedIndex) {
+      case 0:
+        setState(() => _isLoadingDashboard = true);
+        _carregarEstatisticas();
+        break;
+      case 1:
+        _carregarUsuarios(page: _currentPage, showLoading: true);
+        break;
+      case 2:
+        _carregarUPAs(page: _currentPageUPAs, showLoading: true);
+        break;
+      case 3:
+        _carregarEnfermeiras();
+        break;
+    }
+  }
+
+  void _editarUsuario(Map<String, dynamic> usuario) {
+    final isMobile = MediaQuery.of(context).size.width < 500;
+    final nomeController = TextEditingController(text: usuario['nome_completo']);
+    final emailController = TextEditingController(text: usuario['email']);
+    final telefoneController = MaskedTextController(
+      mask: '(00) 00000-0000',
+      text: usuario['telefone'] != null && usuario['telefone'].toString().length == 11 
+          ? _formatTelefone(usuario['telefone'].toString()) 
+          : usuario['telefone'] ?? '',
     );
-  }
-}
-
-    List<Map<String, dynamic>> _usuarios = [];
-    bool _carregandoUsuarios = true;
-    int _currentPage = 1;
-    int _totalPages = 1;
-    int _totalUsuariosLista = 0;
-    String _searchQuery = '';
-    TextEditingController _searchController = TextEditingController();
-
-Future<void> _carregarUsuarios({int page = 1, bool showLoading = true}) async {
-  if (showLoading) {
-    setState(() => _carregandoUsuarios = true);
-  }
-  _currentPage = page;
-  
-  try {
-    final authService = AuthService();
-    final response = await authService.getUsuariosPaginados(
-      page: page,
-      limit: 8,
-      search: _searchQuery,
-    );
-    
-    setState(() {
-      _usuarios = List<Map<String, dynamic>>.from(response['usuarios']);
-      _totalPages = response['totalPages'];
-      _totalUsuariosLista = response['total'];
-      _carregandoUsuarios = false;
-    });
-  } catch (e) {
-    setState(() => _carregandoUsuarios = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Erro ao carregar usuários: $e'), backgroundColor: Colors.red.shade400),
-    );
-  }
-}
-
-void _reloadCurrentTab() {
-  switch (_selectedIndex) {
-    case 0: // Dashboard
-      setState(() => _isLoadingDashboard = true);
-      _carregarEstatisticas();
-      break;
-    case 1: 
-      _carregarUsuarios(page: _currentPage, showLoading: true);
-      break;
-    case 2: 
-      _carregarUPAs(page: _currentPageUPAs, showLoading: true);
-      break;
-    case 3:
-      _carregarEnfermeiras();
-      break;
-  }
-}
-
-void _buscarUsuarios() {
-  _searchQuery = _searchController.text;
-  _carregandoUsuarios = true;
-  _currentPage = 1;
-  _carregarUsuarios(page: 1);
-}
-
-void _limparBusca() {
-  _searchController.clear();
-  setState(() {
-    _searchQuery = '';
-    _currentPage = 1;
-  });
-  _carregarUsuarios(page: 1);
-}
-
-void _editarUsuario(Map<String, dynamic> usuario) {
-  final nomeController = TextEditingController(text: usuario['nome_completo']);
-  final emailController = TextEditingController(text: usuario['email']);
-  
-  final telefoneController = MaskedTextController(
-    mask: '(00) 00000-0000',
-    text: usuario['telefone'] != null && usuario['telefone'].toString().length == 11 
-        ? _formatTelefone(usuario['telefone'].toString()) 
-        : usuario['telefone'] ?? '',
-  );
-  
-  showDialog(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              width: 480,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2C7DA0).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                width: isMobile ? MediaQuery.of(context).size.width * 0.9 : 480,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2C7DA0).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.edit, color: Color(0xFF2C7DA0), size: 24),
                         ),
-                        child: const Icon(Icons.edit, color: Color(0xFF2C7DA0), size: 24),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Editar Usuário',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Editar Usuário',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
                   TextField(
                     controller: nomeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome Completo',
-                      prefixIcon: Icon(Icons.person),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
+                    decoration: _buildInputDecoration('Nome Completo', Icons.person),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: emailController,
+                      decoration: _buildInputDecoration('Email', Icons.email),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
+                    const SizedBox(height: 16),
+                 TextField(
                     controller: telefoneController,
                     keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Telefone',
-                      prefixIcon: Icon(Icons.phone),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
+                    decoration: _buildInputDecoration('Telefone', Icons.phone),
                   ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFE2E8F0)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
                             child: const Text(
-                            'Cancelar',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF64748B),
+                              'Cancelar',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF64748B),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            try {
-                              final authService = AuthService();
-                              final telefoneLimpo = telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
-                              
-                              await authService.atualizarUsuario(
-                                usuario['id'],
-                                {
-                                  'nomeCompleto': nomeController.text,
-                                  'sexo': usuario['sexo'] ?? '',
-                                  'email': emailController.text,
-                                  'telefone': telefoneLimpo,
-                                }
-                              );
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Usuário atualizado com sucesso!'), backgroundColor: Color(0xFF10B981)),
-                              );
-                              _carregarUsuarios();
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Erro ao atualizar: $e'), backgroundColor: Colors.red.shade400),
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.save, size: 18, color: Colors.white),
-                              SizedBox(width: 8),
-                              Text('Salvar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
-                            ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              try {
+                                final authService = AuthService();
+                                final telefoneLimpo = telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
+                                await authService.atualizarUsuario(
+                                  usuario['id'],
+                                  {
+                                    'nomeCompleto': nomeController.text,
+                                    'sexo': usuario['sexo'] ?? '',
+                                    'email': emailController.text,
+                                    'telefone': telefoneLimpo,
+                                  }
+                                );
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Usuário atualizado com sucesso!'), backgroundColor: Color(0xFF10B981)),
+                                );
+                                _carregarUsuarios();
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Erro ao atualizar: $e'), backgroundColor: Colors.red.shade400),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.save, size: 18, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text('Salvar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
+            );
+          },
+        );
+      },
+    );
+  }
   
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 768;
+    final isTablet = MediaQuery.of(context).size.width >= 768 && MediaQuery.of(context).size.width < 1200;
+    final horizontalPadding = isMobile ? 16.0 : (isTablet ? 24.0 : 50.0);
+    
     return DefaultTabController(
       length: _tabTitles.length,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
+       backgroundColor: Colors.white, 
         body: Column(
           children: [
-            // Header com o menu dropdown
             Container(
               padding: EdgeInsets.only(
                 top: MediaQuery.of(context).padding.top + 12,
-                left: 50,
-                right: 50,
+                left: horizontalPadding,
+                right: horizontalPadding,
                 bottom: 12,
               ),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    _primaryColor,
-                    const Color(0xFF1A4A6F),
-                  ],
-                ),
+        
+              color:  _primaryMedium,
+
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.08),
@@ -877,7 +920,6 @@ void _editarUsuario(Map<String, dynamic> usuario) {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Logo e título
                   Row(
                     children: [
                       Container(
@@ -889,12 +931,12 @@ void _editarUsuario(Map<String, dynamic> usuario) {
                         child: const Icon(Icons.admin_panel_settings, color: Colors.white, size: 29),
                       ),
                       const SizedBox(width: 14),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Painel Administrativo',
-                            style: TextStyle(
+                            isMobile ? 'Admin' : 'Painel Administrativo',
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 23,
                               fontWeight: FontWeight.w700,
@@ -905,7 +947,6 @@ void _editarUsuario(Map<String, dynamic> usuario) {
                       ),
                     ],
                   ),
-                  // Menu dropdown
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.12),
@@ -933,15 +974,16 @@ void _editarUsuario(Map<String, dynamic> usuario) {
                               ),
                               child: const Icon(Icons.person_outline, color: Colors.white, size: 16),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Bem-vindo, ${_getUserFirstName()}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                            if (!isMobile) const SizedBox(width: 8),
+                            if (!isMobile)
+                              Text(
+                                'Bem-vindo, ${_getUserFirstName()}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            ),
                             const SizedBox(width: 6),
                             Icon(
                               Icons.arrow_drop_down,
@@ -1002,23 +1044,35 @@ void _editarUsuario(Map<String, dynamic> usuario) {
                 ],
               ),
             ),
-            // TabBar
-          Container(
-            color: Colors.white,
-            child: TabBar(
-                indicatorColor: _accentColor,
-                labelColor: _accentColor,
-                unselectedLabelColor: const Color(0xFF64748B),
-                tabs: _tabTitles.map((title) => Tab(text: title)).toList(),
-                onTap: (index) {
-                  setState(() {
-                    _selectedIndex = index;
-                  });
-                  _reloadCurrentTab(); 
-                },
-              ),
-          ),
-            // Conteúdo
+Container(
+   color: const Color(0xFFF1F5F9),
+  child: TabBar(
+    isScrollable: isMobile,
+    indicatorColor: _accentColor,
+    labelColor: _accentColor,
+    unselectedLabelColor: const Color(0xFF64748B),
+    labelStyle: TextStyle(
+      fontSize: isMobile ? 14 : 16,
+      fontWeight: FontWeight.w600,
+    ),
+    unselectedLabelStyle: TextStyle(
+      fontSize: isMobile ? 13 : 14,
+    ),
+    padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 0),
+    tabs: _tabTitles.map((title) => Tab(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: 8),
+        child: Text(title),
+      ),
+    )).toList(),
+    onTap: (index) {
+      setState(() {
+        _selectedIndex = index;
+      });
+      _reloadCurrentTab(); 
+    },
+  ),
+),
             Expanded(
               child: IndexedStack(
                 index: _selectedIndex,
@@ -1036,19 +1090,16 @@ void _editarUsuario(Map<String, dynamic> usuario) {
     );
   }
 
-String _getUserFirstName() {
-  String nomeCompleto = widget.userData['nome_completo'] ?? 
-                        widget.userData['nome'] ?? 
-                        widget.userData['name'] ?? 
-                        'Admin';
-  
-  if (nomeCompleto.isNotEmpty && nomeCompleto.contains(' ')) {
-    return nomeCompleto.split(' ').first;
-  }
-  
-  return nomeCompleto;
-}  
-
+  String _getUserFirstName() {
+    String nomeCompleto = widget.userData['nome_completo'] ?? 
+                          widget.userData['nome'] ?? 
+                          widget.userData['name'] ?? 
+                          'Admin';
+    if (nomeCompleto.isNotEmpty && nomeCompleto.contains(' ')) {
+      return nomeCompleto.split(' ').first;
+    }
+    return nomeCompleto;
+  }  
 
 Widget _buildUsuariosList() {
   if (_carregandoUsuarios) {
@@ -1064,34 +1115,21 @@ Widget _buildUsuariosList() {
             Expanded(
               child: TextField(
                 controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Buscar por nome ou email...',
-                  prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
+                decoration: _buildInputDecoration('Buscar por nome ou email...', Icons.search).copyWith(
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear, color: Color(0xFF64748B)),
+                          icon: const Icon(Icons.clear, size: 20),
                           onPressed: _limparBusca,
                         )
                       : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: _accentColor, width: 2),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
                 ),
-                onChanged: (_) => _buscarUsuarios(),
+                onChanged: (value) {
+                  _searchQuery = value;
+                  _currentPage = 1;
+                  _carregarUsuarios(page: 1, showLoading: false);
+                },
               ),
             ),
-
           ],
         ),
       ),
@@ -1136,7 +1174,10 @@ Widget _buildPagination() {
       children: [
         IconButton(
           icon: const Icon(Icons.chevron_left),
-          onPressed: _currentPage > 1 ? () => _carregarUsuarios(page: _currentPage - 1) : null,
+          onPressed: _currentPage > 1 ? () {
+            setState(() => _currentPage--);
+            _carregarUsuarios(page: _currentPage, showLoading: false);
+          } : null,
           style: IconButton.styleFrom(
             backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1157,7 +1198,10 @@ Widget _buildPagination() {
         const SizedBox(width: 8),
         IconButton(
           icon: const Icon(Icons.chevron_right),
-          onPressed: _currentPage < _totalPages ? () => _carregarUsuarios(page: _currentPage + 1) : null,
+          onPressed: _currentPage < _totalPages ? () {
+            setState(() => _currentPage++);
+            _carregarUsuarios(page: _currentPage, showLoading: false);
+          } : null,
           style: IconButton.styleFrom(
             backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1168,26 +1212,37 @@ Widget _buildPagination() {
   );
 }
 
+void _limparBusca() {
+  _searchController.clear();
+  setState(() {
+    _searchQuery = '';
+    _currentPage = 1;
+  });
+  _carregarUsuarios(page: 1, showLoading: false);
+}
+
   Widget _buildUsuarioCard(Map<String, dynamic> usuario) {
     final isAdmin = usuario['is_admin'] == 1;
+    final isMobile = MediaQuery.of(context).size.width < 500;
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+         color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 2)),
         ],
       ),
       child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: isAdmin ? _accentColor : const Color(0xFF3B82F6),
-              child: Text(
-                usuario['nome_completo'][0].toUpperCase(),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-            ),
+        contentPadding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 8),
+        leading: CircleAvatar(
+          backgroundColor: isAdmin ? _accentColor : const Color(0xFF3B82F6),
+          child: Text(
+            usuario['nome_completo'][0].toUpperCase(),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+        ),
         title: Text(
           usuario['nome_completo'],
           style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
@@ -1196,24 +1251,24 @@ Widget _buildPagination() {
           usuario['email'],
           style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+        trailing: Wrap(
+          spacing: 4,
           children: [
-          if (isAdmin)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _accentColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+            if (isAdmin)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text('Admin', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _accentColor)),
               ),
-              child: Text('Admin', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _accentColor)),
-            ),
             IconButton(
-              icon: const Icon(Icons.edit, color: Color(0xFF3B82F6)),
+              icon: const Icon(Icons.edit, color: Color(0xFF3B82F6), size: 20),
               onPressed: () => _editarUsuario(usuario),
             ),
             IconButton(
-              icon: const Icon(Icons.visibility, color: Color(0xFF64748B)),
+              icon: const Icon(Icons.visibility, color: Color(0xFF64748B), size: 20),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -1233,123 +1288,119 @@ Widget _buildPagination() {
   }
 
 Widget _buildDashboard() {
-  return FutureBuilder(
-    future: Future.wait([
-      AuthService().getAdminDashboardStats(),
-      AuthService().getAdminEvolucaoGeral(),
-    ]),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      
-      if (snapshot.hasError) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Erro ao carregar dados: ${snapshot.error}'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _carregarEstatisticas();
-                  });
-                },
-                child: const Text('Tentar novamente'),
-              ),
-            ],
-          ),
-        );
-      }
-      
-      final data = snapshot.data![0];
-      final evolucaoData = snapshot.data![1];
-      
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+    return FutureBuilder(
+      future: Future.wait([
+        AuthService().getAdminDashboardStats(),
+        AuthService().getAdminEvolucaoGeral(),
+      ]),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton.icon(
-                  onPressed: () => _exportarPDF(data, evolucaoData),
-                  icon: const Icon(Icons.picture_as_pdf, size: 18),
-                  label: const Text('Exportar PDF'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEF4444),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Erro ao carregar dados: ${snapshot.error}'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _carregarEstatisticas();
+                    });
+                  },
+                  child: const Text('Tentar novamente'),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            _buildStatsRow(data),
-            const SizedBox(height: 24),
-            _buildDemographicSection(data),
-            const SizedBox(height: 24),
-            _buildHealthSection(data),
-            const SizedBox(height: 24),
-            _buildEvolucaoSection(evolucaoData),
-            const SizedBox(height: 24),
-            _buildChartSection(data),
-          ],
-        ),
-      );
-    },
-  );
-}
+          );
+        }
+        final data = snapshot.data![0];
+        final evolucaoData = snapshot.data![1];
+        final isMobile = MediaQuery.of(context).size.width < 768;
+        final padding = isMobile ? 16.0 : 20.0;
+        
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _exportarPDF(data, evolucaoData),
+                    icon: const Icon(Icons.picture_as_pdf, size: 18),
+                    label: isMobile ? const Text('PDF') : const Text('Exportar PDF'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF4444),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildStatsRow(data),
+              const SizedBox(height: 24),
+              _buildDemographicSection(data),
+              const SizedBox(height: 24),
+              _buildHealthSection(data),
+              const SizedBox(height: 24),
+              _buildEvolucaoSection(evolucaoData),
+              const SizedBox(height: 24),
+              _buildChartSection(data),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
 int _adminEvolucaoPage = 0;
 int _adminEvolucaoPerPage = 5;
 
-Widget _buildStatsRow(Map<String, dynamic> data) {
-  return Row(
-    children: [
-      Flexible(
-        child: _buildStatCard(
-          'Total Usuários',
-          _parseToInt(data['totalUsuarios']),
-          Icons.people,
-          const Color(0xFF3B82F6),
-        ),
-      ),
-      const SizedBox(width: 16),
-      Flexible(
-        child: _buildStatCard(
-          'Enfermeiras',
-          _parseToInt(data['totalEnfermeiras']),
-          Icons.medical_services,
-          _accentColor,
-        ),
-      ),
-      const SizedBox(width: 16),
-      Flexible(
-        child: _buildStatCard(
-          'Matrículas',
-          _parseToInt(data['totalMatriculas']),
-          Icons.school,
-          const Color(0xFF10B981),
-        ),
-      ),
-      const SizedBox(width: 16),
-      Flexible(
-        child: _buildStatCard(
-          'UPAs',
-          _parseToInt(data['totalUPAs']),
-          Icons.local_hospital,
-          const Color(0xFFF59E0B),
-        ),
-      ),
-    ],
-  );
-}
+  Widget _buildStatsRow(Map<String, dynamic> data) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    
+    if (isMobile) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: _buildStatCard('Total Usuários', _parseToInt(data['totalUsuarios']), Icons.people, const Color(0xFF3B82F6))),
+              const SizedBox(width: 12),
+              Expanded(child: _buildStatCard('Enfermeiras', _parseToInt(data['totalEnfermeiras']), Icons.medical_services, _accentColor)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildStatCard('Matrículas', _parseToInt(data['totalMatriculas']), Icons.school, const Color(0xFF10B981))),
+              const SizedBox(width: 12),
+              Expanded(child: _buildStatCard('UPAs', _parseToInt(data['totalUPAs']), Icons.local_hospital, const Color(0xFFF59E0B))),
+            ],
+          ),
+        ],
+      );
+    }
+    
+    return Row(
+      children: [
+        Flexible(child: _buildStatCard('Total Usuários', _parseToInt(data['totalUsuarios']), Icons.people, const Color(0xFF3B82F6))),
+        const SizedBox(width: 16),
+        Flexible(child: _buildStatCard('Enfermeiras', _parseToInt(data['totalEnfermeiras']), Icons.medical_services, _accentColor)),
+        const SizedBox(width: 16),
+        Flexible(child: _buildStatCard('Matrículas', _parseToInt(data['totalMatriculas']), Icons.school, const Color(0xFF10B981))),
+        const SizedBox(width: 16),
+        Flexible(child: _buildStatCard('UPAs', _parseToInt(data['totalUPAs']), Icons.local_hospital, const Color(0xFFF59E0B))),
+      ],
+    );
+  }
 
 Widget _buildDemographicSection(Map<String, dynamic> data) {
   return Container(
@@ -2080,87 +2131,89 @@ Widget _buildLegendaItem(Color cor, String texto) {
   );
 }
 
-
-int _parseToInt(dynamic value) {
-  if (value == null) return 0;
-  if (value is int) return value;
-  if (value is double) return value.toInt();
-  if (value is String) {
-    final parsed = int.tryParse(value);
-    return parsed ?? 0;
+  int _parseToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value);
+      return parsed ?? 0;
+    }
+    return 0;
   }
-  return 0;
-}
 
-double _parseToDouble(dynamic value) {
-  if (value == null) return 0.0;
-  if (value is double) return value;
-  if (value is int) return value.toDouble();
-  if (value is String) {
-    final parsed = double.tryParse(value);
-    return parsed ?? 0.0;
+  double _parseToDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      final parsed = double.tryParse(value);
+      return parsed ?? 0.0;
+    }
+    return 0.0;
   }
-  return 0.0;
-}
 
-Future<void> _exportarPDF(Map<String, dynamic> data, Map<String, dynamic> evolucaoData) async {
-  try {
-    final nomeAdmin = widget.userData['nome_completo'] ?? _getUserFirstName();
-    await PdfService.gerarRelatorioAdminDashboardCompleto(data, evolucaoData, nomeAdmin);
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Erro ao gerar PDF: $e'), backgroundColor: Colors.red.shade400),
+  Future<void> _exportarPDF(Map<String, dynamic> data, Map<String, dynamic> evolucaoData) async {
+    try {
+      final nomeAdmin = widget.userData['nome_completo'] ?? _getUserFirstName();
+      await PdfService.gerarRelatorioAdminDashboardCompleto(data, evolucaoData, nomeAdmin);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao gerar PDF: $e'), backgroundColor: Colors.red.shade400),
+      );
+    }
+  }
+
+  Widget _buildStatCard(String titulo, int valor, IconData icon, Color cor) {
+    final isMobile = MediaQuery.of(context).size.width < 400;
+    
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 12 : 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.all(isMobile ? 8 : 10),
+            decoration: BoxDecoration(
+              color: cor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: isMobile ? 20 : 24, color: cor),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            titulo,
+            style: TextStyle(
+              fontSize: isMobile ? 12 : 14,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            valor.toString(),
+            style: TextStyle(
+              fontSize: isMobile ? 24 : 32,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF0F172A),
+            ),
+          ),
+        ],
+      ),
     );
   }
-}
 
-Widget _buildStatCard(String titulo, int valor, IconData icon, Color cor) {
-  return Container(
-    width: double.infinity, 
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.03),
-          blurRadius: 20,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: cor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, size: 24, color: cor),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          titulo,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Color(0xFF64748B),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          valor.toString(),
-          style: const TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF0F172A),
-          ),
-        ),
-      ],
-    ),
-  );
-}
 
 Future<void> _carregarUPAs({int page = 1, bool showLoading = true}) async {
   if (showLoading) {
@@ -2203,25 +2256,9 @@ String _formatarTelefoneExibicao(String? telefone) {
   return telefone;
 }
 
-void _buscarUPAs() {
-  setState(() {
-    _searchQueryUPAs = _searchUPAsController.text;
-    _currentPageUPAs = 1;
-  });
-  _carregarUPAs(page: 1);
-}
-
-void _limparBuscaUPAs() {
-  _searchUPAsController.clear();
-  setState(() {
-    _searchQueryUPAs = '';
-    _currentPageUPAs = 1;
-  });
-  _carregarUPAs(page: 1);
-}
-
 void _abrirModalUPA({Map<String, dynamic>? upa}) async {
   final isEditing = upa != null;
+  final isMobile = MediaQuery.of(context).size.width < 600;
   Map<String, dynamic>? dadosUPA = upa;
   
   if (isEditing && upa['endereco'] != null) {
@@ -2352,7 +2389,6 @@ List<String> _getHorariosPermitidos(String horarioFuncionamento) {
     '08:00 - 10:00', '10:00 - 12:00', '14:00 - 16:00', '16:00 - 18:00', '18:00 - 20:00'
   ];
   
-  // Turmas selecionadas
   List<Map<String, dynamic>> turmasSelecionadas = List.from(turmasDisponiveis);
   
   String horarioAtual = dadosUPA?['horario'] ?? '';
@@ -2370,15 +2406,19 @@ List<String> _getHorariosPermitidos(String horarioFuncionamento) {
           List<String> diasPermitidos = _getDiasPermitidos(horarioSelecionado ?? '');
           List<String> horariosPermitidos = _getHorariosPermitidos(horarioSelecionado ?? '');
           return Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              width: 700,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+  insetPadding: EdgeInsets.symmetric(horizontal: isMobile ? 0 : 20, vertical: 24),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+  child: Container(
+    padding: const EdgeInsets.all(20),
+    width: isMobile ? MediaQuery.of(context).size.width : 700,
+    constraints: BoxConstraints(
+      maxHeight: MediaQuery.of(context).size.height * 0.95,
+    ),
+    child: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
                         Row(
                           children: [
                             Container(
@@ -2402,37 +2442,26 @@ List<String> _getHorariosPermitidos(String horarioFuncionamento) {
                           ],
                         ),
                     const SizedBox(height: 20),
-                    
-                      TextField(
+                     TextField(
                         controller: nomeController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nome da UPA',
-                          prefixIcon: Icon(Icons.local_hospital),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                        ),
+                        decoration: _buildInputDecoration('Nome da UPA', Icons.local_hospital),
                       ),
                     const SizedBox(height: 16),
                     
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF8B5CF6).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: cepController,
-                              keyboardType: TextInputType.number,
-                              maxLength: 9,
-                              decoration: const InputDecoration(
-                                labelText: 'CEP',
-                                hintText: '00000-000',
-                                counterText: '',
-                                border: InputBorder.none,
-                              ),
-                              onChanged: (value) async {
+                  Container(
+      
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: cepController,
+                            keyboardType: TextInputType.number,
+                            maxLength: 9,
+                            decoration: _buildInputDecoration('CEP', Icons.location_on).copyWith(
+                              counterText: '',
+                              border: InputBorder.none,
+                            ),
+                            onChanged: (value) async {
                                 if (value.replaceAll(RegExp(r'[^\d]'), '').length == 8) {
                                   setState(() => buscandoCep = true);
                                   try {
@@ -2456,7 +2485,7 @@ List<String> _getHorariosPermitidos(String horarioFuncionamento) {
                               },
                             ),
                           ),
-                          if (buscandoCep)
+                         if (buscandoCep)
                             const Padding(
                               padding: EdgeInsets.all(8.0),
                               child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
@@ -2472,82 +2501,53 @@ List<String> _getHorariosPermitidos(String horarioFuncionamento) {
                           flex: 3,
                           child: TextField(
                             controller: ruaController,
-                            decoration: const InputDecoration(
-                              labelText: 'Rua',
-                              prefixIcon: Icon(Icons.location_on),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                            ),
+                            decoration: _buildInputDecoration('Rua', Icons.location_on),
                           ),
-
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           flex: 1,
                           child: 
-                            TextField(
-                              controller: numeroController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Número',
-                                prefixIcon: Icon(Icons.numbers),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                              ),
-                            ),
-
+                          TextField(
+                            controller: numeroController,
+                            keyboardType: TextInputType.number,
+                            decoration: _buildInputDecoration('N', Icons.numbers),
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     
-                      TextField(
-                        controller: bairroController,
-                        decoration: const InputDecoration(
-                          labelText: 'Bairro',
-                          prefixIcon: Icon(Icons.location_city),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                        ),
-                      ),
+                     TextField(
+                      controller: bairroController,
+                      decoration: _buildInputDecoration('Bairro', Icons.location_city),
+                    ),
                     const SizedBox(height: 16),
                     
-                    TextField(
+                  TextField(
                       controller: cidadeController,
                       enabled: false,
                       style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w500),
-                      decoration: InputDecoration(
-                        labelText: 'Cidade',
-                        border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      decoration: _buildInputDecoration('Cidade', Icons.location_city).copyWith(
                         filled: true,
                         fillColor: const Color(0xFFF1F5F9),
-                        suffixIcon: const Icon(Icons.location_city, color: Color(0xFF2C7DA0), size: 20),
                       ),
                     ),
+
                     const SizedBox(height: 16),
                     
-                      TextField(
-                        controller: telefoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          labelText: 'Telefone',
-                          prefixIcon: Icon(Icons.phone),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                        ),
+                 TextField(
+                      controller: telefoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: _buildInputDecoration('Telefone', Icons.phone),
                     ),
                     const SizedBox(height: 16),
-                    
-                    const Text(
-                      'Horário de Funcionamento da UPA',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF0F172A)),
-                    ),
+                  
                     const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
+                       DropdownButtonFormField<String>(
                           value: horarioSelecionado,
                           isExpanded: true,
-                          decoration: const InputDecoration(
-                            hintText: 'Selecione o horário padrão',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                            filled: true,
-                            fillColor: Colors.white,
-                          ),
+                          decoration: _buildInputDecoration('Horário de Funcionamento', Icons.schedule),
                           items: horariosPadrao.map((horario) {
                             return DropdownMenuItem<String>(
                               value: horario,
@@ -2571,19 +2571,15 @@ List<String> _getHorariosPermitidos(String horarioFuncionamento) {
                             });
                           },
                         ),
-                    
-                    if (mostrarCampoPersonalizado) ...[
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: horarioPersonalizadoController,
-                        decoration: const InputDecoration(
-                          labelText: 'Digite o horário personalizado',
-                          hintText: 'Ex: Segunda a Domingo: 08h às 22h',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                        ),
-                      ),
-                    ],
-                    
+                  
+                        if (mostrarCampoPersonalizado) ...[
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: horarioPersonalizadoController,
+                            decoration: _buildInputDecoration('Horário Personalizado', Icons.edit),
+                          ),
+                        ],
+                                            
                     const SizedBox(height: 24),
                     
                     Container(
@@ -2848,30 +2844,10 @@ List<String> _getHorariosPermitidos(String horarioFuncionamento) {
 }
 
 Future<void> _confirmarDeletarUPA(Map<String, dynamic> upa) async {
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Confirmar exclusão'),
-      content: Text('Tem certeza que deseja excluir a UPA "${upa['nome']}"?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-                            'Cancelar',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          child: const Text('Excluir'),
-        ),
-      ],
-    ),
+  final confirm = await _showConfirmDeleteDialog(
+    title: 'Excluir UPA',
+    message: 'Tem certeza que deseja excluir a UPA "${upa['nome']}"?\n\nEsta ação não pode ser desfeita.',
+    confirmText: 'Excluir',
   );
   
   if (confirm == true) {
@@ -2891,7 +2867,9 @@ Future<void> _confirmarDeletarUPA(Map<String, dynamic> upa) async {
 }
 
 Widget _buildUPAsList() {
-     if (_carregandoUPAs) {
+  final isMobile = MediaQuery.of(context).size.width < 600;
+  
+  if (_carregandoUPAs) {
     return const Center(child: CircularProgressIndicator());
   }
   
@@ -2899,82 +2877,158 @@ Widget _buildUPAsList() {
     children: [
       Padding(
         padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _searchUPAsController,
-                decoration: InputDecoration(
-                  hintText: 'Buscar por nome, endereço ou cidade...',
-                  prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
-                  suffixIcon: _searchQueryUPAs.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, color: Color(0xFF64748B)),
-                          onPressed: _limparBuscaUPAs,
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        child: isMobile
+            ? Column(
+                children: [
+                  TextField(
+                    controller: _searchUPAsController,
+                    decoration: _buildInputDecoration('Buscar por nome, endereço ou cidade...', Icons.search).copyWith(
+                      suffixIcon: _searchQueryUPAs.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 20),
+                              onPressed: _limparBuscaUPAs,
+                            )
+                          : null,
+                    ),
+                    onChanged: (value) {
+                      _searchQueryUPAs = value;
+                      _currentPageUPAs = 1;
+                      _carregarUPAs(page: 1, showLoading: false);
+                    },
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () => _abrirModalUPA(),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Nova UPA'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: _accentColor, width: 2),
-                ),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                onChanged: (_) => _buscarUPAs(),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchUPAsController,
+                      decoration: _buildInputDecoration('Buscar por nome, endereço ou cidade...', Icons.search).copyWith(
+                        suffixIcon: _searchQueryUPAs.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 20),
+                                onPressed: _limparBuscaUPAs,
+                              )
+                            : null,
+                      ),
+                      onChanged: (value) {
+                        _searchQueryUPAs = value;
+                        _currentPageUPAs = 1;
+                        _carregarUPAs(page: 1, showLoading: false);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: () => _abrirModalUPA(),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Nova UPA'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: () => _abrirModalUPA(),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Nova UPA'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ],
-        ),
       ),
       Expanded(
-        child: _carregandoUPAs
-            ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _searchQueryUPAs.isEmpty 
-                          ? 'Todas as UPAs'
-                          : 'Resultados para: "$_searchQueryUPAs"',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Total: $_totalUPAsLista unidades',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                    ),
-                    const SizedBox(height: 16),
-                    ..._upas.map((upa) => _buildUPACard(upa)),
-                    const SizedBox(height: 16),
-                    _buildPaginacaoUPAs(),
-                    const SizedBox(height: 20),
-                  ],
-                ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _searchQueryUPAs.isEmpty 
+                    ? 'Todas as UPAs'
+                    : 'Resultados para: "$_searchQueryUPAs"',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
               ),
+              const SizedBox(height: 8),
+              Text(
+                'Total: $_totalUPAsLista unidades',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 16),
+              ..._upas.map((upa) => _buildUPACard(upa)),
+              const SizedBox(height: 16),
+              _buildPaginacaoUPAs(),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
       ),
     ],
   );
+}
+
+Widget _buildPaginacaoUPAs() {
+  if (_totalPagesUPAs <= 1) return const SizedBox.shrink();
+  
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 16),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.chevron_left),
+          onPressed: _currentPageUPAs > 1 ? () {
+            setState(() => _currentPageUPAs--);
+            _carregarUPAs(page: _currentPageUPAs, showLoading: false);
+          } : null,
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: _accentColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            'Página $_currentPageUPAs de $_totalPagesUPAs',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _accentColor),
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          icon: const Icon(Icons.chevron_right),
+          onPressed: _currentPageUPAs < _totalPagesUPAs ? () {
+            setState(() => _currentPageUPAs++);
+            _carregarUPAs(page: _currentPageUPAs, showLoading: false);
+          } : null,
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+void _limparBuscaUPAs() {
+  _searchUPAsController.clear();
+  setState(() {
+    _searchQueryUPAs = '';
+    _currentPageUPAs = 1;
+  });
+  _carregarUPAs(page: 1, showLoading: false);
 }
 
 Widget _buildUPACard(Map<String, dynamic> upa) {
@@ -2984,7 +3038,7 @@ Widget _buildUPACard(Map<String, dynamic> upa) {
   return Container(
     margin: const EdgeInsets.only(bottom: 12),
     decoration: BoxDecoration(
-      color: Colors.white,
+       color: const Color(0xFFF1F5F9),
       borderRadius: BorderRadius.circular(16),
       boxShadow: [
         BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 2)),
@@ -3075,12 +3129,6 @@ void _buscarEnfermeiras() {
   });
 }
 
-void _limparBuscaEnfermeiras() {
-  _searchEnfermeiraController.clear();
-  setState(() {
-    _searchEnfermeira = '';
-  });
-}
 
 List<Map<String, dynamic>> _getEnfermeirasFiltradas() {
   if (_searchEnfermeira.isEmpty) {
@@ -3162,65 +3210,44 @@ void _abrirModalEnfermeira({Map<String, dynamic>? enfermeira}) {
                     ),
                   const SizedBox(height: 20),
                   TextField(
-                    controller: nomeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome Completo',
-                      prefixIcon: Icon(Icons.person),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
-                  ),
+                  controller: nomeController,
+                  decoration: _buildInputDecoration('Nome Completo', Icons.person),
+                ),
                   const SizedBox(height: 16),
                     TextField(
-                      controller: emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                        controller: emailController,
+                        decoration: _buildInputDecoration('Email', Icons.email),
                       ),
-                    ),
                   const SizedBox(height: 16),
-                 TextField(
-                      controller: telefoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Telefone',
-                        prefixIcon: Icon(Icons.phone),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                      ),
-                    ),
-                  const SizedBox(height: 16),
-                        DropdownButtonFormField<int>(
-                          value: upaIdSelecionado,
-                          decoration: const InputDecoration(
-                            labelText: 'UPA Vinculada',
-                            prefixIcon: Icon(Icons.local_hospital),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                          ),
-                    items: [
-                      const DropdownMenuItem<int>(value: null, child: Text('Selecione uma UPA')),
-                      ..._upasLista.map((upa) => DropdownMenuItem<int>(
-                        value: upa['id'],
-                        child: Text(upa['nome']),
-                      )),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        upaIdSelecionado = value;
-                      });
-                    },
+                TextField(
+                    controller: telefoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: _buildInputDecoration('Telefone', Icons.phone),
                   ),
-                  if (!isEditing) ...[
-                    const SizedBox(height: 16),
-                     TextField(
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int>(
+                      value: upaIdSelecionado,
+                      isExpanded: true,
+                      decoration: _buildInputDecoration('UPA Vinculada', Icons.local_hospital),
+                      items: [
+                        const DropdownMenuItem<int>(value: null, child: Text('Selecione uma UPA')),
+                        ..._upasLista.map((upa) => DropdownMenuItem<int>(
+                          value: upa['id'],
+                          child: Text(upa['nome']),
+                        )),
+                      ],
+                      onChanged: (value) {
+                        setState(() => upaIdSelecionado = value);
+                      },
+                    ),
+                    if (!isEditing) ...[
+                      const SizedBox(height: 16),
+                      TextField(
                         controller: senhaController,
                         obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Senha',
-                          prefixIcon: Icon(Icons.lock),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                        ),
+                        decoration: _buildInputDecoration('Senha', Icons.lock),
                       ),
-                  ],
+                    ],
                   const SizedBox(height: 24),
                   Row(
                     children: [
@@ -3335,30 +3362,10 @@ void _abrirModalEnfermeira({Map<String, dynamic>? enfermeira}) {
 }
 
 Future<void> _confirmarDeletarEnfermeira(Map<String, dynamic> enfermeira) async {
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Confirmar exclusão'),
-      content: Text('Tem certeza que deseja excluir a enfermeira "${enfermeira['nome_completo']}"?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-                            'Cancelar',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          child: const Text('Excluir'),
-        ),
-      ],
-    ),
+  final confirm = await _showConfirmDeleteDialog(
+    title: 'Excluir Enfermeira',
+    message: 'Tem certeza que deseja excluir a enfermeira "${enfermeira['nome_completo']}"?\n\nEsta ação não pode ser desfeita.',
+    confirmText: 'Excluir',
   );
   
   if (confirm == true) {
@@ -3380,58 +3387,59 @@ Future<void> _confirmarDeletarEnfermeira(Map<String, dynamic> enfermeira) async 
 Widget _buildEnfermeirasList() {
   final enfermeirasFiltradas = _getEnfermeirasFiltradas();
   final grupos = _agruparEnfermeirasPorUPA(enfermeirasFiltradas);
-    if (_carregandoEnfermeiras) {
+  final isMobile = MediaQuery.of(context).size.width < 600;
+  
+  if (_carregandoEnfermeiras) {
     return const Center(child: CircularProgressIndicator());
   }
+  
   return Column(
     children: [
       Padding(
         padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _searchEnfermeiraController,
-                decoration: InputDecoration(
-                  hintText: 'Buscar por nome da enfermeira ou UPA...',
-                  prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
-                  suffixIcon: _searchEnfermeira.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, color: Color(0xFF64748B)),
-                          onPressed: _limparBuscaEnfermeiras,
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        child: isMobile
+            ? Column(
+                children: [
+                TextField(
+        controller: _searchEnfermeiraController,
+        decoration: _buildInputDecoration('Buscar por nome da enfermeira ou UPA...', Icons.search),
+        onChanged: (_) => _buscarEnfermeiras(),
+      ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () => _abrirModalEnfermeira(),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Nova Enfermeira'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                    controller: _searchEnfermeiraController,
+                    decoration: _buildInputDecoration('Buscar por nome da enfermeira ou UPA...', Icons.search),
+                    onChanged: (_) => _buscarEnfermeiras(),
                   ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: _accentColor, width: 2),
-                ),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                onChanged: (_) => _buscarEnfermeiras(),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: () => _abrirModalEnfermeira(),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Nova Enfermeira'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: () => _abrirModalEnfermeira(),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Nova Enfermeira'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-          ],
-        ),
       ),
       Expanded(
         child: _carregandoEnfermeiras
@@ -3528,7 +3536,7 @@ Widget _buildEnfermeiraCard(Map<String, dynamic> enfermeira) {
   return Container(
     margin: const EdgeInsets.only(bottom: 12),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: const Color(0xFFF1F5F9),
       borderRadius: BorderRadius.circular(16),
       boxShadow: [
         BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 2)),
@@ -3574,49 +3582,6 @@ leading: Container(
           ),
         ],
       ),
-    ),
-  );
-}
-
-Widget _buildPaginacaoUPAs() {
-  if (_totalPagesUPAs <= 1) return const SizedBox.shrink();
-  
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 16),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left),
-          onPressed: _currentPageUPAs > 1 ? () => _carregarUPAs(page: _currentPageUPAs - 1) : null,
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: _accentColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            'Página $_currentPageUPAs de $_totalPagesUPAs',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: _accentColor),
-          ),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          onPressed: _currentPageUPAs < _totalPagesUPAs ? () => _carregarUPAs(page: _currentPageUPAs + 1) : null,
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        ),
-      ],
     ),
   );
 }

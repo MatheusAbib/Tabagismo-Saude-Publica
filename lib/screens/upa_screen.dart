@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/services/enrollment_service.dart';
@@ -19,11 +21,8 @@ class UPAScreen extends StatefulWidget {
 class _UPAScreenState extends State<UPAScreen> {
   final _authService = AuthService();
   final Color _primaryDark = Color(0xFF0F2B3D);
-  final Color _primaryMedium = Color(0xFF1A4A6F);
   final Color _accentColor = Color(0xFF2C7DA0);
   final Color _successColor = Color(0xFF10B981);
-  final Color _warningColor = Color(0xFFF59E0B);
-  final Color _dangerColor = Color(0xFFEF4444);
   
   List<Map<String, dynamic>> _upaList = [];
   List<Map<String, dynamic>> _paginatedList = [];
@@ -34,13 +33,6 @@ class _UPAScreenState extends State<UPAScreen> {
   int _itemsPerPage = 6;
   int _totalPages = 1;
 
-  final List<String> _bairrosSugeridos = [
-    'Centro', 'Vila Oliveira', 'Braz Cubas', 'César de Souza', 'Jundiapeba',
-    'Alto Ipiranga', 'Vila Vitória', 'Vila São Francisco', 'Jardim Santista',
-    'Vila Lavínia', 'Jardim Armênia', 'Vila Industrial', 'Parque das Varinhas',
-    'Residencial Itapety', 'Vila Nova Aparecida',
-  ];
-
 
   @override
   void initState() {
@@ -48,45 +40,56 @@ class _UPAScreenState extends State<UPAScreen> {
     _buscarTodasUPAs();
   }
 
-  Future<void> _buscarTodasUPAs() async {
-    setState(() => _isLoading = true);
-    try {
-      final upas = await _authService.searchUPA('');
-      setState(() {
-        _upaList = upas;
-        _updatePagination();
-      });
-    } catch (e) {
-      _showSnackBar('Erro ao buscar UPAs: $e', _dangerColor);
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
+  
+Timer? _debounce;
 
-  Future<void> _buscarPorBairro() async {
-    if (_bairroController.text.isEmpty) {
-      _showSnackBar('Digite o nome do bairro', _warningColor);
+void _onSearchChanged(String value) {
+  if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+  _debounce = Timer(const Duration(milliseconds: 400), () {
+    final query = value.trim();
+
+    if (query.isEmpty) {
+      _buscarTodasUPAs();
       return;
     }
-    setState(() => _isLoading = true);
-    try {
-      final upas = await _authService.searchUPA(_bairroController.text);
-      setState(() {
-        _upaList = upas;
-        _currentPage = 1;
-        _updatePagination();
-      });
-    } catch (e) {
-      _showSnackBar('Erro ao buscar UPAs: $e', _dangerColor);
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
 
-  void _limparBusca() {
-    _bairroController.clear();
-    _buscarTodasUPAs();
+    _buscarPorBairro(query);
+  });
+}
+
+Future<void> _buscarTodasUPAs() async {
+  setState(() => _isLoading = true);
+  try {
+    final upas = await _authService.searchUPA('');
+    setState(() {
+      _upaList = upas;
+      _currentPage = 1;
+      _updatePagination();
+    });
+  } finally {
+    setState(() => _isLoading = false);
   }
+}
+
+Future<void> _buscarPorBairro(String bairro) async {
+  setState(() => _isLoading = true);
+  try {
+    final upas = await _authService.searchUPA(bairro);
+    setState(() {
+      _upaList = upas;
+      _currentPage = 1;
+      _updatePagination();
+    });
+  } finally {
+    setState(() => _isLoading = false);
+  }
+}
+
+void _limparBusca() {
+  _bairroController.clear();
+  _buscarTodasUPAs();
+}
 
   void _updatePagination() {
     _totalPages = (_upaList.length / _itemsPerPage).ceil();
@@ -108,16 +111,6 @@ class _UPAScreenState extends State<UPAScreen> {
     });
   }
 
-  void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
 
   Widget _buildPagination() {
     return Container(
@@ -384,7 +377,7 @@ showDialog(
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
+      backgroundColor: Colors.white,
       body: Column(
         children: [
           HeaderWidget(
@@ -424,8 +417,13 @@ showDialog(
   }
 
 Widget _buildSearchSection() {
+  final isMobile = MediaQuery.of(context).size.width < 600;
+  final isTablet = MediaQuery.of(context).size.width < 1000;
+
   return Container(
-    padding: EdgeInsets.symmetric(horizontal: 50),
+    padding: EdgeInsets.symmetric(
+      horizontal: isMobile ? 16 : (isTablet ? 32 : 50),
+    ),
     decoration: BoxDecoration(
       color: Colors.white,
       border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
@@ -434,79 +432,33 @@ Widget _buildSearchSection() {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.only(top: 20, bottom: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _bairroController,
-                  decoration: InputDecoration(
-                    hintText: 'Digite o nome do bairro',
-                    hintStyle: TextStyle(fontFamily: 'Inter'),
-                    prefixIcon: Icon(Icons.location_on_outlined, color: _accentColor),
-                    suffixIcon: _bairroController.text.isNotEmpty
-                        ? IconButton(icon: Icon(Icons.clear), onPressed: _limparBusca)
-                        : null,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: _accentColor, width: 2),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                  onSubmitted: (_) => _buscarPorBairro(),
-                ),
+          padding: const EdgeInsets.only(top: 20, bottom: 12),
+          child: TextField(
+            controller: _bairroController,
+            onChanged: _onSearchChanged,
+            decoration: InputDecoration(
+              hintText: 'Digite o nome do bairro',
+              prefixIcon: Icon(Icons.location_on_outlined, color: _accentColor),
+              suffixIcon: _bairroController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: _limparBusca,
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
               ),
-              SizedBox(width: 12),
-              Container(
-                height: 56,
-                width: 56,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [_primaryDark, _primaryMedium]),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: IconButton(
-                  icon: Icon(Icons.search, color: Colors.white),
-                  onPressed: _buscarPorBairro,
-                ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: _accentColor, width: 2),
               ),
-            ],
+              filled: true,
+              fillColor: Colors.grey.shade50,
+            ),
           ),
         ),
         Padding(
-          padding: EdgeInsets.only(bottom: 12),
-          child: Row(
-            children: [
-              Icon(Icons.room, size: 14, color: _accentColor),
-              SizedBox(width: 4),
-              Text(
-                ' Mogi das Cruzes - Encontre a UPA mais próxima do seu bairro',
-                style: TextStyle(fontSize: 12, color: _accentColor, fontFamily: 'Inter'),
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.only(bottom: 16),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _bairrosSugeridos.map((bairro) {
-              return ActionChip(
-                label: Text(bairro, style: TextStyle(fontSize: 12, fontFamily: 'Inter')),
-                onPressed: () {
-                  setState(() => _bairroController.text = bairro);
-                  _buscarPorBairro();
-                },
-                backgroundColor: _accentColor.withValues(alpha: 0.1),
-                labelStyle: TextStyle(color: _accentColor),
-              );
-            }).toList(),
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.only(bottom: 20),
           child: _buildInfoBanner(),
         ),
       ],
@@ -520,7 +472,7 @@ Widget _buildInfoBanner() {
       onTap: _mostrarInformacoesGrupos,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: Colors.blue.shade50,
           borderRadius: BorderRadius.circular(8),
@@ -529,13 +481,13 @@ Widget _buildInfoBanner() {
         child: Row(
           children: [
             Icon(Icons.info_outline, color: Colors.blue.shade700, size: 18),
-            SizedBox(width: 8),
-            Expanded(
+            const SizedBox(width: 8),
+            const Expanded(
               child: Text(
                 'Como funcionam as turmas de apoio?',
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.blue.shade700,
+                  color: Colors.blue,
                   fontWeight: FontWeight.w500,
                   fontFamily: 'Inter',
                 ),
@@ -549,70 +501,101 @@ Widget _buildInfoBanner() {
   );
 }
 
-  Widget _buildEmptyWidget() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(48),
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.location_off, size: 64, color: Colors.grey.shade400),
+Widget _buildEmptyWidget() {
+  return Center(
+    child: Padding(
+      padding: const EdgeInsets.all(48),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              shape: BoxShape.circle,
             ),
-            SizedBox(height: 24),
-            Text('Nenhuma UPA encontrada', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _primaryDark, fontFamily: 'Poppins')),
-            SizedBox(height: 8),
-            Text('Tente buscar por outro bairro', style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontFamily: 'Inter')),
-          ],
-        ),
+            child: Icon(Icons.location_off, size: 64, color: Colors.grey.shade400),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Nenhuma UPA encontrada',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: _primaryDark,
+              fontFamily: 'Poppins',
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tente buscar por outro bairro',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+              fontFamily: 'Inter',
+            ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildUPACardsList() {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.all(20),
-      itemCount: _paginatedList.length,
-      itemBuilder: (context, index) => _buildUPACard(_paginatedList[index]),
-    );
-  }
+Widget _buildUPACardsList() {
+  final isMobile = MediaQuery.of(context).size.width < 600;
+
+  return ListView.builder(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    padding: EdgeInsets.symmetric(
+      horizontal: isMobile ? 12 : 20,
+      vertical: 8,
+    ),
+    itemCount: _paginatedList.length,
+    itemBuilder: (context, index) => _buildUPACard(_paginatedList[index]),
+  );
+}
 
 Widget _buildUPACard(Map<String, dynamic> upa) {
+  final isMobile = MediaQuery.of(context).size.width < 600;
   final telefoneFormatado = _formatarTelefone(upa['telefone'] ?? '');
-  
+
   return Container(
-    margin: EdgeInsets.only(bottom: 16, left: 30, right: 30),
+    margin: EdgeInsets.only(
+      bottom: 16,
+      left: isMobile ? 12 : 30,
+      right: isMobile ? 12 : 30,
+    ),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
-      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: Offset(0, 4))],
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 15,
+          offset: const Offset(0, 4),
+        ),
+      ],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
             color: Color(0xFFF1F5F9),
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: _primaryDark.withValues(alpha: 0.1),
+                  color: _primaryDark.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(Icons.local_hospital_outlined, color: _primaryDark, size: 20),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   upa['nome'] ?? 'UPA não identificada',
@@ -628,18 +611,18 @@ Widget _buildUPACard(Map<String, dynamic> upa) {
           ),
         ),
         Padding(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Icon(Icons.location_on, size: 16, color: Colors.grey.shade500),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       upa['endereco'] ?? 'Endereço não informado',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Color(0xFF475569),
                         fontFamily: 'Inter',
@@ -648,15 +631,15 @@ Widget _buildUPACard(Map<String, dynamic> upa) {
                   ),
                 ],
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Icon(Icons.phone_outlined, size: 16, color: Colors.grey.shade500),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       telefoneFormatado,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Color(0xFF475569),
                         fontFamily: 'Inter',
@@ -665,15 +648,15 @@ Widget _buildUPACard(Map<String, dynamic> upa) {
                   ),
                 ],
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Icon(Icons.access_time_outlined, size: 16, color: Colors.grey.shade500),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       upa['horario'] ?? 'Horário não informado',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Color(0xFF475569),
                         fontFamily: 'Inter',
@@ -682,9 +665,9 @@ Widget _buildUPACard(Map<String, dynamic> upa) {
                   ),
                 ],
               ),
-              SizedBox(height: 16),
-              Divider(color: Colors.grey.shade200),
-              SizedBox(height: 12),
+              const SizedBox(height: 16),
+              const Divider(color: Color(0xFFE5E7EB)),
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -697,7 +680,7 @@ Widget _buildUPACard(Map<String, dynamic> upa) {
                     ),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: _successColor),
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -1343,14 +1326,19 @@ title: Column(
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _primaryDark, fontFamily: 'Poppins'),
             ),
             SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _buildDropdownField('Escolaridade', _escolaridades, _escolaridade, (value) => setState(() => _escolaridade = value))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildMedicamentoField()),
-                ],
+           Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDropdownField(
+                'Escolaridade',
+                _escolaridades,
+                _escolaridade,
+                (value) => setState(() => _escolaridade = value),
               ),
+              const SizedBox(height: 12),
+              _buildMedicamentoField(),
+            ],
+          ),
             SizedBox(height: 16),
             _buildScoreFieldCompact(),
             SizedBox(height: 24),
@@ -1744,5 +1732,4 @@ Widget _buildScoreFieldCompact() {
     ],
   );
 }
-
 }

@@ -52,13 +52,20 @@ Future<void> _verHistoricoPresencas(int matriculaId) async {
       'total': 0
     };
     
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    
     showDialog(
       context: context,
       builder: (context) => Dialog(
+        insetPadding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40, vertical: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
-          width: 600,
-          padding: const EdgeInsets.all(20),
+          width: isMobile ? double.infinity : 600,
+          constraints: BoxConstraints(
+            maxWidth: 600,
+            maxHeight: MediaQuery.of(context).size.height * 0.65,
+          ),
+          padding: EdgeInsets.all(isMobile ? 16 : 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,7 +82,7 @@ Future<void> _verHistoricoPresencas(int matriculaId) async {
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'Meu Histórico de Presenças',
+                    'Minhas Presenças',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
                   ),
                   const Spacer(),
@@ -95,7 +102,9 @@ Future<void> _verHistoricoPresencas(int matriculaId) async {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
               ),
               const SizedBox(height: 12),
-              _buildListaPresencas(presencas),
+              Expanded(
+                child: _buildListaPresencas(presencas),
+              ),
             ],
           ),
         ),
@@ -402,7 +411,14 @@ Future<void> _confirmarCancelamento(Map<String, dynamic> enrollment) async {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Não, voltar'),
+                                            child: const Text(
+                                'Não, sair',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -509,56 +525,61 @@ String _getStatusText(String status) {
   }
 }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
-      body: Column(
-        children: [
-          HeaderWidget(
-            userName: widget.userData?['nomeCompleto'] ?? 'Usuário',
-            userData: widget.userData,
-            onNameUpdated: widget.onNameUpdated,
-            showBackButton: true,
-          ),
-     Expanded(
-  child: SingleChildScrollView(
-    child: Column(
+@override
+Widget build(BuildContext context) {
+  final isMobile = MediaQuery.of(context).size.width < 768;
+  final isTablet = MediaQuery.of(context).size.width >= 768 && MediaQuery.of(context).size.width < 1200;
+  final horizontalPadding = isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
+  
+  return Scaffold(
+    backgroundColor: Colors.white,
+    body: Column(
       children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 40),
-          child: Column(
-            children: [
-              _buildInfoBanner(),
-              _isLoading
-                  ? Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(48),
-                        child: CircularProgressIndicator(color: _accentColor),
-                      ),
-                    )
-                  : _errorMessage != null
-                      ? _buildErrorWidget()
-                      : _enrollments.isEmpty
-                          ? _buildEmptyWidget()
-                          : _buildEnrollmentsList(),
-            ],
+        HeaderWidget(
+          userName: widget.userData?['nomeCompleto'] ?? 'Usuário',
+          userData: widget.userData,
+          onNameUpdated: widget.onNameUpdated,
+          showBackButton: true,
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: Column(
+                    children: [
+                      _buildInfoBanner(),
+                      _isLoading
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(48),
+                                child: CircularProgressIndicator(color: _accentColor),
+                              ),
+                            )
+                          : _errorMessage != null
+                              ? _buildErrorWidget()
+                              : _enrollments.isEmpty
+                                  ? _buildEmptyWidget()
+                                  : _buildEnrollmentsList(),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+                const FooterWidget(),
+              ],
+            ),
           ),
         ),
-        SizedBox(height: 30),
-        FooterWidget(),
       ],
     ),
-  ),
-),
-        ],
-      ),
-    );
-  }
+  );
+}
 
 Widget _buildInfoBanner() {
   return Container(
-    margin: EdgeInsets.all(16),
+    margin: EdgeInsets.all(8),
+    
     child: InkWell(
       onTap: _mostrarInformacoesGrupos,
       borderRadius: BorderRadius.circular(8),
@@ -681,8 +702,8 @@ Widget _buildEnrollmentsList() {
     children: [
       ListView.builder(
         shrinkWrap: true,
-        physics: NeverScrollableScrollPhysics(),
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 8), 
         itemCount: _paginatedEnrollments.length,
         itemBuilder: (context, index) {
           final enrollment = _paginatedEnrollments[index];
@@ -705,7 +726,10 @@ Widget _buildPagination() {
           onPressed: _currentPage > 1 ? _previousPage : null,
         ),
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          padding: EdgeInsets.symmetric(
+  horizontal: MediaQuery.of(context).size.width < 600 ? 8 : 10,
+  vertical: 8,
+),
           decoration: BoxDecoration(
             color: _accentColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(30),
@@ -733,9 +757,10 @@ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
   bool isConcluida = statusDisplay == 'concluida';
   bool isEmEspera = statusDisplay == 'em_espera';
   bool isMatriculado = enrollment['status'] == 'matriculado';
+  final isMobile = MediaQuery.of(context).size.width < 600;
   
   return Container(
-    margin: EdgeInsets.only(bottom: 16),
+    margin: const EdgeInsets.only(bottom: 16),
     decoration: BoxDecoration(
       color: isCanceled ? Colors.grey.shade50 : Colors.white,
       borderRadius: BorderRadius.circular(20),
@@ -743,7 +768,7 @@ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
         BoxShadow(
           color: Colors.black.withOpacity(0.05),
           blurRadius: 15,
-          offset: Offset(0, 4),
+          offset: const Offset(0, 4),
         ),
       ],
     ),
@@ -751,7 +776,7 @@ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isCanceled ? Colors.grey.shade100 : const Color(0xFFF1F5F9),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -759,19 +784,19 @@ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
           child: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: _primaryDark.withValues(alpha: isCanceled ? 0.05 : 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(Icons.location_on_outlined, color: isCanceled ? Colors.grey.shade500 : _primaryDark, size: 20),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   enrollment['upa_nome'] ?? 'UPA não identificada',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: isMobile ? 14 : 16,
                     fontWeight: FontWeight.bold,
                     color: isCanceled ? Colors.grey.shade600 : _primaryDark,
                     fontFamily: 'Poppins',
@@ -779,7 +804,7 @@ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
                 ),
               ),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -789,7 +814,7 @@ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(statusIcon, color: statusColor, size: 14),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
                       statusText,
                       style: TextStyle(
@@ -806,18 +831,18 @@ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
           ),
         ),
         Padding(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Icon(Icons.schedule_outlined, size: 16, color: isCanceled ? Colors.grey.shade400 : Colors.grey.shade500),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
                     'Turma: ${enrollment['turma_horario'] ?? 'Não informado'}',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: isMobile ? 12 : 14,
                       color: isCanceled ? Colors.grey.shade500 : const Color(0xFF475569),
                       fontFamily: 'Inter',
                     ),
@@ -825,11 +850,11 @@ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
                 ],
               ),
               if (isEmEspera && enrollment['segunda_opcao_turma'] != null && enrollment['segunda_opcao_turma'].isNotEmpty) ...[
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Icon(Icons.swap_horiz, size: 16, color: _warningColor),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
                       '2ª opção: ${enrollment['segunda_opcao_turma']}',
                       style: TextStyle(
@@ -841,11 +866,11 @@ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
                   ],
                 ),
               ],
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Icon(Icons.calendar_today_outlined, size: 16, color: isCanceled ? Colors.grey.shade400 : Colors.grey.shade500),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
                     'Data: ${_formatDate(enrollment['created_at'])}',
                     style: TextStyle(
@@ -857,9 +882,9 @@ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
                 ],
               ),
               if (isConcluida) ...[
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: const Color(0xFF10B981).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -867,89 +892,25 @@ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.celebration, size: 16, color: const Color(0xFF10B981)),
-                      SizedBox(width: 8),
+                      const Icon(Icons.celebration, size: 16, color: Color(0xFF10B981)),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Parabéns! Você concluiu o programa com sucesso!',
-                          style: TextStyle(fontSize: 12, color: const Color(0xFF10B981), fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF10B981), fontWeight: FontWeight.w500),
                         ),
                       ),
                     ],
                   ),
                 ),
               ],
-              SizedBox(height: 16),
-              Divider(color: isCanceled ? Colors.grey.shade200 : Colors.grey.shade200),
-              SizedBox(height: 12),
+              const SizedBox(height: 16),
+              const Divider(color: Color(0xFFE2E8F0)),
+              const SizedBox(height: 12),
               if (!isCanceled)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    // Só em espera: botão Cancelar
-                    if (isEmEspera)
-                      TextButton.icon(
-                        onPressed: () => _confirmarCancelamento(enrollment),
-                        icon: Icon(Icons.delete_outline, size: 18, color: _dangerColor),
-                        label: Text('Cancelar', style: TextStyle(color: _dangerColor, fontWeight: FontWeight.w500)),
-                      ),
-                    
-                    if (!isConcluida && !isEmEspera)
-                      OutlinedButton.icon(
-                        onPressed: () => _verCronograma(enrollment['id'], enrollment['turma_horario']),
-                        icon: Icon(Icons.calendar_month, size: 18, color: const Color(0xFF10B981)),
-                        label: Text('Ver Cronograma', style: TextStyle(color: const Color(0xFF10B981))),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF10B981)),
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    
-                    SizedBox(width: 8),
-                    
-                    OutlinedButton.icon(
-                      onPressed: () => _verDetalhes(enrollment),
-                      icon: Icon(Icons.visibility_outlined, size: 18, color: _accentColor),
-                      label: Text('Ver detalhes', style: TextStyle(color: _accentColor)),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: _accentColor),
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    
-                    if (isMatriculado)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: OutlinedButton.icon(
-                          onPressed: () => _verHistoricoPresencas(enrollment['id']),
-                          icon: Icon(Icons.history, size: 18, color: _accentColor),
-                          label: Text('Lista de presença', style: TextStyle(color: _accentColor)),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: _accentColor),
-                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                    
-                    if (isMatriculado)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: OutlinedButton.icon(
-                          onPressed: () => _confirmarAbandonoMatricula(enrollment),
-                          icon: Icon(Icons.exit_to_app, size: 18, color: _dangerColor),
-                          label: Text('Abandonar', style: TextStyle(color: _dangerColor)),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: _dangerColor),
-                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                isMobile
+                    ? _buildMobileActionButtons(enrollment, isEmEspera, isConcluida, isMatriculado)
+                    : _buildDesktopActionButtons(enrollment, isEmEspera, isConcluida, isMatriculado),
             ],
           ),
         ),
@@ -958,16 +919,173 @@ Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
   );
 }
 
-void _confirmarAbandonoMatricula(Map<String, dynamic> enrollment) {
+Widget _buildMobileActionButtons(Map<String, dynamic> enrollment, bool isEmEspera, bool isConcluida, bool isMatriculado) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      if (isEmEspera)
+        Expanded(
+          child: TextButton.icon(
+            onPressed: () => _confirmarCancelamento(enrollment),
+            icon: Icon(Icons.delete_outline, size: 18, color: _dangerColor),
+            label: const Text('Cancelar', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w500)),
+          ),
+        ),
+      PopupMenuButton<String>(
+        offset: const Offset(0, 40),
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            border: Border.all(color: _accentColor),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.more_vert, color: _accentColor, size: 20),
+              const SizedBox(width: 8),
+              Text('Opções', style: TextStyle(color: _accentColor, fontSize: 14, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+        onSelected: (String value) {
+          if (value == 'cronograma') {
+            _verCronograma(enrollment['id'], enrollment['turma_horario']);
+          } else if (value == 'detalhes') {
+            _verDetalhes(enrollment);
+          } else if (value == 'presencas' && isMatriculado) {
+            _verHistoricoPresencas(enrollment['id']);
+          } else if (value == 'abandonar' && isMatriculado) {
+            _confirmarAbandonoMatricula(enrollment);
+          }
+        },
+        itemBuilder: (context) => [
+          if (!isConcluida && !isEmEspera)
+            const PopupMenuItem<String>(
+              value: 'cronograma',
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_month, size: 20, color: Color(0xFF10B981)),
+                  SizedBox(width: 12),
+                  Text('Ver Cronograma', style: TextStyle(fontSize: 14)),
+                ],
+              ),
+            ),
+          const PopupMenuItem<String>(
+            value: 'detalhes',
+            child: Row(
+              children: [
+                Icon(Icons.visibility_outlined, size: 20, color: Color(0xFF2C7DA0)),
+                SizedBox(width: 12),
+                Text('Ver detalhes', style: TextStyle(fontSize: 14)),
+              ],
+            ),
+          ),
+          if (isMatriculado)
+            const PopupMenuItem<String>(
+              value: 'presencas',
+              child: Row(
+                children: [
+                  Icon(Icons.history, size: 20, color: Color(0xFF2C7DA0)),
+                  SizedBox(width: 12),
+                  Text('Lista de presença', style: TextStyle(fontSize: 14)),
+                ],
+              ),
+            ),
+          if (isMatriculado)
+            const PopupMenuItem<String>(
+              value: 'abandonar',
+              child: Row(
+                children: [
+                  Icon(Icons.exit_to_app, size: 20, color: Color(0xFFEF4444)),
+                  SizedBox(width: 12),
+                  Text('Abandonar', style: TextStyle(fontSize: 14, color: Color(0xFFEF4444))),
+                ],
+              ),
+            ),
+        ],
+      ),
+    ],
+  );
+}
+
+Widget _buildDesktopActionButtons(Map<String, dynamic> enrollment, bool isEmEspera, bool isConcluida, bool isMatriculado) {
+  return Wrap(
+    alignment: WrapAlignment.end,
+    spacing: 8,
+    runSpacing: 8,
+    children: [
+      if (isEmEspera)
+        TextButton.icon(
+          onPressed: () => _confirmarCancelamento(enrollment),
+          icon: Icon(Icons.delete_outline, size: 18, color: _dangerColor),
+          label: const Text('Cancelar', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w500)),
+        ),
+      if (!isConcluida && !isEmEspera)
+        OutlinedButton.icon(
+          onPressed: () => _verCronograma(enrollment['id'], enrollment['turma_horario']),
+          icon: const Icon(Icons.calendar_month, size: 18, color: Color(0xFF10B981)),
+          label: const Text('Ver Cronograma', style: TextStyle(color: Color(0xFF10B981))),
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: Color(0xFF10B981)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      OutlinedButton.icon(
+        onPressed: () => _verDetalhes(enrollment),
+        icon: Icon(Icons.visibility_outlined, size: 18, color: _accentColor),
+        label: Text('Ver detalhes', style: TextStyle(color: _accentColor)),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: _accentColor),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+      if (isMatriculado)
+        OutlinedButton.icon(
+          onPressed: () => _verHistoricoPresencas(enrollment['id']),
+          icon: Icon(Icons.history, size: 18, color: _accentColor),
+          label: const Text('Lista de presença', style: TextStyle(color: Color(0xFF2C7DA0))),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: _accentColor),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      if (isMatriculado)
+        OutlinedButton.icon(
+          onPressed: () => _confirmarAbandonoMatricula(enrollment),
+          icon: Icon(Icons.exit_to_app, size: 18, color: _dangerColor),
+          label: const Text('Abandonar', style: TextStyle(color: Color(0xFFEF4444))),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: _dangerColor),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+    ],
+  );
+}
+
+Future<void> _confirmarAbandonoMatricula(Map<String, dynamic> enrollment) async {
   final TextEditingController confirmController = TextEditingController();
   bool isLoading = false;
-  
+
+  final isMobile = MediaQuery.of(context).size.width < 600;
+
   showDialog(
     context: context,
     barrierDismissible: false,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) {
         return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 16 : 40,
+            vertical: 24,
+          ),
           elevation: 0,
           backgroundColor: Colors.transparent,
           child: Container(
@@ -1016,7 +1134,7 @@ void _confirmarAbandonoMatricula(Map<String, dynamic> enrollment) {
                   'Turma: ${enrollment['turma_horario']}\n\n'
                   'Esta ação não pode ser desfeita e você perderá o acesso ao cronograma e às atividades.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF475569),
                     height: 1.4,
@@ -1071,7 +1189,10 @@ void _confirmarAbandonoMatricula(Map<String, dynamic> enrollment) {
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(color: _dangerColor, width: 2),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                         ),
                       ),
                     ],
@@ -1115,18 +1236,26 @@ void _confirmarAbandonoMatricula(Map<String, dynamic> enrollment) {
                                   );
                                   return;
                                 }
-                                
+
                                 setState(() => isLoading = true);
                                 await _abandonarMatricula(enrollment);
+
                                 if (mounted) {
                                   Navigator.pop(context);
                                 }
                               },
                         icon: isLoading
-                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
                             : const Icon(Icons.check, size: 18),
                         label: Text(
-                          isLoading ? 'Processando...' : 'Confirmar Abandono',
+                          isLoading ? 'Processando...' : 'Confirmar',
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -1280,7 +1409,6 @@ void _mostrarInformacoesGrupos() {
                     ),
                   ),
                 ),
-                // Content remains the same
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(20),

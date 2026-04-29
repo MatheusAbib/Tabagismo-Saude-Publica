@@ -17,6 +17,7 @@ class HistoricoTurmaScreen extends StatefulWidget {
 
 class _HistoricoTurmaScreenState extends State<HistoricoTurmaScreen> {
   final Color _primaryColor = const Color(0xFF0F2B3D);
+  final Color _primaryMedium = Color.fromARGB(255, 19, 56, 85);
   final Color _accentColor = const Color(0xFF2C7DA0);
   List<String> _datas = [];
   List<Map<String, dynamic>> _usuarios = [];
@@ -72,11 +73,14 @@ class _HistoricoTurmaScreenState extends State<HistoricoTurmaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final horizontalPadding = isMobile ? 16.0 : 50.0;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Colors.white, 
       body: Column(
         children: [
-          _buildHeader(),
+          _buildHeader(horizontalPadding),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -89,23 +93,18 @@ class _HistoricoTurmaScreenState extends State<HistoricoTurmaScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(double horizontalPadding) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    
     return Container(
       padding: EdgeInsets.only(
         top: MediaQuery.of(context).padding.top + 12,
-        left: 50,
-        right: 50,
+        left: horizontalPadding,
+        right: horizontalPadding,
         bottom: 12,
       ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            _primaryColor,
-            const Color(0xFF1A4A6F),
-          ],
-        ),
+color:  _primaryMedium,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
@@ -128,13 +127,12 @@ class _HistoricoTurmaScreenState extends State<HistoricoTurmaScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          const SizedBox(width: 14),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Histórico de Presenças',
-                style: TextStyle(
+              Text(
+                isMobile ? 'Histórico' : 'Histórico de Presenças',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -142,10 +140,10 @@ class _HistoricoTurmaScreenState extends State<HistoricoTurmaScreen> {
                 ),
               ),
               Text(
-                '${widget.turmaNome} • ${widget.upaNome}',
+                isMobile ? widget.turmaNome : '${widget.turmaNome} • ${widget.upaNome}',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.8),
-                  fontSize: 12,
+                  fontSize: isMobile ? 11 : 12,
                 ),
               ),
             ],
@@ -202,9 +200,12 @@ class _HistoricoTurmaScreenState extends State<HistoricoTurmaScreen> {
     );
   }
 
-  Widget _buildContent() {
+   Widget _buildContent() {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final padding = isMobile ? 12.0 : 20.0;
+    
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(padding),
       child: Column(
         children: [
           _buildInfoCard(),
@@ -218,6 +219,84 @@ class _HistoricoTurmaScreenState extends State<HistoricoTurmaScreen> {
   }
 
   Widget _buildInfoCard() {
+    final isMobile = MediaQuery.of(context).size.width < 500;
+    
+    if (isMobile) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _accentColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(Icons.people, color: _accentColor, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Total de Alunos',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_usuarios.length} alunos',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _accentColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(Icons.calendar_today, color: _accentColor, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Total de Aulas',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_datas.length} aulas',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -498,6 +577,8 @@ class _HistoricoTurmaScreenState extends State<HistoricoTurmaScreen> {
   }
 
   Widget _buildLegendCard() {
+    final isMobile = MediaQuery.of(context).size.width < 500;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -507,33 +588,30 @@ class _HistoricoTurmaScreenState extends State<HistoricoTurmaScreen> {
           BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 4)),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Wrap(
+        spacing: isMobile ? 12 : 20,
+        runSpacing: 10,
+        alignment: WrapAlignment.center,
         children: [
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 20,
-            runSpacing: 10,
-            children: [
-              _buildLegendItem(const Color(0xFF10B981), 'Presente', 'P'),
-              _buildLegendItem(const Color(0xFFEF4444), 'Falta', 'F'),
-              _buildLegendItem(Colors.grey.shade300, 'Não registrado', '-'),
-              _buildLegendItem(const Color(0xFFF59E0B), 'Fumando', 'F'),
-              _buildLegendItem(const Color(0xFF3B82F6), 'Sem fumar', 'SM'),
-            ],
-          ),
+          _buildLegendItem(const Color(0xFF10B981), 'Presente', 'P'),
+          _buildLegendItem(const Color(0xFFEF4444), 'Falta', 'F'),
+          _buildLegendItem(Colors.grey.shade300, 'Não registrado', '-'),
+          _buildLegendItem(const Color(0xFFF59E0B), 'Fumando', 'F'),
+          _buildLegendItem(const Color(0xFF3B82F6), 'Sem fumar', 'SM'),
         ],
       ),
     );
   }
 
   Widget _buildLegendItem(Color color, String label, String code) {
+    final isMobile = MediaQuery.of(context).size.width < 500;
+    
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 24,
-          height: 24,
+          width: isMobile ? 20 : 24,
+          height: isMobile ? 20 : 24,
           decoration: BoxDecoration(
             color: color.withOpacity(0.15),
             borderRadius: BorderRadius.circular(8),
@@ -542,14 +620,14 @@ class _HistoricoTurmaScreenState extends State<HistoricoTurmaScreen> {
           child: Center(
             child: Text(
               code,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+              style: TextStyle(fontSize: isMobile ? 9 : 11, fontWeight: FontWeight.w700, color: color),
             ),
           ),
         ),
         const SizedBox(width: 8),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+          style: TextStyle(fontSize: isMobile ? 10 : 12, color: const Color(0xFF475569)),
         ),
       ],
     );

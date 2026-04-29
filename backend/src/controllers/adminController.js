@@ -24,6 +24,7 @@ exports.getStats = async (req, res) => {
   }
 };
 
+
 exports.getUsuarioDetalhes = async (req, res) => {
   try {
     const { id } = req.params;
@@ -98,37 +99,36 @@ exports.getUsuariosPaginados = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const search = req.query.search || '';
-    
     const offset = (page - 1) * limit;
-    
-    let query = 'SELECT id, nome_completo, email, telefone, is_admin, created_at FROM usuarios WHERE tipo_usuario IN ("comum", "admin")';
-    let countQuery = 'SELECT COUNT(*) as total FROM usuarios WHERE tipo_usuario IN ("comum", "admin")';
+
+    let query = `SELECT id, nome_completo, email, telefone, is_admin, created_at 
+                 FROM usuarios WHERE tipo_usuario IN ('comum', 'admin')`;
+    let countQuery = `SELECT COUNT(*) as total FROM usuarios WHERE tipo_usuario IN ('comum', 'admin')`;
     let params = [];
     let countParams = [];
-    
+
     if (search) {
-      query += ' AND (nome_completo LIKE ? OR email LIKE ?)';
-      countQuery += ' AND (nome_completo LIKE ? OR email LIKE ?)';
+      query += ` AND (nome_completo LIKE ? OR email LIKE ? OR cpf LIKE ?)`;
+      countQuery += ` AND (nome_completo LIKE ? OR email LIKE ? OR cpf LIKE ?)`;
       const searchParam = `%${search}%`;
-      params = [searchParam, searchParam, limit, offset];
-      countParams = [searchParam, searchParam];
-    } else {
-      params = [limit, offset];
+      params.push(searchParam, searchParam, searchParam);
+      countParams.push(searchParam, searchParam, searchParam);
     }
-    
-    query += ' ORDER BY id DESC LIMIT ? OFFSET ?';
-    
-    const [usuarios] = await pool.execute(query, params);
-    const [totalResult] = await pool.execute(countQuery, countParams);
-    
+
+    query += ` ORDER BY id DESC LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}`;
+
+    const [rows] = await pool.query(query, params);
+    const [countResult] = await pool.execute(countQuery, countParams);
+    const total = countResult[0].total;
+
     res.json({
-      usuarios,
-      total: totalResult[0].total,
-      page,
-      totalPages: Math.ceil(totalResult[0].total / limit)
+      usuarios: rows,
+      total: total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page
     });
   } catch (error) {
-    console.error('Erro ao buscar usuários:', error);
+    console.error('Erro ao buscar usuários paginados:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -284,34 +284,32 @@ exports.getUPAs = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const search = req.query.search || '';
-    
     const offset = (page - 1) * limit;
-    
-    let query = 'SELECT * FROM upas';
-    let countQuery = 'SELECT COUNT(*) as total FROM upas';
+
+    let query = `SELECT * FROM upas`;
+    let countQuery = `SELECT COUNT(*) as total FROM upas`;
     let params = [];
     let countParams = [];
-    
+
     if (search) {
-      query += ' WHERE nome LIKE ? OR endereco LIKE ? OR cidade LIKE ?';
-      countQuery += ' WHERE nome LIKE ? OR endereco LIKE ? OR cidade LIKE ?';
+      query += ` WHERE nome LIKE ? OR endereco LIKE ? OR cidade LIKE ?`;
+      countQuery += ` WHERE nome LIKE ? OR endereco LIKE ? OR cidade LIKE ?`;
       const searchParam = `%${search}%`;
-      params = [searchParam, searchParam, searchParam, limit, offset];
-      countParams = [searchParam, searchParam, searchParam];
-    } else {
-      params = [limit, offset];
+      params.push(searchParam, searchParam, searchParam);
+      countParams.push(searchParam, searchParam, searchParam);
     }
-    
-    query += ' ORDER BY id DESC LIMIT ? OFFSET ?';
-    
-    const [upas] = await pool.execute(query, params);
-    const [totalResult] = await pool.execute(countQuery, countParams);
-    
+
+    query += ` ORDER BY id DESC LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}`;
+
+    const [rows] = await pool.query(query, params);
+    const [countResult] = await pool.execute(countQuery, countParams);
+    const total = countResult[0].total;
+
     res.json({
-      upas,
-      total: totalResult[0].total,
-      page,
-      totalPages: Math.ceil(totalResult[0].total / limit)
+      upas: rows,
+      total: total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page
     });
   } catch (error) {
     console.error('Erro ao buscar UPAs:', error);

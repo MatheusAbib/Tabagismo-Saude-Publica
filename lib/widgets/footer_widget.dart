@@ -8,81 +8,80 @@ class FooterWidget extends StatelessWidget {
     final Color primaryDark = Color(0xFF0F2B3D);
     final Color primaryMedium = Color(0xFF1A4A6F);
     final Color accentColor = Color(0xFF2C7DA0);
+    final isMobile = MediaQuery.of(context).size.width < 768;
+    final isTablet = MediaQuery.of(context).size.width >= 768 && MediaQuery.of(context).size.width < 1200;
+    final horizontalPadding = isMobile ? 16.0 : (isTablet ? 32.0 : 50.0);
+    final Color _primaryMedium = Color.fromARGB(255, 19, 56, 85);
     
     return Container(
       width: double.infinity,
       padding: EdgeInsets.only(
-      top: 48,
-      left: 50,
-      right: 50,
-      bottom: 25,
-    ),
+        top: 48,
+        left: horizontalPadding,
+        right: horizontalPadding,
+        bottom: 25,
+      ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            primaryDark,
-            primaryMedium,
-            Color(0xFF0A1E2C),
-          ],
-        ),
+            color:  _primaryMedium,
+
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(35),
-                ),
-                child: Icon(Icons.smoking_rooms_outlined, color: Colors.white, size: 32),
-              ),
-              SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Desfumo',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
-                      fontFamily: 'Poppins',
-                    ),
-                  ),
-                  Text(
-                    'O lugar onde o fumo deixa de existir',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
-                ],
-              ),
-            ],
+       Row(
+  children: [
+    Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(35),
+      ),
+      child: const Icon(
+        Icons.smoke_free_outlined,
+        color: Colors.white,
+        size: 28,
+      ),
+    ),
+    const SizedBox(width: 12),
+    const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Desfumo',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
           ),
-          SizedBox(height: 32),
+        ),
+        Text(
+          'Apoio ao Tabagismo',
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 10,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ],
+    ),
+  ],
+),
+          const SizedBox(height: 32),
           Divider(color: Colors.white.withOpacity(0.2), thickness: 1),
-          SizedBox(height: 32),
+          const SizedBox(height: 32),
           
           LayoutBuilder(
             builder: (context, constraints) {
-              bool isMobile = constraints.maxWidth < 800;
+              bool isMobileFooter = constraints.maxWidth < 800;
               
-              if (isMobile) {
+              if (isMobileFooter) {
                 return Column(
                   children: [
                     _buildAboutSection(),
-                    SizedBox(height: 32),
+                    const SizedBox(height: 32),
                     _buildContactSection(),
-                    SizedBox(height: 32),
+                    const SizedBox(height: 32),
                     _buildResourcesSection(),
                   ],
                 );
@@ -92,25 +91,25 @@ class FooterWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(flex: 5, child: _buildAboutSection()),
-                  SizedBox(width: 48),
+                  const SizedBox(width: 48),
                   Expanded(flex: 4, child: _buildContactSection()),
-                  SizedBox(width: 48),
+                  const SizedBox(width: 48),
                   Expanded(flex: 4, child: _buildResourcesSection()),
                 ],
               );
             },
           ),
           
-          SizedBox(height: 40),
+          const SizedBox(height: 40),
           Divider(color: Colors.white.withOpacity(0.2), thickness: 1),
-          SizedBox(height: 24),
+          const SizedBox(height: 24),
           
           _buildBenefitsGrid(),
           
-          SizedBox(height: 32),
+          const SizedBox(height: 32),
           Divider(color: Colors.white.withOpacity(0.2), thickness: 1),
-
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
+          
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -118,7 +117,7 @@ class FooterWidget extends StatelessWidget {
                 '© 2026 Desfumo - Todos os direitos reservados',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.5),
-                  fontSize: 11,
+                  fontSize: isMobile ? 9 : 11,
                   fontFamily: 'Inter',
                 ),
               ),
@@ -133,7 +132,7 @@ class FooterWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'SOBRE O PROJETO',
           style: TextStyle(
             color: Colors.white,
@@ -143,7 +142,7 @@ class FooterWidget extends StatelessWidget {
             fontFamily: 'Montserrat',
           ),
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         Text(
           'O Desfumo é uma plataforma dedicada a ajudar pessoas que desejam parar de fumar, conectando-as a unidades de saúde e grupos de apoio especializados.',
           style: TextStyle(
@@ -153,17 +152,15 @@ class FooterWidget extends StatelessWidget {
             fontFamily: 'Inter',
           ),
         ),
-
       ],
     );
   }
 
   Widget _buildContactSection() {
-    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'CONTATO E SUPORTE',
           style: TextStyle(
             color: Colors.white,
@@ -173,11 +170,11 @@ class FooterWidget extends StatelessWidget {
             fontFamily: 'Montserrat',
           ),
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         _buildContactItem(Icons.phone_outlined, 'Disque Saúde: 136'),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         _buildContactItem(Icons.numbers, 'WhatsApp: (11) 99999-9999'),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         _buildContactItem(Icons.email_outlined, 'contato@tabagismoapp.com.br'),
       ],
     );
@@ -187,18 +184,18 @@ class FooterWidget extends StatelessWidget {
     return Row(
       children: [
         Container(
-          padding: EdgeInsets.all(6),
+          padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: Color(0xFF2C7DA0).withOpacity(0.15),
+            color: const Color(0xFF2C7DA0).withOpacity(0.15),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: Color(0xFF2C7DA0), size: 16),
+          child: Icon(icon, color: Colors.white70, size: 16),
         ),
-        SizedBox(width: 12),
+        const SizedBox(width: 12),
         Text(
           text,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.85),
+          style: const TextStyle(
+            color: Colors.white70,
             fontSize: 13,
             fontFamily: 'Inter',
           ),
@@ -211,7 +208,7 @@ class FooterWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'RECURSOS ÚTEIS',
           style: TextStyle(
             color: Colors.white,
@@ -221,11 +218,11 @@ class FooterWidget extends StatelessWidget {
             fontFamily: 'Montserrat',
           ),
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         _buildResourceItem(Icons.menu_book_outlined, 'Material educativo gratuito'),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         _buildResourceItem(Icons.group_outlined, 'Turmas de apoio'),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         _buildResourceItem(Icons.flag_outlined, 'Metas personalizadas'),
       ],
     );
@@ -235,18 +232,18 @@ class FooterWidget extends StatelessWidget {
     return Row(
       children: [
         Container(
-          padding: EdgeInsets.all(6),
+          padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: Color(0xFF2C7DA0).withOpacity(0.15),
+            color: const Color(0xFF2C7DA0).withOpacity(0.15),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: Color(0xFF2C7DA0), size: 16),
+          child: Icon(icon, color: Colors.white70, size: 16),
         ),
-        SizedBox(width: 12),
+        const SizedBox(width: 12),
         Text(
           text,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.85),
+          style: const TextStyle(
+            color: Colors.white70,
             fontSize: 13,
             fontFamily: 'Inter',
           ),
@@ -259,7 +256,7 @@ class FooterWidget extends StatelessWidget {
     final List<Map<String, String>> benefits = [
       {'time': '20 minutos', 'benefit': 'Pressão e pulsação normalizam'},
       {'time': '12 horas', 'benefit': 'CO no sangue normaliza'},
-      {'time': '2-3 meses', 'benefit': 'Circulação e função pulmonar melhoram'},
+      {'time': '2-3 meses', 'benefit': 'Circulação melhora'},
       {'time': '1-9 meses', 'benefit': 'Tosse e falta de ar diminuem'},
       {'time': '1 ano', 'benefit': 'Risco cardíaco cai pela metade'},
       {'time': '5 anos', 'benefit': 'Risco de derrame igual a não fumante'},
@@ -267,77 +264,86 @@ class FooterWidget extends StatelessWidget {
       {'time': '15 anos', 'benefit': 'Risco cardíaco igual a não fumante'},
     ];
     
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 500;
+        final crossAxisCount = constraints.maxWidth > 1200 ? 4 : (constraints.maxWidth > 700 ? 3 : (isMobile ? 1 : 2));
+        final childAspectRatio = isMobile ? 8.0 : 6.0;
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.auto_awesome, color: Color(0xFF2C7DA0), size: 20),
-            SizedBox(width: 8),
-            Text(
-              'BENEFÍCIOS DE PARAR DE FUMAR',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.8,
-                fontFamily: 'Montserrat',
-              ),
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, color: const Color(0xFF2C7DA0), size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'BENEFÍCIOS DE PARAR DE FUMAR',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.8,
+                    fontFamily: 'Montserrat',
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        SizedBox(height: 20),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            int crossAxisCount = constraints.maxWidth > 900 ? 4 : (constraints.maxWidth > 600 ? 3 : 2);
-            return GridView.builder(
+            const SizedBox(height: 20),
+            GridView.builder(
               shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 24,
-                mainAxisSpacing: 20,
-                childAspectRatio: 6,
+                crossAxisSpacing: isMobile ? 12 : 24,
+                mainAxisSpacing: isMobile ? 16 : 20,
+                childAspectRatio: childAspectRatio,
               ),
               itemCount: benefits.length,
               itemBuilder: (context, index) {
-                return _buildBenefitItem(benefits[index]['time']!, benefits[index]['benefit']!);
+                return _buildBenefitItem(
+                  context,
+                  benefits[index]['time']!,
+                  benefits[index]['benefit']!,
+                );
               },
-            );
-          },
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildBenefitItem(String time, String benefit) {
+  Widget _buildBenefitItem(BuildContext context, String time, String benefit) {
+    final isMobile = MediaQuery.of(context).size.width < 500;
+    
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          margin: EdgeInsets.only(top: 2),
-          child: Icon(Icons.check_circle, color: Color(0xFF10B981), size: 16),
+          margin: const EdgeInsets.only(top: 2),
+          child: const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 16),
         ),
-        SizedBox(width: 12),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 time,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   fontFamily: 'Inter',
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
                 benefit,
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.7),
-                  fontSize: 12,
+                  fontSize: isMobile ? 11 : 12,
                   fontFamily: 'Inter',
                   height: 1.3,
                 ),

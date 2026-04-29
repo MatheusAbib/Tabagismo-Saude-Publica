@@ -6,7 +6,6 @@ exports.registrarSintoma = async (req, res) => {
     const usuarioId = req.userId;
     const { data, ansiedade, irritabilidade, insonia, fome, dificuldadeConcentracao, vontadeFumar, observacoes } = req.body;
     
-    // Tratar valores undefined como null
     const ansiedadeVal = ansiedade !== undefined ? ansiedade : null;
     const irritabilidadeVal = irritabilidade !== undefined ? irritabilidade : null;
     const insoniaVal = insonia !== undefined ? insonia : null;

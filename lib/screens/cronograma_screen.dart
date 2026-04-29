@@ -21,6 +21,8 @@ class _CronogramaScreenState extends State<CronogramaScreen> {
   final Color _accentColor = const Color(0xFF2C7DA0);
   final Color _successColor = const Color(0xFF10B981);
   final Color _warningColor = const Color(0xFFF59E0B);
+    final Color _primaryMedium = Color.fromARGB(255, 19, 56, 85);
+
   final Color _dangerColor = const Color(0xFFEF4444);
   bool _isLoading = true;
   Map<String, dynamic>? _cronograma;
@@ -55,13 +57,13 @@ class _CronogramaScreenState extends State<CronogramaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+     backgroundColor: Colors.white,  
       appBar: AppBar(
         title: const Text(
           'Cronograma de Aulas',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: _primaryDark,
+        backgroundColor: _primaryMedium,
         foregroundColor: Colors.white,
         elevation: 0,
       ),

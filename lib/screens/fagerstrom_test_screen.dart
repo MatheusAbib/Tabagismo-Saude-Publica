@@ -206,7 +206,7 @@ class _FagerstromTestScreenState extends State<FagerstromTestScreen> {
 @override
 Widget build(BuildContext context) {
   return Scaffold(
-    backgroundColor: const Color(0xFFF8FAFC),
+    backgroundColor: Colors.white,
     appBar: AppBar(
       backgroundColor: _primaryDark,
       elevation: 0,
@@ -236,7 +236,6 @@ Widget build(BuildContext context) {
           ),
         ],
       ),
-      // Remova o actions completamente ou deixe vazio
     ),
     body: _isLoading
         ? Center(

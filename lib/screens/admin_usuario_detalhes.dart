@@ -23,6 +23,8 @@ class _AdminUsuarioDetalhesScreenState extends State<AdminUsuarioDetalhesScreen>
   List<Map<String, dynamic>> _sintomas = [];
   Map<String, dynamic>? _matricula;
   bool _atualizandoMatricula = false;
+  final Color _primaryMedium = Color.fromARGB(255, 19, 56, 85);
+
 
   @override
   void initState() {
@@ -263,13 +265,25 @@ Future<void> _alocarTurma(String opcao) async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: Text(widget.usuarioNome),
-        backgroundColor: const Color(0xFF0F2B3D),
-        foregroundColor: Colors.white,
-        elevation: 0,
+      backgroundColor: Colors.white,
+     appBar: AppBar(
+  title: Row(
+    children: [
+      const Icon(Icons.person, color: Colors.white, size: 24),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Text(
+          widget.usuarioNome,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
+    ],
+  ),
+  backgroundColor: const Color(0xFF0F2B3D), 
+  foregroundColor: Colors.white,
+  elevation: 0,
+),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
