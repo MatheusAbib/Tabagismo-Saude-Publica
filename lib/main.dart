@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:tabagismo_app/screens/login_screen.dart';
 import 'package:tabagismo_app/screens/home_screen.dart';
 import 'package:tabagismo_app/screens/admin_screen.dart';
 import 'package:tabagismo_app/screens/enfermeira_screen.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -42,21 +43,26 @@ class MyApp extends StatelessWidget {
             );
           }
           
-      if (snapshot.hasData && snapshot.data != null) {
-        final userData = snapshot.data!['user'];
-        final tipoUsuario = userData['tipo_usuario'] ?? 'comum';
-        final isAdmin = userData['is_admin'] == 1;
-        
-        if (isAdmin || tipoUsuario == 'admin') {
-          return AdminScreen(userData: userData);
-        } else if (tipoUsuario == 'enfermeira') {
-          return EnfermeiraScreen(userData: userData);
-        } else {
-          return HomeScreen(userData: userData);
-        }
-      }
+          if (snapshot.hasData && snapshot.data != null) {
+            final fullData = snapshot.data!;
+            final userData = fullData['user'];
+            final token = fullData['token'];
+            
+            userData['token'] = token;
+            
+            final tipoUsuario = userData['tipo_usuario'] ?? 'comum';
+            final isAdmin = userData['is_admin'] == 1;
+            
+            if (isAdmin || tipoUsuario == 'admin') {
+              return AdminScreen(userData: userData);
+            } else if (tipoUsuario == 'enfermeira') {
+              return EnfermeiraScreen(userData: userData);
+            } else {
+              return HomeScreen(userData: userData);
+            }
+          }
           
-          return LoginScreen();
+          return HomeScreen(userData: {});
         },
       ),
       debugShowCheckedModeBanner: false,

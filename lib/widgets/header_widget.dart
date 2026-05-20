@@ -3,12 +3,13 @@ import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 import 'package:tabagismo_app/screens/login_screen.dart';
 import 'package:tabagismo_app/screens/upa_screen.dart';
 import 'package:tabagismo_app/screens/my_enrollments_screen.dart';
-import 'package:tabagismo_app/screens/fagerstrom_test_screen.dart';
+import 'package:tabagismo_app/screens/fagerstrom_test_modal.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/services/sintoma_service.dart';
 
+
 import 'dart:async';
-import 'package:tabagismo_app/screens/notification_service.dart';
+import 'package:tabagismo_app/services/notification_service.dart';
 
 import 'package:fl_chart/fl_chart.dart' as fl_chart;
 
@@ -35,10 +36,7 @@ class HeaderWidget extends StatefulWidget {
 class _HeaderWidgetState extends State<HeaderWidget> {
   final _authService = AuthService();
   final _sintomaService = SintomaService();
-  final Color _primaryColor = Color(0xFF0F2B3D);
-  final Color _accentColor = Color(0xFF2C7DA0);
-  final Color _primaryMedium = Color.fromARGB(255, 19, 56, 85);
-
+  final Color _accentColor = const Color(0xFF1F4E6E);
   
   StreamController<Map<String, dynamic>> _notificationStream = StreamController.broadcast();
   Timer? _notificationTimer;
@@ -171,80 +169,147 @@ class _HeaderWidgetState extends State<HeaderWidget> {
     );
   }
 
- void _showNotificationsDialog() async {
+void _showNotificationsDialog() async {
   try {
     final response = await NotificationService.getNotificacoes();
     final notificacoes = List<Map<String, dynamic>>.from(response['notificacoes']);
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
-        final isSmallScreen = MediaQuery.of(context).size.width < 600;
-
         return Dialog(
-          insetPadding: const EdgeInsets.all(5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          insetPadding: const EdgeInsets.all(20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
           child: Container(
-            width: MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.95,
-            height: MediaQuery.of(context).size.height > 600 ? 550 : MediaQuery.of(context).size.height * 0.8,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (!isSmallScreen)
-                  Row(
-                    children: [
-                      _buildHeaderIcon(),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Notificações',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                      ),
-                      const Spacer(),
-                      if (notificacoes.isNotEmpty) _buildActions(notificacoes),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-
-                if (isSmallScreen) ...[
-                  Row(
-                    children: [
-                      _buildHeaderIcon(),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Notificações',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  if (notificacoes.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    _buildActions(notificacoes),
-                  ],
-                ],
-
-                const Divider(),
-
-                Expanded(
-                  child: notificacoes.isEmpty
-                      ? const Center(child: Text('Nenhuma notificação'))
-                      : ListView.builder(
-                          itemCount: notificacoes.length,
-                          itemBuilder: (context, index) {
-                            final notif = notificacoes[index];
-                            return _buildNotificationCard(notif);
-                          },
+            width: isMobile ? MediaQuery.of(context).size.width * 0.95 : 700,
+            height: isMobile ? MediaQuery.of(context).size.height * 0.85 : 650,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Column(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(isMobile ? 16 : 20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF334155),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.notifications_none,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
-                ),
-              ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Notificações',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                'Mantenha-se informado',
+                                style: TextStyle(
+                                  fontSize: isMobile ? 10 : 12,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (notificacoes.isNotEmpty && !isMobile)
+                          Row(
+                            children: [
+                              TextButton(
+                                onPressed: () async {
+                                  await NotificationService.marcarTodasComoLidas();
+                                  Navigator.pop(context);
+                                  _showNotificationsDialog();
+                                  _carregarNotificacoes();
+                                },
+                                child: const Text('Marcar todas', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_sweep, color: Colors.white70, size: 20),
+                                onPressed: () => _confirmarLimparNotificacoes(),
+                              ),
+                            ],
+                          ),
+                        if (notificacoes.isNotEmpty && isMobile)
+                          IconButton(
+                            icon: const Icon(Icons.delete_sweep, color: Colors.white70, size: 20),
+                            onPressed: () => _confirmarLimparNotificacoes(),
+                          ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (notificacoes.isNotEmpty && isMobile)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () async {
+                              await NotificationService.marcarTodasComoLidas();
+                              Navigator.pop(context);
+                              _showNotificationsDialog();
+                              _carregarNotificacoes();
+                            },
+                            child: const Text('Marcar todas', style: TextStyle(color: Color(0xFF2C7DA0), fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Expanded(
+                    child: notificacoes.isEmpty
+                        ? const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.notifications_none, size: 64, color: Color(0xFF94A3B8)),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Nenhuma notificação',
+                                  style: TextStyle(color: Color(0xFF64748B), fontFamily: 'Inter'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: EdgeInsets.all(isMobile ? 12 : 16),
+                            itemCount: notificacoes.length,
+                            itemBuilder: (context, index) {
+                              final notif = notificacoes[index];
+                              return _buildNotificationCard(notif);
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -258,39 +323,6 @@ class _HeaderWidgetState extends State<HeaderWidget> {
       ),
     );
   }
-}
-
-Widget _buildHeaderIcon() {
-  return Container(
-    padding: const EdgeInsets.all(8),
-    decoration: BoxDecoration(
-      color: _accentColor.withOpacity(0.1),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: Icon(Icons.notifications, color: _accentColor),
-  );
-}
-
-Widget _buildActions(List notificacoes) {
-  return Row(
-    children: [
-      TextButton(
-        onPressed: () async {
-          await NotificationService.marcarTodasComoLidas();
-          Navigator.pop(context);
-          _showNotificationsDialog();
-          _carregarNotificacoes();
-        },
-        child: const Text('Marcar todas como lidas'),
-      ),
-      const SizedBox(width: 4),
-      IconButton(
-        icon: const Icon(Icons.delete_sweep, color: Color(0xFFEF4444)),
-        onPressed: () => _confirmarLimparNotificacoes(),
-        tooltip: 'Limpar todas',
-      ),
-    ],
-  );
 }
 
   void _confirmarLimparNotificacoes() {
@@ -321,13 +353,13 @@ Widget _buildActions(List notificacoes) {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withOpacity(0.1),
+                    color: const Color(0xFFC65D47).withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.delete_sweep,
                     size: 48,
-                    color: Color(0xFFEF4444),
+                    color: Color(0xFFC65D47),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -393,16 +425,16 @@ Widget _buildActions(List notificacoes) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Todas as notificações foram removidas!'),
-                              backgroundColor: Color(0xFF10B981),
+                              backgroundColor: Color(0xFF2E8B6A),
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                           );
                         },
                         icon: const Icon(Icons.check, size: 18),
-                        label: const Text('Sim, limpar tudo'),
+                        label: const Text('Sim, limpar'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFEF4444),
+                          backgroundColor: const Color(0xFFC65D47),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
@@ -443,80 +475,90 @@ Widget _buildActions(List notificacoes) {
     }
   }
 
-  Widget _buildNotificationCard(Map<String, dynamic> notif) {
-    Color getTipoColor(String tipo) {
-      switch (tipo) {
-        case 'sucesso': return const Color(0xFF10B981);
-        case 'matricula': return const Color(0xFF8B5CF6);
-        case 'sintoma': return const Color(0xFF3B82F6);
-        case 'fagerstrom': return const Color(0xFFF59E0B);
-        case 'outro': return const Color(0xFFF97316); 
-        default: return const Color(0xFFF97316); 
-      }
+Widget _buildNotificationCard(Map<String, dynamic> notif) {
+  Color getTipoColor(String tipo) {
+    switch (tipo) {
+      case 'sucesso': return const Color(0xFF2E8B6A);
+      case 'matricula': return const Color(0xFF6B21A8);
+      case 'sintoma': return const Color(0xFF1F4E6E);
+      case 'fagerstrom': return const Color(0xFFD97706);
+      default: return const Color(0xFFF97316);
     }
-    
-    IconData getTipoIcon(String tipo) {
-      switch (tipo) {
-        case 'matricula': return Icons.school;
-        case 'sintoma': return Icons.monitor_heart;
-        case 'fagerstrom': return Icons.assessment;
-        default: return Icons.hourglass_empty;
-      }
-    }
-    
-    final dataHora = _formatarDataHora(notif['data_criacao']);
-    
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      color: notif['lida'] == 1 ? Colors.grey.shade50 : Colors.white,
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: getTipoColor(notif['tipo']).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(getTipoIcon(notif['tipo']), color: getTipoColor(notif['tipo'])),
-        ),
-        title: Text(
-          notif['titulo'],
-          style: TextStyle(
-            fontWeight: notif['lida'] == 1 ? FontWeight.normal : FontWeight.bold,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(notif['mensagem']),
-            if (dataHora.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  dataHora,
-                  style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
-                ),
-              ),
-          ],
-        ),
-        trailing: notif['lida'] == 0
-            ? IconButton(
-                icon: const Icon(Icons.check_circle_outline, size: 18),
-                onPressed: () async {
-                  await NotificationService.marcarComoLida(notif['id']);
-                  Navigator.pop(context);
-                  _showNotificationsDialog();
-                  _carregarNotificacoes();
-                },
-              )
-            : null,
-        onTap: () {
-          if (notif['acao_url'] != null) {
-            Navigator.pop(context);
-          }
-        },
-      ),
-    );
   }
+  
+  IconData getTipoIcon(String tipo) {
+    switch (tipo) {
+      case 'matricula': return Icons.school;
+      case 'sintoma': return Icons.monitor_heart;
+      case 'fagerstrom': return Icons.assessment;
+      default: return Icons.notifications_none;
+    }
+  }
+    
+      final dataHora = _formatarDataHora(notif['data_criacao']);
+      final cor = getTipoColor(notif['tipo']);
+    
+   return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    decoration: BoxDecoration(
+      color: notif['lida'] == 1 ? const Color(0xFFF8FAFC) : Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: notif['lida'] == 1 ? const Color(0xFFE2E8F0) : cor.withOpacity(0.3),
+        width: 1,
+      ),
+    ),
+    child: ListTile(
+      contentPadding: const EdgeInsets.all(12),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: cor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(getTipoIcon(notif['tipo']), color: cor, size: 20),
+      ),
+      title: Text(
+        notif['titulo'],
+        style: TextStyle(
+          fontWeight: notif['lida'] == 1 ? FontWeight.normal : FontWeight.w600,
+          fontSize: 14,
+          color: const Color(0xFF0F172A),
+          fontFamily: 'Inter',
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 4),
+          Text(
+            notif['mensagem'],
+            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontFamily: 'Inter'),
+          ),
+          if (dataHora.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                dataHora,
+                style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontFamily: 'Inter'),
+              ),
+            ),
+        ],
+      ),
+      trailing: notif['lida'] == 0
+          ? IconButton(
+              icon: Icon(Icons.check_circle_outline, color: cor, size: 20),
+              onPressed: () async {
+                await NotificationService.marcarComoLida(notif['id']);
+                Navigator.pop(context);
+                _showNotificationsDialog();
+                _carregarNotificacoes();
+              },
+            )
+          : null,
+    ),
+  );
+}
 
   void _showLogoutConfirmationDialog() {
     showDialog(
@@ -546,13 +588,13 @@ Widget _buildActions(List notificacoes) {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withOpacity(0.1),
+                    color: const Color(0xFFC65D47).withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.logout_rounded,
                     size: 48,
-                    color: Color(0xFFEF4444),
+                    color: Color(0xFFC65D47),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -599,30 +641,31 @@ Widget _buildActions(List notificacoes) {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _performLogout();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFEF4444),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: const Text(
-                          'Sair',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
+    Expanded(
+  child: ElevatedButton.icon(
+    onPressed: () {
+      Navigator.pop(context);
+      _performLogout();
+    },
+    icon: const Icon(Icons.check, size: 18),
+    label: const Text(
+      'Sair',
+      style: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+    style: ElevatedButton.styleFrom(
+      backgroundColor: const Color(0xFFC65D47),
+      foregroundColor: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 14),
+    ),
+  ),
+),
                   ],
                 ),
               ],
@@ -647,95 +690,96 @@ Widget _buildActions(List notificacoes) {
   }
 
   void _showSintomasModal() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        int ansiedade = 0;
-        int irritabilidade = 0;
-        int insonia = 0;
-        int fome = 0;
-        int dificuldadeConcentracao = 0;
-        int vontadeFumar = 0;
-        String observacoes = '';
-        bool isLoading = false;
-        
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Dialog(
-              elevation: 0,
-                insetPadding: const EdgeInsets.all(5),
-              backgroundColor: Colors.transparent,
-              child: Container(
-                width: MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.95,
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height > 800 ? 800 : MediaQuery.of(context).size.height * 0.9,
-                ),
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 30,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      int ansiedade = 0;
+      int irritabilidade = 0;
+      int insonia = 0;
+      int fome = 0;
+      int dificuldadeConcentracao = 0;
+      int vontadeFumar = 0;
+      String observacoes = '';
+      bool isLoading = false;
+      
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Dialog(
+            insetPadding: const EdgeInsets.all(20),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Container(
+              width: MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.95,
+              height: MediaQuery.of(context).size.height > 800 ? 750 : MediaQuery.of(context).size.height * 0.85,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: _accentColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF334155),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.monitor_heart,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
-                          child: const Icon(Icons.monitor_heart, size: 24, color: Color(0xFF2C7DA0)),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Diário de Sintomas',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF0F172A),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Diário de Sintomas',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                'Registre como você se sente hoje',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFF64748B),
+                                Text(
+                                  'Registre como você se sente hoje',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white70,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Color(0xFF94A3B8)),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 20),
                     Expanded(
                       child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
                         child: Column(
                           children: [
-                            _buildSintomaSlider('Ansiedade', Icons.psychology, ansiedade, (value) => setState(() => ansiedade = value), const Color(0xFF3B82F6)),
-                            _buildSintomaSlider('Irritabilidade', Icons.flash_on, irritabilidade, (value) => setState(() => irritabilidade = value), const Color(0xFFEF4444)),
-                            _buildSintomaSlider('Insônia', Icons.nightlight_round, insonia, (value) => setState(() => insonia = value), const Color(0xFF8B5CF6)),
-                            _buildSintomaSlider('Fome', Icons.restaurant, fome, (value) => setState(() => fome = value), const Color(0xFFF59E0B)),
-                            _buildSintomaSlider('Dificuldade de Concentração', Icons.auto_awesome, dificuldadeConcentracao, (value) => setState(() => dificuldadeConcentracao = value), const Color(0xFF10B981)),
-                            _buildSintomaSlider('Vontade de Fumar', Icons.smoking_rooms, vontadeFumar, (value) => setState(() => vontadeFumar = value), const Color(0xFFEF4444)),
+                            _buildSintomaSlider('Ansiedade', Icons.psychology, ansiedade, (value) => setState(() => ansiedade = value), const Color(0xFF1F4E6E)),
+                            _buildSintomaSlider('Irritabilidade', Icons.flash_on, irritabilidade, (value) => setState(() => irritabilidade = value), const Color(0xFFC65D47)),
+                            _buildSintomaSlider('Insônia', Icons.nightlight_round, insonia, (value) => setState(() => insonia = value), const Color(0xFF6B21A8)),
+                            _buildSintomaSlider('Fome', Icons.restaurant, fome, (value) => setState(() => fome = value), const Color(0xFFD97706)),
+                            _buildSintomaSlider('Dificuldade de Concentração', Icons.auto_awesome, dificuldadeConcentracao, (value) => setState(() => dificuldadeConcentracao = value), const Color(0xFF2E8B6A)),
+                            _buildSintomaSlider('Vontade de Fumar', Icons.smoking_rooms, vontadeFumar, (value) => setState(() => vontadeFumar = value), const Color(0xFFC65D47)),
                             const SizedBox(height: 16),
                             Container(
                               padding: const EdgeInsets.all(12),
@@ -744,158 +788,205 @@ Widget _buildActions(List notificacoes) {
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(color: const Color(0xFFE2E8F0)),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                    TextField(
-                                      maxLines: 3,
-                                      decoration: _buildInputDecoration('Observações (opcional)', Icons.edit_note),
-                                      onChanged: (value) => observacoes = value,
-                                    ),
-                                ],
+                              child: TextField(
+                                maxLines: 3,
+                                decoration: const InputDecoration(
+                                  hintText: 'Observações (opcional)',
+                                  border: InputBorder.none,
+                                  hintStyle: TextStyle(color: Color(0xFF94A3B8), fontFamily: 'Inter'),
+                                ),
+                                onChanged: (value) => observacoes = value,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: isLoading ? null : () async {
+                                  setState(() => isLoading = true);
+                                  try {
+                                    final hoje = DateTime.now().toIso8601String().split('T')[0];
+                                    await _sintomaService.registrarSintoma(
+                                      data: hoje,
+                                      ansiedade: ansiedade,
+                                      irritabilidade: irritabilidade,
+                                      insonia: insonia,
+                                      fome: fome,
+                                      dificuldadeConcentracao: dificuldadeConcentracao,
+                                      vontadeFumar: vontadeFumar,
+                                      observacoes: observacoes,
+                                    );
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Sintomas registrados com sucesso!'),
+                                        backgroundColor: Color(0xFF2E8B6A),
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Erro ao registrar: $e'), backgroundColor: Color(0xFFC65D47)),
+                                    );
+                                  } finally {
+                                    setState(() => isLoading = false);
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2E8B6A),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                child: isLoading
+                                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                    : const Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.save, size: 18, color: Colors.white),
+                                          SizedBox(width: 8),
+                                          Text('Registrar Sintomas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                                        ],
+                                      ),
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 25),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : () async {
-                          setState(() => isLoading = true);
-                          try {
-                            final hoje = DateTime.now().toIso8601String().split('T')[0];
-                            await _sintomaService.registrarSintoma(
-                              data: hoje,
-                              ansiedade: ansiedade,
-                              irritabilidade: irritabilidade,
-                              insonia: insonia,
-                              fome: fome,
-                              dificuldadeConcentracao: dificuldadeConcentracao,
-                              vontadeFumar: vontadeFumar,
-                              observacoes: observacoes,
-                            );
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Sintomas registrados com sucesso!'),
-                                backgroundColor: Color(0xFF10B981),
-                              ),
-                            );
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Erro ao registrar: $e'), backgroundColor: Color(0xFFEF4444)),
-                            );
-                          } finally {
-                            setState(() => isLoading = false);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: isLoading
-                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Text('Registrar Sintomas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                      ),
-                    ),
                   ],
                 ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showSintomasGrafico() async {
-    try {
-      final sintomas = await _sintomaService.getSintomas(limit: 30);
-      
-      if (sintomas.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ainda não há registros de sintomas. Registre seu primeiro diário!'),
-            backgroundColor: Color(0xFFF59E0B),
-          ),
-        );
-        return;
-      }
-      
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return Dialog(
-            insetPadding: const EdgeInsets.all(5),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-            child: Container(
-              width: MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.95,
-              height: MediaQuery.of(context).size.height > 600 ? 500 : MediaQuery.of(context).size.height * 0.8,
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: _accentColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(Icons.show_chart, size: 24, color: Color(0xFF2C7DA0)),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Evolução dos Sintomas',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F172A),
-                        ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 10,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      _buildLegendaItem(const Color(0xFF3B82F6), 'Ansiedade'),
-                      _buildLegendaItem(const Color(0xFFEF4444), 'Irritabilidade'),
-                      _buildLegendaItem(const Color(0xFF8B5CF6), 'Insônia'),
-                      _buildLegendaItem(const Color(0xFFF97316), 'Fome'),
-                      _buildLegendaItem(const Color(0xFF10B981), 'Dificuldade de Concentração'),
-                      _buildLegendaItem(const Color(0xFFF59E0B), 'Vontade de Fumar'),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: _buildSintomasGrafico(sintomas),
-                  ),
-                ],
               ),
             ),
           );
         },
       );
-    } catch (e) {
+    },
+  );
+}
+
+ void _showSintomasGrafico() async {
+  try {
+    final sintomas = await _sintomaService.getSintomas(limit: 30);
+    
+    if (sintomas.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar gráfico: $e'), backgroundColor: const Color(0xFFEF4444)),
+        const SnackBar(
+          content: Text('Ainda não há registros de sintomas. Registre seu primeiro diário!'),
+          backgroundColor: Color(0xFFD97706),
+        ),
       );
+      return;
     }
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Container(
+            width: MediaQuery.of(context).size.width > 1000 ? 1000 : MediaQuery.of(context).size.width * 0.95,
+            height: MediaQuery.of(context).size.height > 800 ? 700 : MediaQuery.of(context).size.height * 0.85,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF334155),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.show_chart,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Evolução dos Sintomas',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                'Acompanhe sua evolução ao longo do tempo',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          Wrap(
+                            spacing: 16,
+                            runSpacing: 10,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              _buildLegendaItem(const Color(0xFF1F4E6E), 'Ansiedade'),
+                              _buildLegendaItem(const Color(0xFFC65D47), 'Irritabilidade'),
+                              _buildLegendaItem(const Color(0xFF6B21A8), 'Insônia'),
+                              _buildLegendaItem(const Color(0xFFF97316), 'Fome'),
+                              _buildLegendaItem(const Color(0xFF2E8B6A), 'Dificuldade de Concentração'),
+                              _buildLegendaItem(const Color(0xFFD97706), 'Vontade de Fumar'),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            height: 450,
+                            child: _buildSintomasGrafico(sintomas),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erro ao carregar gráfico: $e'), backgroundColor: const Color(0xFFC65D47)),
+    );
   }
+}
 
   Widget _buildSintomaSlider(String titulo, IconData icon, int valor, Function(int) onChanged, Color cor) {
     return Container(
@@ -988,122 +1079,173 @@ Widget _buildActions(List notificacoes) {
     );
   }
 
-  Widget _buildSintomasGrafico(List<Map<String, dynamic>> sintomas) {
-    sintomas = sintomas.reversed.toList();
-    
-    List<double> ansiedade = [];
-    List<double> irritabilidade = [];
-    List<double> vontadeFumar = [];
-    List<double> insonia = [];
-    List<double> fome = [];
-    List<double> dificuldadeConcentracao = [];
-    List<String> labels = [];
+Widget _buildSintomasGrafico(List<Map<String, dynamic>> sintomas) {
+  sintomas = sintomas.reversed.toList();
+  
+  List<double> ansiedade = [];
+  List<double> irritabilidade = [];
+  List<double> vontadeFumar = [];
+  List<double> insonia = [];
+  List<double> fome = [];
+  List<double> dificuldadeConcentracao = [];
+  List<String> labels = [];
 
-    for (var s in sintomas) {
-      ansiedade.add((s['ansiedade'] ?? 0).toDouble());
-      irritabilidade.add((s['irritabilidade'] ?? 0).toDouble());
-      vontadeFumar.add((s['vontade_fumar'] ?? 0).toDouble());
-      insonia.add((s['insonia'] ?? 0).toDouble());
-      fome.add((s['fome'] ?? 0).toDouble());
-      dificuldadeConcentracao.add((s['dificuldade_concentracao'] ?? 0).toDouble());
-      
-      final data = DateTime.parse(s['data']);
-      labels.add('${data.day}/${data.month}');
-    }
+  for (var s in sintomas) {
+    ansiedade.add((s['ansiedade'] ?? 0).toDouble());
+    irritabilidade.add((s['irritabilidade'] ?? 0).toDouble());
+    vontadeFumar.add((s['vontade_fumar'] ?? 0).toDouble());
+    insonia.add((s['insonia'] ?? 0).toDouble());
+    fome.add((s['fome'] ?? 0).toDouble());
+    dificuldadeConcentracao.add((s['dificuldade_concentracao'] ?? 0).toDouble());
     
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Container(
-        width: MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.85,
-        height: 350,
-        child: fl_chart.LineChart(
-          fl_chart.LineChartData(
-            gridData: fl_chart.FlGridData(show: true),
-            titlesData: fl_chart.FlTitlesData(
-              bottomTitles: fl_chart.AxisTitles(
-                sideTitles: fl_chart.SideTitles(
-                  showTitles: true,
-                  getTitlesWidget: (value, meta) {
-                    final index = value.toInt();
-                    if (index >= 0 && index < labels.length) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8),
+    final data = DateTime.parse(s['data']);
+    labels.add('${data.day}/${data.month}');
+  }
+  
+  return SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    physics: const BouncingScrollPhysics(),
+    child: Container(
+      width: labels.length * 70,
+      height: 420,
+      child: fl_chart.LineChart(
+        fl_chart.LineChartData(
+          gridData: fl_chart.FlGridData(
+            show: true,
+            drawHorizontalLine: true,
+            drawVerticalLine: true,
+            horizontalInterval: 2,
+            verticalInterval: 2,
+            getDrawingHorizontalLine: (value) {
+              return fl_chart.FlLine(
+                color: const Color(0xFFE2E8F0),
+                strokeWidth: 1,
+                dashArray: [5, 5],
+              );
+            },
+            getDrawingVerticalLine: (value) {
+              return fl_chart.FlLine(
+                color: const Color(0xFFE2E8F0),
+                strokeWidth: 1,
+                dashArray: [5, 5],
+              );
+            },
+          ),
+          titlesData: fl_chart.FlTitlesData(
+            bottomTitles: fl_chart.AxisTitles(
+              sideTitles: fl_chart.SideTitles(
+                showTitles: true,
+                interval: 2,
+                getTitlesWidget: (value, meta) {
+                  final index = value.toInt();
+                  if (index >= 0 && index < labels.length) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Transform.rotate(
+                        angle: -0.3,
                         child: Text(
                           labels[index],
-                          style: const TextStyle(fontSize: 10),
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontFamily: 'Inter'),
                         ),
-                      );
-                    }
-                    return const Text('');
-                  },
-                ),
+                      ),
+                    );
+                  }
+                  return const Text('');
+                },
+                reservedSize: 50,
               ),
-              leftTitles: fl_chart.AxisTitles(
-                sideTitles: fl_chart.SideTitles(
-                  showTitles: true,
-                  getTitlesWidget: (value, meta) {
-                    return Text('${value.toInt()}', style: const TextStyle(fontSize: 10));
-                  },
-                  reservedSize: 30,
-                ),
-              ),
-              topTitles: fl_chart.AxisTitles(sideTitles: fl_chart.SideTitles(showTitles: false)),
-              rightTitles: fl_chart.AxisTitles(sideTitles: fl_chart.SideTitles(showTitles: false)),
             ),
-            borderData: fl_chart.FlBorderData(show: true),
-            minX: 0,
-            maxX: (sintomas.length - 1).toDouble(),
-            minY: 0,
-            maxY: 10,
-            lineBarsData: [
-              fl_chart.LineChartBarData(
-                spots: List.generate(ansiedade.length, (i) => fl_chart.FlSpot(i.toDouble(), ansiedade[i])),
-                isCurved: true,
-                color: const Color(0xFF3B82F6),
-                barWidth: 3,
-                dotData: fl_chart.FlDotData(show: true),
+            leftTitles: fl_chart.AxisTitles(
+              sideTitles: fl_chart.SideTitles(
+                showTitles: true,
+                interval: 2,
+                getTitlesWidget: (value, meta) {
+                  return Text(
+                    '${value.toInt()}',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontFamily: 'Inter'),
+                  );
+                },
+                reservedSize: 40,
               ),
-              fl_chart.LineChartBarData(
-                spots: List.generate(irritabilidade.length, (i) => fl_chart.FlSpot(i.toDouble(), irritabilidade[i])),
-                isCurved: true,
-                color: const Color(0xFFEF4444),
-                barWidth: 3,
-                dotData: fl_chart.FlDotData(show: true),
-              ),
-              fl_chart.LineChartBarData(
-                spots: List.generate(vontadeFumar.length, (i) => fl_chart.FlSpot(i.toDouble(), vontadeFumar[i])),
-                isCurved: true,
-                color: const Color(0xFFF59E0B),
-                barWidth: 3,
-                dotData: fl_chart.FlDotData(show: true),
-              ),
-              fl_chart.LineChartBarData(
-                spots: List.generate(insonia.length, (i) => fl_chart.FlSpot(i.toDouble(), insonia[i])),
-                isCurved: true,
-                color: const Color(0xFF8B5CF6),
-                barWidth: 3,
-                dotData: fl_chart.FlDotData(show: true),
-              ),
-              fl_chart.LineChartBarData(
-                spots: List.generate(fome.length, (i) => fl_chart.FlSpot(i.toDouble(), fome[i])),
-                isCurved: true,
-                color: const Color(0xFFF97316),
-                barWidth: 3,
-                dotData: fl_chart.FlDotData(show: true),
-              ),
-              fl_chart.LineChartBarData(
-                spots: List.generate(dificuldadeConcentracao.length, (i) => fl_chart.FlSpot(i.toDouble(), dificuldadeConcentracao[i])),
-                isCurved: true,
-                color: const Color(0xFF10B981),
-                barWidth: 3,
-                dotData: fl_chart.FlDotData(show: true),
-              ),
-            ],
+            ),
+            topTitles: const fl_chart.AxisTitles(
+              sideTitles: fl_chart.SideTitles(showTitles: false),
+            ),
+            rightTitles: const fl_chart.AxisTitles(
+              sideTitles: fl_chart.SideTitles(showTitles: false),
+            ),
           ),
+
+borderData: fl_chart.FlBorderData(
+  show: true,
+),
+          minX: 0,
+          maxX: (sintomas.length - 1).toDouble(),
+          minY: 0,
+          maxY: 10,
+          lineTouchData: fl_chart.LineTouchData(
+            enabled: true,
+            touchTooltipData: fl_chart.LineTouchTooltipData(
+              getTooltipItems: (List<fl_chart.LineBarSpot> touchedSpots) {
+                return touchedSpots.map((spot) {
+                  return fl_chart.LineTooltipItem(
+                    '${spot.y.toInt()}',
+                    const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                  );
+                }).toList();
+              },
+            ),
+          ),
+          lineBarsData: [
+            fl_chart.LineChartBarData(
+              spots: List.generate(ansiedade.length, (i) => fl_chart.FlSpot(i.toDouble(), ansiedade[i])),
+              isCurved: true,
+              color: const Color(0xFF1F4E6E),
+              barWidth: 3,
+              dotData: const fl_chart.FlDotData(show: true),
+            ),
+            fl_chart.LineChartBarData(
+              spots: List.generate(irritabilidade.length, (i) => fl_chart.FlSpot(i.toDouble(), irritabilidade[i])),
+              isCurved: true,
+              color: const Color(0xFFC65D47),
+              barWidth: 3,
+              dotData: const fl_chart.FlDotData(show: true),
+            ),
+            fl_chart.LineChartBarData(
+              spots: List.generate(vontadeFumar.length, (i) => fl_chart.FlSpot(i.toDouble(), vontadeFumar[i])),
+              isCurved: true,
+              color: const Color(0xFFD97706),
+              barWidth: 3,
+              dotData: const fl_chart.FlDotData(show: true),
+            ),
+            fl_chart.LineChartBarData(
+              spots: List.generate(insonia.length, (i) => fl_chart.FlSpot(i.toDouble(), insonia[i])),
+              isCurved: true,
+              color: const Color(0xFF6B21A8),
+              barWidth: 3,
+              dotData: const fl_chart.FlDotData(show: true),
+            ),
+            fl_chart.LineChartBarData(
+              spots: List.generate(fome.length, (i) => fl_chart.FlSpot(i.toDouble(), fome[i])),
+              isCurved: true,
+              color: const Color(0xFFF97316),
+              barWidth: 3,
+              dotData: const fl_chart.FlDotData(show: true),
+            ),
+            fl_chart.LineChartBarData(
+              spots: List.generate(dificuldadeConcentracao.length, (i) => fl_chart.FlSpot(i.toDouble(), dificuldadeConcentracao[i])),
+              isCurved: true,
+              color: const Color(0xFF2E8B6A),
+              barWidth: 3,
+              dotData: const fl_chart.FlDotData(show: true),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   void _changePassword() async {
     final currentPasswordController = TextEditingController();
@@ -1131,10 +1273,10 @@ Widget _buildActions(List notificacoes) {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2C7DA0).withOpacity(0.1),
+                          color: const Color(0xFF1F4E6E).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.lock_outline, color: Color(0xFF2C7DA0), size: 24),
+                        child: const Icon(Icons.lock_outline, color: Color(0xFF1F4E6E), size: 24),
                       ),
                       const SizedBox(width: 12),
                       const Text(
@@ -1206,7 +1348,7 @@ Widget _buildActions(List notificacoes) {
                               if (mounted) {
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Senha alterada com sucesso!'), backgroundColor: Color(0xFF10B981)),
+                                  const SnackBar(content: Text('Senha alterada com sucesso!'), backgroundColor: Color(0xFF2E8B6A)),
                                 );
                               }
                             } catch (e) {
@@ -1220,7 +1362,7 @@ Widget _buildActions(List notificacoes) {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
+                            backgroundColor: const Color(0xFF2E8B6A),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
@@ -1285,7 +1427,7 @@ Widget _buildActions(List notificacoes) {
                             color: const Color(0xFF2C7DA0).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.edit_outlined, color: Color(0xFF2C7DA0), size: 24),
+                          child: const Icon(Icons.edit_outlined, color: Color(0xFF1F4E6E), size: 24),
                         ),
                         const SizedBox(width: 12),
                         const Text(
@@ -1418,7 +1560,7 @@ Widget _buildActions(List notificacoes) {
                                           widget.onNameUpdated!(nomeController.text);
                                         }
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Dados atualizados com sucesso!'), backgroundColor: Color(0xFF10B981)),
+                                          const SnackBar(content: Text('Dados atualizados com sucesso!'), backgroundColor: Color(0xFF2E8B6A)),
                                         );
                                       }
                                     } catch (e) {
@@ -1432,7 +1574,7 @@ Widget _buildActions(List notificacoes) {
                                     }
                                   },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF10B981),
+                              backgroundColor: const Color(0xFF2E8B6A),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
@@ -1502,20 +1644,37 @@ Widget _buildActions(List notificacoes) {
     );
   }
 
-  void _openFagerstromTest() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => FagerstromTestScreen(
-          onScoreUpdated: (score) {
-            if (widget.userData != null) {
-              widget.userData!['scoreFagestrom'] = score;
-            }
-          },
+void _openFagerstromTest() {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return Dialog(
+        insetPadding: const EdgeInsets.all(20),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
         ),
-      ),
-    );
-  }
+        child: Container(
+          width: MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.95,
+          height: MediaQuery.of(context).size.height > 800 ? 700 : MediaQuery.of(context).size.height * 0.85,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: FagerstromTestModal(
+              onScoreUpdated: (score) {
+                if (widget.userData != null) {
+                  widget.userData!['scoreFagestrom'] = score;
+                }
+              },
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
 
   @override
 Widget build(BuildContext context) {
@@ -1525,7 +1684,7 @@ Widget build(BuildContext context) {
   double horizontalPadding = isMobile ? 16 : (isTablet ? 32 : 50);
   
   return Container(
-    color:  _primaryMedium,
+      color: const Color(0xFF334155),  
     padding: EdgeInsets.only(
       top: MediaQuery.of(context).padding.top + 12,
       left: horizontalPadding,
@@ -1541,14 +1700,14 @@ Widget build(BuildContext context) {
               Container(
                 margin: EdgeInsets.only(right: 5),
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
                   onPressed: widget.onBackPressed ?? () => Navigator.pop(context),
                   padding: const EdgeInsets.all(10),
                   constraints: const BoxConstraints(),
                 ),
               ),
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(35),
@@ -1556,32 +1715,36 @@ Widget build(BuildContext context) {
               child: const Icon(
                 Icons.smoke_free_outlined,
                 color: Colors.white,
-                size: 28,
+                size: 32,
               ),
             ),
             const SizedBox(width: 12),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Desfumo',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                Text(
-                  'Apoio ao Tabagismo',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
+           const Column(
+  mainAxisSize: MainAxisSize.min,
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text(
+      'DESFUMO',
+      style: TextStyle(
+        fontFamily: 'BebasNeue',
+        fontSize: 28,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 1,
+        color: Colors.white,
+        height: 0.9, 
+      ),
+    ),
+    Text(
+      'Apoio ao Tabagismo',
+      style: TextStyle(
+        color: Colors.white70,
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        height: 0.9, 
+      ),
+    ),
+  ],
+),
           ],
         ),
         isMobile ? _buildMobileMenu() : _buildDesktopMenu(),
@@ -1590,30 +1753,38 @@ Widget build(BuildContext context) {
   );
 }
 
-  Widget _buildMobileMenu() {
-    return Row(
-      children: [
-        _buildNotificationBell(),
-        PopupMenuButton<String>(
-          offset: const Offset(0, 52),
-          elevation: 4,
+Widget _buildMobileMenu() {
+  return Row(
+    children: [
+      _buildNotificationBell(),
+      const SizedBox(width: 8),
+      Container(
+        height: 42,
+        width: 42,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.white.withOpacity(0.15),
+              Colors.white.withOpacity(0.08),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.25),
+            width: 1,
+          ),
+        ),
+        child: PopupMenuButton<String>(
+          offset: const Offset(0, 50),
+          elevation: 8,
+          shadowColor: Colors.black.withOpacity(0.15),
+          color: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Container(
-            height: 40,
-            width: 40,
-            margin: const EdgeInsets.only(left: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-            child: const Icon(Icons.menu, color: Colors.white, size: 24),
-          ),
+          child: const Icon(Icons.menu, color: Colors.white, size: 24),
           onSelected: (String value) {
             if (value == 'turmas_apoio') {
               _openUPAScreen();
@@ -1638,9 +1809,9 @@ Widget build(BuildContext context) {
               value: 'turmas_apoio',
               child: Row(
                 children: [
-                  Icon(Icons.location_on_outlined, size: 20),
+                  Icon(Icons.location_on_outlined, size: 20, color: Color(0xFF1F4E6E)),
                   SizedBox(width: 12),
-                  Text('Turmas de Apoio', style: TextStyle(fontSize: 14)),
+                  Text('Turmas de Apoio', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
                 ],
               ),
             ),
@@ -1649,9 +1820,9 @@ Widget build(BuildContext context) {
               value: 'diario',
               child: Row(
                 children: [
-                  Icon(Icons.monitor_heart_outlined, size: 20),
+                  Icon(Icons.monitor_heart_outlined, size: 20, color: Color(0xFF1F4E6E)),
                   SizedBox(width: 12),
-                  Text('Diário de Sintomas', style: TextStyle(fontSize: 14)),
+                  Text('Diário de Sintomas', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
                 ],
               ),
             ),
@@ -1659,9 +1830,9 @@ Widget build(BuildContext context) {
               value: 'grafico',
               child: Row(
                 children: [
-                  Icon(Icons.show_chart, size: 20),
+                  Icon(Icons.show_chart, size: 20, color: Color(0xFF2E8B6A)),
                   SizedBox(width: 12),
-                  Text('Gráfico de Sintomas', style: TextStyle(fontSize: 14)),
+                  Text('Gráfico de Sintomas', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
                 ],
               ),
             ),
@@ -1670,9 +1841,9 @@ Widget build(BuildContext context) {
               value: 'teste_fagerstrom',
               child: Row(
                 children: [
-                  Icon(Icons.assessment_outlined, size: 20),
+                  Icon(Icons.assessment_outlined, size: 20, color: Color(0xFFD97706)),
                   SizedBox(width: 12),
-                  Text('Teste de Fagerström', style: TextStyle(fontSize: 14)),
+                  Text('Teste de Fagerström', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
                 ],
               ),
             ),
@@ -1680,9 +1851,9 @@ Widget build(BuildContext context) {
               value: 'minhas_matriculas',
               child: Row(
                 children: [
-                  Icon(Icons.list_alt_outlined, size: 20),
+                  Icon(Icons.list_alt_outlined, size: 20, color: Color(0xFF6B21A8)),
                   SizedBox(width: 12),
-                  Text('Minhas Matrículas', style: TextStyle(fontSize: 14)),
+                  Text('Minhas Matrículas', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
                 ],
               ),
             ),
@@ -1691,9 +1862,9 @@ Widget build(BuildContext context) {
               value: 'alterar_senha',
               child: Row(
                 children: [
-                  Icon(Icons.lock_outline, size: 20),
+                  Icon(Icons.lock_outline, size: 20, color: Color(0xFF64748B)),
                   SizedBox(width: 12),
-                  Text('Alterar Senha', style: TextStyle(fontSize: 14)),
+                  Text('Alterar Senha', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
                 ],
               ),
             ),
@@ -1701,9 +1872,9 @@ Widget build(BuildContext context) {
               value: 'editar_dados',
               child: Row(
                 children: [
-                  Icon(Icons.edit_outlined, size: 20),
+                  Icon(Icons.edit_outlined, size: 20, color: Color(0xFF64748B)),
                   SizedBox(width: 12),
-                  Text('Editar Dados', style: TextStyle(fontSize: 14)),
+                  Text('Editar Dados', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
                 ],
               ),
             ),
@@ -1714,197 +1885,221 @@ Widget build(BuildContext context) {
                 children: [
                   Icon(Icons.logout_outlined, size: 20, color: Colors.red.shade400),
                   const SizedBox(width: 12),
-                  Text('Sair', style: TextStyle(fontSize: 14, color: Colors.red.shade400)),
+                  Text('Sair', style: TextStyle(fontSize: 14, color: Colors.red.shade400, fontFamily: 'Inter')),
                 ],
               ),
             ),
           ],
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
-  Widget _buildDesktopMenu() {
-    return Row(
-      children: [
-        Container(
-          height: 40,
-          margin: const EdgeInsets.only(right: 10),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _openUPAScreen,
-              borderRadius: BorderRadius.circular(30),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.location_on_outlined, color: Colors.white, size: 16),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Turmas de Apoio',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+Widget _buildDesktopMenu() {
+  return Row(
+    children: [
+      Container(
+        height: 42,
+        margin: const EdgeInsets.only(right: 12),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _openUPAScreen,
+            borderRadius: BorderRadius.circular(30),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 0),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white.withOpacity(0.15),
+                    Colors.white.withOpacity(0.08),
                   ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.25),
+                  width: 1,
                 ),
               ),
-            ),
-          ),
-        ),
-        Container(
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-              width: 1,
-            ),
-          ),
-          child: PopupMenuButton<String>(
-            offset: const Offset(0, 52),
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.person_outline, color: Colors.white, size: 16),
-                  ),
+                  Icon(Icons.location_on_outlined, color: Colors.white, size: 18),
                   const SizedBox(width: 8),
                   Text(
-                    'Bem-vindo, ${widget.userName.split(' ').first}',
+                    'Turmas de Apoio',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
+                      fontFamily: 'Inter',
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Icon(
-                    Icons.arrow_drop_down,
-                    color: Colors.white.withOpacity(0.9),
-                    size: 20,
                   ),
                 ],
               ),
             ),
-            onSelected: (String value) {
-              if (value == 'diario') {
-                _showSintomasModal();
-              } else if (value == 'grafico') {
-                _showSintomasGrafico();
-              } else if (value == 'teste_fagerstrom') {
-                _openFagerstromTest();
-              } else if (value == 'minhas_matriculas') {
-                _openMyEnrollments();
-              } else if (value == 'alterar_senha') {
-                _changePassword();
-              } else if (value == 'editar_dados') {
-                _editData();
-              } else if (value == 'sair') {
-                _logout();
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'diario',
-                child: Row(
-                  children: [
-                    Icon(Icons.monitor_heart_outlined, size: 20),
-                    SizedBox(width: 12),
-                    Text('Diário de Sintomas', style: TextStyle(fontSize: 14)),
-                  ],
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'grafico',
-                child: Row(
-                  children: [
-                    Icon(Icons.show_chart, size: 20),
-                    SizedBox(width: 12),
-                    Text('Gráfico de Sintomas', style: TextStyle(fontSize: 14)),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'teste_fagerstrom',
-                child: Row(
-                  children: [
-                    Icon(Icons.assessment_outlined, size: 20),
-                    SizedBox(width: 12),
-                    Text('Teste de Fagerström', style: TextStyle(fontSize: 14)),
-                  ],
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'minhas_matriculas',
-                child: Row(
-                  children: [
-                    Icon(Icons.list_alt_outlined, size: 20),
-                    SizedBox(width: 12),
-                    Text('Minhas Matrículas', style: TextStyle(fontSize: 14)),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'alterar_senha',
-                child: Row(
-                  children: [
-                    Icon(Icons.lock_outline, size: 20),
-                    SizedBox(width: 12),
-                    Text('Alterar Senha', style: TextStyle(fontSize: 14)),
-                  ],
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'editar_dados',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit_outlined, size: 20),
-                    SizedBox(width: 12),
-                    Text('Editar Dados', style: TextStyle(fontSize: 14)),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              PopupMenuItem<String>(
-                value: 'sair',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout_outlined, size: 20, color: Colors.red.shade400),
-                    const SizedBox(width: 12),
-                    Text('Sair', style: TextStyle(fontSize: 14, color: Colors.red.shade400)),
-                  ],
-                ),
-              ),
-            ],
           ),
         ),
-        _buildNotificationBell(),
-      ],
-    );
-  }
+      ),
+      Container(
+        height: 42,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.white.withOpacity(0.15),
+              Colors.white.withOpacity(0.08),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.25),
+            width: 1,
+          ),
+        ),
+        child: PopupMenuButton<String>(
+          offset: const Offset(0, 50),
+          elevation: 8,
+          shadowColor: Colors.black.withOpacity(0.15),
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.white.withOpacity(0.3),
+                        Colors.white.withOpacity(0.1),
+                      ],
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.person_outline, color: Colors.white, size: 16),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Bem-vindo, ${widget.userName.split(' ').first}',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: Colors.white.withOpacity(0.9),
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+          onSelected: (String value) {
+            if (value == 'diario') {
+              _showSintomasModal();
+            } else if (value == 'grafico') {
+              _showSintomasGrafico();
+            } else if (value == 'teste_fagerstrom') {
+              _openFagerstromTest();
+            } else if (value == 'minhas_matriculas') {
+              _openMyEnrollments();
+            } else if (value == 'alterar_senha') {
+              _changePassword();
+            } else if (value == 'editar_dados') {
+              _editData();
+            } else if (value == 'sair') {
+              _logout();
+            }
+          },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            const PopupMenuItem<String>(
+              value: 'diario',
+              child: Row(
+                children: [
+                  Icon(Icons.monitor_heart_outlined, size: 20, color: Color(0xFF1F4E6E)),
+                  SizedBox(width: 12),
+                  Text('Diário de Sintomas', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
+                ],
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'grafico',
+              child: Row(
+                children: [
+                  Icon(Icons.show_chart, size: 20, color: Color(0xFF2E8B6A)),
+                  SizedBox(width: 12),
+                  Text('Gráfico de Sintomas', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem<String>(
+              value: 'teste_fagerstrom',
+              child: Row(
+                children: [
+                  Icon(Icons.assessment_outlined, size: 20, color: Color(0xFFD97706)),
+                  SizedBox(width: 12),
+                  Text('Teste de Fagerström', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
+                ],
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'minhas_matriculas',
+              child: Row(
+                children: [
+                  Icon(Icons.list_alt_outlined, size: 20, color: Color(0xFF6B21A8)),
+                  SizedBox(width: 12),
+                  Text('Minhas Matrículas', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem<String>(
+              value: 'alterar_senha',
+              child: Row(
+                children: [
+                  Icon(Icons.lock_outline, size: 20, color: Color(0xFF64748B)),
+                  SizedBox(width: 12),
+                  Text('Alterar Senha', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
+                ],
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'editar_dados',
+              child: Row(
+                children: [
+                  Icon(Icons.edit_outlined, size: 20, color: Color(0xFF64748B)),
+                  SizedBox(width: 12),
+                  Text('Editar Dados', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem<String>(
+              value: 'sair',
+              child: Row(
+                children: [
+                  Icon(Icons.logout_outlined, size: 20, color: Colors.red.shade400),
+                  const SizedBox(width: 12),
+                  Text('Sair', style: TextStyle(fontSize: 14, color: Colors.red.shade400, fontFamily: 'Inter')),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      _buildNotificationBell(),
+    ],
+  );
+}
 }

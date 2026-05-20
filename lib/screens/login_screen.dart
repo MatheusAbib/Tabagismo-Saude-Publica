@@ -21,10 +21,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isRegisterMode = false;
 
   final Color _primaryDark = Color(0xFF0F2B3D);
-      final Color _primaryMedium = Color.fromARGB(255, 19, 56, 85);
 
-  final Color _accentColor = Color(0xFF2C7DA0);
-
+final Color _accentColor = const Color(0xFF1F4E6E);
   TextEditingController _emailController = TextEditingController();
   TextEditingController _senhaController = TextEditingController();
 
@@ -49,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
         firstDate: DateTime(1950),
         lastDate: DateTime.now(),
         currentDate: DateTime.now().subtract(const Duration(days: 18 * 365)),
-        selectedDayHighlightColor: const Color(0xFF2C7DA0),
+        selectedDayHighlightColor: const Color(0xFF1F4E6E),
         selectedDayTextStyle: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w700,
@@ -112,9 +110,14 @@ class _LoginScreenState extends State<LoginScreen> {
             _isRegisterMode = false;
             _clearRegisterFields();
           });
-        } catch (e) {
-          CustomSnackBar.showError(context, 'Erro ao cadastrar');
-        } finally {
+} catch (e) {
+  String mensagem = e.toString();
+  if (mensagem.contains('CPF já cadastrado')) {
+    CustomSnackBar.showError(context, 'Este CPF já está cadastrado no sistema');
+  } else {
+    CustomSnackBar.showError(context, 'Erro ao cadastrar');
+  }
+} finally {
           setState(() => _isLoading = false);
         }
       } else {
@@ -197,13 +200,28 @@ class _LoginScreenState extends State<LoginScreen> {
                         Expanded(flex: 4, child: _buildLeftBanner()),
                         Expanded(
                           flex: 5,
-                          child: Stack(
-                            children: [
-                              Center(child: _buildLoginForm(isDesktop)),
-                              _buildDesktopFooterPositioned(constraints),
-
-                            ],
-                          ),
+child: LayoutBuilder(
+  builder: (context, constraints) {
+    return SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+        child: IntrinsicHeight(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Expanded(
+                child: Center(
+                  child: _buildLoginForm(isDesktop),
+                ),
+              ),
+              if (!_isRegisterMode) _buildDesktopFooterInline(),
+            ],
+          ),
+        ),
+      ),
+    );
+  },
+),
                         ),
                       ],
                     )
@@ -224,63 +242,82 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildLeftBanner({bool isMobile = false}) {
-    return Container(
-      decoration: BoxDecoration(
-     
-          color:  _primaryMedium,
-        
-      ),
-      child: Center(
-        child: Padding(
-          padding: EdgeInsets.all(isMobile ? 20 : 40),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: EdgeInsets.all(isMobile ? 15 : 25),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: Icon(Icons.smoke_free_outlined,
-                    size: isMobile ? 40 : 75, color: Colors.white),
+  Widget _buildDesktopFooterInline() {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    margin: const EdgeInsets.only(bottom: 16),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildContactItem(Icons.phone_outlined, 'Disque Saúde: 136'),
+        const SizedBox(width: 16),
+        Container(width: 1, height: 20, color: Colors.grey.shade300),
+        const SizedBox(width: 16),
+        _buildContactItem(Icons.numbers, 'WhatsApp: (11) 99999-9999'),
+        const SizedBox(width: 16),
+        Container(width: 1, height: 20, color: Colors.grey.shade300),
+        const SizedBox(width: 16),
+        _buildContactItem(Icons.email_outlined, 'contato@desfumo.com.br'),
+      ],
+    ),
+  );
+}
+Widget _buildLeftBanner({bool isMobile = false}) {
+  return Container(
+    decoration: BoxDecoration(
+      color: const Color(0xFF334155),
+    ),
+    child: Center(
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 20 : 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(isMobile ? 15 : 25),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(100),
               ),
-              SizedBox(height: 20),
-              Text(
-                'Desfumo',
-                style: TextStyle(
-                  fontSize: isMobile ? 24 : 32,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  fontFamily: 'Poppins',
-                ),
+              child: Icon(Icons.smoke_free_outlined,
+                  size: isMobile ? 40 : 75, color: Colors.white),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'Desfumo',
+              style: TextStyle(
+                fontFamily: 'BebasNeue',
+                fontSize: isMobile ? 24 : 32,
+                fontWeight: FontWeight.w400,
+                letterSpacing: 1,
+                color: Colors.white,
               ),
-              Text(
-                  'O lugar onde o fumo deixa de existir',
-                  style: TextStyle(
-                      fontSize: 14, color: Colors.white.withOpacity(0.85)),
-                  textAlign: TextAlign.center,
-                ),
-              if (!isMobile) ...[
-                SizedBox(height: 30),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 8,
-                  runSpacing: 12,
-                  children: [
-                    _buildStatItem('+50', 'Usuários ativos'),
-                    _buildStatItem('+200', 'Pessoas ajudadas'),
-                    _buildStatItem('+150', 'UPAs parceiras'),
-                  ],
-                ),
-              ]
-            ],
-          ),
+            ),
+            Text(
+              'O lugar onde o fumo deixa de existir',
+              style: TextStyle(
+                  fontSize: 14, color: Colors.white.withOpacity(0.85)),
+              textAlign: TextAlign.center,
+            ),
+            if (!isMobile) ...[
+              SizedBox(height: 30),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 12,
+                children: [
+                  _buildStatItem('+50', 'Usuários ativos'),
+                  _buildStatItem('+200', 'Pessoas ajudadas'),
+                  _buildStatItem('+150', 'UPAs parceiras'),
+                ],
+              ),
+            ]
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLoginForm(bool isDesktop) {
     return Container(
@@ -470,7 +507,7 @@ Widget _buildConfirmPasswordField() {
             onPressed: _handleAuth,
             style: ElevatedButton.styleFrom(
               backgroundColor: _accentColor,
-              minimumSize: Size(double.infinity, 48),
+              minimumSize: Size(double.infinity, 50),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
             ),
@@ -498,64 +535,7 @@ Widget _buildConfirmPasswordField() {
     );
   }
 
-Widget _buildDesktopFooterPositioned(BoxConstraints constraints) {
-  final isMediumScreen = constraints.maxWidth < 1100;
-  final isSmallDesktop = constraints.maxWidth < 950;
-  
-  if (isSmallDesktop) {
-    return Positioned(
-      bottom: 16,
-      left: 24,
-      right: 24,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildContactItem(Icons.phone_outlined, 'Disque Saúde: 136'),
-            const SizedBox(height: 8),
-            _buildContactItem(Icons.numbers, 'WhatsApp: (11) 99999-9999'),
-            const SizedBox(height: 8),
-            _buildContactItem(Icons.email_outlined, 'contato@desfumo.com.br'),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  return Positioned(
-    bottom: 24,
-    right: isMediumScreen ? 24 : 48,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildContactItem(Icons.phone_outlined, 'Disque Saúde: 136'),
-          const SizedBox(width: 16),
-          Container(width: 1, height: 20, color: Colors.grey.shade300),
-          const SizedBox(width: 16),
-          _buildContactItem(Icons.numbers, 'WhatsApp: (11) 99999-9999'),
-          const SizedBox(width: 16),
-          Container(width: 1, height: 20, color: Colors.grey.shade300),
-          const SizedBox(width: 16),
-          _buildContactItem(Icons.email_outlined, 'contato@desfumo.com.br'),
-        ],
-      ),
-    ),
-  );
-}
+
   Widget _buildMobileFooter() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20),

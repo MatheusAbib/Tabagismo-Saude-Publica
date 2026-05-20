@@ -23,8 +23,11 @@ class _AdminUsuarioDetalhesScreenState extends State<AdminUsuarioDetalhesScreen>
   List<Map<String, dynamic>> _sintomas = [];
   Map<String, dynamic>? _matricula;
   bool _atualizandoMatricula = false;
-  final Color _primaryMedium = Color.fromARGB(255, 19, 56, 85);
 
+  final Color _accentColor = const Color(0xFF2C7DA0);
+  final Color _successColor = const Color(0xFF2E8B6A);
+  final Color _warningColor = const Color(0xFFD97706);
+  final Color _dangerColor = const Color(0xFFC65D47);
 
   @override
   void initState() {
@@ -51,38 +54,38 @@ class _AdminUsuarioDetalhesScreenState extends State<AdminUsuarioDetalhesScreen>
     }
   }
 
-Future<void> _alocarTurma(String opcao) async {
-  if (_matricula == null) return;
-  
-  String turmaEscolhida;
-  if (opcao == 'primeira') {
-    turmaEscolhida = _matricula!['turma_horario'];
-  } else {
-    turmaEscolhida = _matricula!['segunda_opcao_turma'];
-  }
-  
-  setState(() => _atualizandoMatricula = true);
-  try {
-    final authService = AuthService();
-    await authService.atualizarMatricula(
-      _matricula!['id'],
-      'matriculado',
-      turmaEscolhida,
-    );
+  Future<void> _alocarTurma(String opcao) async {
+    if (_matricula == null) return;
     
-    await _carregarDados();
+    String turmaEscolhida;
+    if (opcao == 'primeira') {
+      turmaEscolhida = _matricula!['turma_horario'];
+    } else {
+      turmaEscolhida = _matricula!['segunda_opcao_turma'];
+    }
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Usuário matriculado com sucesso!'), backgroundColor: Color(0xFF10B981)),
-    );
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Erro ao alocar turma: $e'), backgroundColor: Colors.red.shade400),
-    );
-  } finally {
-    setState(() => _atualizandoMatricula = false);
+    setState(() => _atualizandoMatricula = true);
+    try {
+      final authService = AuthService();
+      await authService.atualizarMatricula(
+        _matricula!['id'],
+        'matriculado',
+        turmaEscolhida,
+      );
+      
+      await _carregarDados();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Usuário matriculado com sucesso!'), backgroundColor: _successColor),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao alocar turma: $e'), backgroundColor: Colors.red.shade400),
+      );
+    } finally {
+      setState(() => _atualizandoMatricula = false);
+    }
   }
-}
 
   void _mostrarDetalhesMatricula() {
     if (_matricula == null) return;
@@ -104,10 +107,10 @@ Future<void> _alocarTurma(String opcao) async {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                        color: const Color(0xFF6B21A8).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.school, color: Color(0xFF8B5CF6), size: 24),
+                      child: const Icon(Icons.school, color: Color(0xFF6B21A8), size: 24),
                     ),
                     const SizedBox(width: 12),
                     const Text(
@@ -136,41 +139,19 @@ Future<void> _alocarTurma(String opcao) async {
                 const SizedBox(height: 12),
                 _buildComorbidadesWidget(),
                 const SizedBox(height: 24),
-            if (_matricula!['status'] == 'em_espera') ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _atualizandoMatricula ? null : () {
-                          Navigator.pop(context);
-                          _alocarTurma('primeira');
-                        },
-                        icon: const Icon(Icons.check_circle, size: 18),
-                        label: const Text('Alocar na 1ª opção'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (_matricula!['segunda_opcao_turma'] != null) ...[
-                  const SizedBox(height: 12),
+                if (_matricula!['status'] == 'em_espera') ...[
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton.icon(
+                        child: ElevatedButton.icon(
                           onPressed: _atualizandoMatricula ? null : () {
                             Navigator.pop(context);
-                            _alocarTurma('segunda');
+                            _alocarTurma('primeira');
                           },
                           icon: const Icon(Icons.check_circle, size: 18),
-                          label: const Text('Alocar na 2ª opção'),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFF10B981)),
-                            foregroundColor: const Color(0xFF10B981),
+                          label: const Text('Alocar na 1ª opção'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _successColor,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
@@ -178,8 +159,30 @@ Future<void> _alocarTurma(String opcao) async {
                       ),
                     ],
                   ),
+                  if (_matricula!['segunda_opcao_turma'] != null) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _atualizandoMatricula ? null : () {
+                              Navigator.pop(context);
+                              _alocarTurma('segunda');
+                            },
+                            icon: const Icon(Icons.check_circle, size: 18),
+                            label: const Text('Alocar na 2ª opção'),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: _successColor),
+                              foregroundColor: _successColor,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
-              ],
               ],
             ),
           ),
@@ -266,24 +269,24 @@ Future<void> _alocarTurma(String opcao) async {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-     appBar: AppBar(
-  title: Row(
-    children: [
-      const Icon(Icons.person, color: Colors.white, size: 24),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Text(
-          widget.usuarioNome,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          overflow: TextOverflow.ellipsis,
+      appBar: AppBar(
+        title: Row(
+          children: [
+            const Icon(Icons.person, color: Colors.white, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                widget.usuarioNome,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
+        backgroundColor: const Color(0xFF334155),
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
-    ],
-  ),
-  backgroundColor: const Color(0xFF0F2B3D), 
-  foregroundColor: Colors.white,
-  elevation: 0,
-),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -310,7 +313,7 @@ Future<void> _alocarTurma(String opcao) async {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 3)),
         ],
       ),
       child: Column(
@@ -319,7 +322,7 @@ Future<void> _alocarTurma(String opcao) async {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: const Color(0xFFE2E8F0),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Row(
@@ -327,10 +330,10 @@ Future<void> _alocarTurma(String opcao) async {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                    color: _accentColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.person_outline, color: Color(0xFF3B82F6), size: 22),
+                  child: const Icon(Icons.person_outline, color: Color(0xFF2C7DA0), size: 22),
                 ),
                 const SizedBox(width: 12),
                 const Text(
@@ -366,7 +369,7 @@ Future<void> _alocarTurma(String opcao) async {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 4)),
+            BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 3)),
           ],
         ),
         child: Column(
@@ -375,7 +378,7 @@ Future<void> _alocarTurma(String opcao) async {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: const Color(0xFFE2E8F0),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Row(
@@ -383,10 +386,10 @@ Future<void> _alocarTurma(String opcao) async {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                      color: _successColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.flag, color: Color(0xFF10B981), size: 22),
+                    child: const Icon(Icons.flag, color: Color(0xFF2E8B6A), size: 22),
                   ),
                   const SizedBox(width: 12),
                   const Text(
@@ -415,7 +418,7 @@ Future<void> _alocarTurma(String opcao) async {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 3)),
         ],
       ),
       child: Column(
@@ -424,7 +427,7 @@ Future<void> _alocarTurma(String opcao) async {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: const Color(0xFFE2E8F0),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Row(
@@ -432,10 +435,10 @@ Future<void> _alocarTurma(String opcao) async {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                    color: _successColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.flag, color: Color(0xFF10B981), size: 22),
+                  child: const Icon(Icons.flag, color: Color(0xFF2E8B6A), size: 22),
                 ),
                 const SizedBox(width: 12),
                 const Text(
@@ -452,7 +455,7 @@ Future<void> _alocarTurma(String opcao) async {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)]),
+                    gradient: const LinearGradient(colors: [Color(0xFF2E8B6A), Color(0xFF257A5C)]),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
@@ -463,7 +466,7 @@ Future<void> _alocarTurma(String opcao) async {
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
                         child: Text('Parou em: ${_formatarData(stopDate)}', style: const TextStyle(fontSize: 11, color: Colors.white70)),
                       ),
                     ],
@@ -473,15 +476,15 @@ Future<void> _alocarTurma(String opcao) async {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildStatItem('Meta', '${_usuario?['target_days']} dias', const Color(0xFF10B981)),
+                      child: _buildStatItem('Meta', '${_usuario?['target_days']} dias', _successColor),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildStatItem('Cigarros/dia', '${_usuario?['cigarros_por_dia']}', const Color(0xFFEF4444)),
+                      child: _buildStatItem('Cigarros/dia', '${_usuario?['cigarros_por_dia']}', _dangerColor),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildStatItem('Economia', 'R\$${_usuario?['valor_carteira']?.toString() ?? '0'}', const Color(0xFFF59E0B)),
+                      child: _buildStatItem('Economia', 'R\$${_usuario?['valor_carteira']?.toString() ?? '0'}', _warningColor),
                     ),
                   ],
                 ),
@@ -493,38 +496,38 @@ Future<void> _alocarTurma(String opcao) async {
     );
   }
 
-String _formatarData(String? data) {
-  if (data == null || data.isEmpty) return '-';
-  
-  String dataLimpa = data.split(' ')[0];
-  String dataLimpa2 = dataLimpa.split('T')[0];
-  
-  final partes = dataLimpa2.split('-');
-  if (partes.length != 3) return dataLimpa2;
-  
-  return '${partes[2]}/${partes[1]}/${partes[0]}';
-}
+  String _formatarData(String? data) {
+    if (data == null || data.isEmpty) return '-';
+    
+    String dataLimpa = data.split(' ')[0];
+    String dataLimpa2 = dataLimpa.split('T')[0];
+    
+    final partes = dataLimpa2.split('-');
+    if (partes.length != 3) return dataLimpa2;
+    
+    return '${partes[2]}/${partes[1]}/${partes[0]}';
+  }
 
-Widget _buildStatItem(String label, String value, Color color) {
-  return Container(
-    padding: const EdgeInsets.symmetric(vertical: 12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF1F5F9),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Column(
-      children: [
-        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    ),
-  );
-}
+  Widget _buildStatItem(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildMatriculaCard() {
     if (_matricula == null) {
@@ -533,7 +536,7 @@ Widget _buildStatItem(String label, String value, Color color) {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 4)),
+            BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 3)),
           ],
         ),
         child: Column(
@@ -542,7 +545,7 @@ Widget _buildStatItem(String label, String value, Color color) {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: const Color(0xFFE2E8F0),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Row(
@@ -550,10 +553,10 @@ Widget _buildStatItem(String label, String value, Color color) {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                      color: const Color(0xFF6B21A8).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.school, color: Color(0xFF8B5CF6), size: 22),
+                    child: const Icon(Icons.school, color: Color(0xFF6B21A8), size: 22),
                   ),
                   const SizedBox(width: 12),
                   const Text(
@@ -582,7 +585,7 @@ Widget _buildStatItem(String label, String value, Color color) {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 3)),
         ],
       ),
       child: Column(
@@ -591,7 +594,7 @@ Widget _buildStatItem(String label, String value, Color color) {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: const Color(0xFFE2E8F0),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Row(
@@ -599,10 +602,10 @@ Widget _buildStatItem(String label, String value, Color color) {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                    color: const Color(0xFF6B21A8).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.school, color: Color(0xFF8B5CF6), size: 22),
+                  child: const Icon(Icons.school, color: Color(0xFF6B21A8), size: 22),
                 ),
                 const SizedBox(width: 12),
                 const Text(
@@ -613,7 +616,7 @@ Widget _buildStatItem(String label, String value, Color color) {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: isEmEspera ? const Color(0xFFF59E0B).withValues(alpha: 0.1) : const Color(0xFF10B981).withValues(alpha: 0.1),
+                    color: isEmEspera ? _warningColor.withOpacity(0.1) : _successColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -621,7 +624,7 @@ Widget _buildStatItem(String label, String value, Color color) {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: isEmEspera ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+                      color: isEmEspera ? _warningColor : _successColor,
                     ),
                   ),
                 ),
@@ -676,16 +679,95 @@ Widget _buildStatItem(String label, String value, Color color) {
     );
   }
 
+  Widget _buildSintomasCard() {
+    if (_sintomas.isEmpty) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 3)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE2E8F0),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _accentColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.show_chart, color: Color(0xFF2C7DA0), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Evolução dos Sintomas',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                  ),
+                ],
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: Text('Usuário ainda não registrou sintomas', style: TextStyle(color: Color(0xFF64748B))),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
+    final sintomasReverso = _sintomas.reversed.toList();
+    
+    List<double> ansiedade = [];
+    List<double> irritabilidade = [];
+    List<double> insonia = [];
+    List<double> fome = [];
+    List<double> dificuldadeConcentracao = [];
+    List<double> vontadeFumar = [];
+    List<String> labels = [];
 
-Widget _buildSintomasCard() {
-  if (_sintomas.isEmpty) {
+    for (var s in sintomasReverso) {
+      ansiedade.add((s['ansiedade'] ?? 0).toDouble());
+      irritabilidade.add((s['irritabilidade'] ?? 0).toDouble());
+      insonia.add((s['insonia'] ?? 0).toDouble());
+      fome.add((s['fome'] ?? 0).toDouble());
+      dificuldadeConcentracao.add((s['dificuldade_concentracao'] ?? 0).toDouble());
+      vontadeFumar.add((s['vontade_fumar'] ?? 0).toDouble());
+      
+      String dataStr = s['data'].toString();
+      String dataFormatada = '';
+      
+      if (dataStr.contains('T')) {
+        dataStr = dataStr.split('T')[0];
+      }
+      
+      final dataParts = dataStr.split('-');
+      if (dataParts.length >= 3) {
+        dataFormatada = '${dataParts[2]}/${dataParts[1]}';
+      } else {
+        dataFormatada = dataStr;
+      }
+      
+      labels.add(dataFormatada);
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 3)),
         ],
       ),
       child: Column(
@@ -694,7 +776,7 @@ Widget _buildSintomasCard() {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: const Color(0xFFE2E8F0),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Row(
@@ -702,7 +784,7 @@ Widget _buildSintomasCard() {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2C7DA0).withOpacity(0.1),
+                    color: _accentColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.show_chart, color: Color(0xFF2C7DA0), size: 22),
@@ -715,10 +797,123 @@ Widget _buildSintomasCard() {
               ],
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(
-              child: Text('Usuário ainda não registrou sintomas', style: TextStyle(color: Color(0xFF64748B))),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 350,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: labels.length * 60 + 100,
+                      child: LineChart(
+                        LineChartData(
+                          clipData: const FlClipData.all(),
+                          gridData: const FlGridData(show: true),
+                          titlesData: FlTitlesData(
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                interval: 1,
+                                getTitlesWidget: (value, meta) {
+                                  final index = value.toInt();
+                                  if (index >= 0 && index < labels.length) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Transform.rotate(
+                                        angle: -0.5,
+                                        child: Text(
+                                          labels[index],
+                                          style: const TextStyle(fontSize: 9),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return const Text('');
+                                },
+                                reservedSize: 50,
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 35,
+                                getTitlesWidget: _leftTitleWidgets,
+                              ),
+                            ),
+                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          ),
+                          borderData: FlBorderData(show: true),
+                          minX: 0,
+                          maxX: (sintomasReverso.length - 1).toDouble(),
+                          minY: 0,
+                          maxY: 10,
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: List.generate(ansiedade.length, (i) => FlSpot(i.toDouble(), ansiedade[i])),
+                              isCurved: true,
+                              color: _accentColor,
+                              barWidth: 3,
+                              dotData: const FlDotData(show: true),
+                            ),
+                            LineChartBarData(
+                              spots: List.generate(irritabilidade.length, (i) => FlSpot(i.toDouble(), irritabilidade[i])),
+                              isCurved: true,
+                              color: _dangerColor,
+                              barWidth: 3,
+                              dotData: const FlDotData(show: true),
+                            ),
+                            LineChartBarData(
+                              spots: List.generate(insonia.length, (i) => FlSpot(i.toDouble(), insonia[i])),
+                              isCurved: true,
+                              color: const Color(0xFF6B21A8),
+                              barWidth: 3,
+                              dotData: const FlDotData(show: true),
+                            ),
+                            LineChartBarData(
+                              spots: List.generate(fome.length, (i) => FlSpot(i.toDouble(), fome[i])),
+                              isCurved: true,
+                              color: const Color(0xFFF97316),
+                              barWidth: 3,
+                              dotData: const FlDotData(show: true),
+                            ),
+                            LineChartBarData(
+                              spots: List.generate(dificuldadeConcentracao.length, (i) => FlSpot(i.toDouble(), dificuldadeConcentracao[i])),
+                              isCurved: true,
+                              color: _successColor,
+                              barWidth: 3,
+                              dotData: const FlDotData(show: true),
+                            ),
+                            LineChartBarData(
+                              spots: List.generate(vontadeFumar.length, (i) => FlSpot(i.toDouble(), vontadeFumar[i])),
+                              isCurved: true,
+                              color: _warningColor,
+                              barWidth: 3,
+                              dotData: const FlDotData(show: true),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _buildLegenda(_accentColor, 'Ansiedade'),
+                    _buildLegenda(_dangerColor, 'Irritabilidade'),
+                    _buildLegenda(const Color(0xFF6B21A8), 'Insônia'),
+                    _buildLegenda(const Color(0xFFF97316), 'Fome'),
+                    _buildLegenda(_successColor, 'Dificuldade Concentração'),
+                    _buildLegenda(_warningColor, 'Vontade de Fumar'),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -726,231 +921,37 @@ Widget _buildSintomasCard() {
     );
   }
 
-  final sintomasReverso = _sintomas.reversed.toList();
-  
-  List<double> ansiedade = [];
-  List<double> irritabilidade = [];
-  List<double> insonia = [];
-  List<double> fome = [];
-  List<double> dificuldadeConcentracao = [];
-  List<double> vontadeFumar = [];
-  List<String> labels = [];
-
-for (var s in sintomasReverso) {
-  ansiedade.add((s['ansiedade'] ?? 0).toDouble());
-  irritabilidade.add((s['irritabilidade'] ?? 0).toDouble());
-  insonia.add((s['insonia'] ?? 0).toDouble());
-  fome.add((s['fome'] ?? 0).toDouble());
-  dificuldadeConcentracao.add((s['dificuldade_concentracao'] ?? 0).toDouble());
-  vontadeFumar.add((s['vontade_fumar'] ?? 0).toDouble());
-  
-  String dataStr = s['data'].toString();
-  String dataFormatada = '';
-  
-  if (dataStr.contains('T')) {
-    dataStr = dataStr.split('T')[0];
+  Widget _leftTitleWidgets(double value, TitleMeta meta) {
+    const style = TextStyle(fontSize: 10, color: Color(0xFF64748B));
+    return Text(value.toInt().toString(), style: style);
   }
-  
-  final dataParts = dataStr.split('-');
-  if (dataParts.length >= 3) {
-    dataFormatada = '${dataParts[2]}/${dataParts[1]}';
-  } else {
-    dataFormatada = dataStr;
-  }
-  
-  labels.add(dataFormatada);
-}
 
-  return Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 4)),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildLegenda(Color cor, String texto) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2C7DA0).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.show_chart, color: Color(0xFF2C7DA0), size: 22),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Evolução dos Sintomas',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              SizedBox(
-                height: 350,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: labels.length * 60 + 100,
-                    child: LineChart(
-LineChartData(
-  clipData: const FlClipData.all(),
-  gridData: const FlGridData(show: true),
-  titlesData: FlTitlesData(
-    bottomTitles: AxisTitles(
-      sideTitles: SideTitles(
-        showTitles: true,
-        interval: 1,
-        getTitlesWidget: (value, meta) {
-          final index = value.toInt();
-          if (index >= 0 && index < labels.length) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Transform.rotate(
-                angle: -0.5,
-                child: Text(
-                  labels[index],
-                  style: const TextStyle(fontSize: 9),
-                ),
-              ),
-            );
-          }
-          return const Text('');
-        },
-        reservedSize: 50,
-      ),
-    ),
-    leftTitles: AxisTitles(
-      sideTitles: SideTitles(
-        showTitles: true,
-        reservedSize: 35,
-        getTitlesWidget: _leftTitleWidgets,
-      ),
-    ),
-    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-  ),
-  borderData: FlBorderData(show: true),
-  minX: 0,
-  maxX: (sintomasReverso.length - 1).toDouble(),
-  minY: 0,
-  maxY: 10,
-  lineBarsData: [
-                          LineChartBarData(
-                            spots: List.generate(ansiedade.length, (i) => FlSpot(i.toDouble(), ansiedade[i])),
-                            isCurved: true,
-                            color: const Color(0xFF3B82F6),
-                            barWidth: 3,
-                            dotData: const FlDotData(show: true),
-                          ),
-                          LineChartBarData(
-                            spots: List.generate(irritabilidade.length, (i) => FlSpot(i.toDouble(), irritabilidade[i])),
-                            isCurved: true,
-                            color: const Color(0xFFEF4444),
-                            barWidth: 3,
-                            dotData: const FlDotData(show: true),
-                          ),
-                          LineChartBarData(
-                            spots: List.generate(insonia.length, (i) => FlSpot(i.toDouble(), insonia[i])),
-                            isCurved: true,
-                            color: const Color(0xFF8B5CF6),
-                            barWidth: 3,
-                            dotData: const FlDotData(show: true),
-                          ),
-                          LineChartBarData(
-                            spots: List.generate(fome.length, (i) => FlSpot(i.toDouble(), fome[i])),
-                            isCurved: true,
-                            color: const Color(0xFFF97316),
-                            barWidth: 3,
-                            dotData: const FlDotData(show: true),
-                          ),
-                          LineChartBarData(
-                            spots: List.generate(dificuldadeConcentracao.length, (i) => FlSpot(i.toDouble(), dificuldadeConcentracao[i])),
-                            isCurved: true,
-                            color: const Color(0xFF10B981),
-                            barWidth: 3,
-                            dotData: const FlDotData(show: true),
-                          ),
-                          LineChartBarData(
-                            spots: List.generate(vontadeFumar.length, (i) => FlSpot(i.toDouble(), vontadeFumar[i])),
-                            isCurved: true,
-                            color: const Color(0xFFF59E0B),
-                            barWidth: 3,
-                            dotData: const FlDotData(show: true),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Wrap(
-                spacing: 16,
-                runSpacing: 12,
-                alignment: WrapAlignment.center,
-                children: [
-                  _buildLegenda(const Color(0xFF3B82F6), 'Ansiedade'),
-                  _buildLegenda(const Color(0xFFEF4444), 'Irritabilidade'),
-                  _buildLegenda(const Color(0xFF8B5CF6), 'Insônia'),
-                  _buildLegenda(const Color(0xFFF97316), 'Fome'),
-                  _buildLegenda(const Color(0xFF10B981), 'Dificuldade Concentração'),
-                  _buildLegenda(const Color(0xFFF59E0B), 'Vontade de Fumar'),
-                ],
-              ),
-            ],
-          ),
-        ),
+        Container(width: 14, height: 14, decoration: BoxDecoration(color: cor, borderRadius: BorderRadius.circular(4))),
+        const SizedBox(width: 6),
+        Text(texto, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
       ],
-    ),
-  );
-}
+    );
+  }
 
-Widget _leftTitleWidgets(double value, TitleMeta meta) {
-  const style = TextStyle(fontSize: 10, color: Color(0xFF64748B));
-  return Text(value.toInt().toString(), style: style);
-}
-
-Widget _buildLegenda(Color cor, String texto) {
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Container(width: 14, height: 14, decoration: BoxDecoration(color: cor, borderRadius: BorderRadius.circular(4))),
-      const SizedBox(width: 6),
-      Text(texto, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-    ],
-  );
-}
   String _formatarTelefone(String? telefone) {
-  if (telefone == null || telefone.isEmpty) return '-';
-  String limpo = telefone.replaceAll(RegExp(r'[^\d]'), '');
-  if (limpo.length == 11) {
-    return '(${limpo.substring(0, 2)}) ${limpo.substring(2, 7)}-${limpo.substring(7)}';
+    if (telefone == null || telefone.isEmpty) return '-';
+    String limpo = telefone.replaceAll(RegExp(r'[^\d]'), '');
+    if (limpo.length == 11) {
+      return '(${limpo.substring(0, 2)}) ${limpo.substring(2, 7)}-${limpo.substring(7)}';
+    }
+    return telefone;
   }
-  return telefone;
-}
 
-String _formatarCpf(String? cpf) {
-  if (cpf == null || cpf.isEmpty) return '-';
-  String limpo = cpf.replaceAll(RegExp(r'[^\d]'), '');
-  if (limpo.length == 11) {
-    return '${limpo.substring(0, 3)}.${limpo.substring(3, 6)}.${limpo.substring(6, 9)}-${limpo.substring(9)}';
+  String _formatarCpf(String? cpf) {
+    if (cpf == null || cpf.isEmpty) return '-';
+    String limpo = cpf.replaceAll(RegExp(r'[^\d]'), '');
+    if (limpo.length == 11) {
+      return '${limpo.substring(0, 3)}.${limpo.substring(3, 6)}.${limpo.substring(6, 9)}-${limpo.substring(9)}';
+    }
+    return cpf;
   }
-  return cpf;
-}
-
 }

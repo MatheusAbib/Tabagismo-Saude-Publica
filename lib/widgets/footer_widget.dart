@@ -5,13 +5,9 @@ class FooterWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color primaryDark = Color(0xFF0F2B3D);
-    final Color primaryMedium = Color(0xFF1A4A6F);
-    final Color accentColor = Color(0xFF2C7DA0);
     final isMobile = MediaQuery.of(context).size.width < 768;
     final isTablet = MediaQuery.of(context).size.width >= 768 && MediaQuery.of(context).size.width < 1200;
     final horizontalPadding = isMobile ? 16.0 : (isTablet ? 32.0 : 50.0);
-    final Color _primaryMedium = Color.fromARGB(255, 19, 56, 85);
     
     return Container(
       width: double.infinity,
@@ -22,8 +18,7 @@ class FooterWidget extends StatelessWidget {
         bottom: 25,
       ),
       decoration: BoxDecoration(
-            color:  _primaryMedium,
-
+      color: const Color(0xFF334155),  
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,32 +34,36 @@ class FooterWidget extends StatelessWidget {
       child: const Icon(
         Icons.smoke_free_outlined,
         color: Colors.white,
-        size: 28,
+        size: 32,
       ),
     ),
     const SizedBox(width: 12),
-    const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Desfumo',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-          ),
-        ),
-        Text(
-          'Apoio ao Tabagismo',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 10,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ],
+   const Column(
+  mainAxisSize: MainAxisSize.min,
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text(
+      'DESFUMO',
+      style: TextStyle(
+        fontFamily: 'BebasNeue',
+        fontSize: 28,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 1,
+        color: Colors.white,
+        height: 0.9, 
+      ),
     ),
+    Text(
+      'Apoio ao Tabagismo',
+      style: TextStyle(
+        color: Colors.white70,
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        height: 0.9, 
+      ),
+    ),
+  ],
+),
   ],
 ),
           const SizedBox(height: 32),
@@ -173,9 +172,9 @@ class FooterWidget extends StatelessWidget {
         const SizedBox(height: 16),
         _buildContactItem(Icons.phone_outlined, 'Disque Saúde: 136'),
         const SizedBox(height: 12),
-        _buildContactItem(Icons.numbers, 'WhatsApp: (11) 99999-9999'),
+        _buildContactItem(Icons.numbers, '(11) 99999-9999'),
         const SizedBox(height: 12),
-        _buildContactItem(Icons.email_outlined, 'contato@tabagismoapp.com.br'),
+        _buildContactItem(Icons.email_outlined, 'contato@desfumo.com'),
       ],
     );
   }
@@ -275,7 +274,7 @@ class FooterWidget extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.auto_awesome, color: const Color(0xFF2C7DA0), size: 20),
+                Icon(Icons.auto_awesome, color: Colors.white, size: 20),
                 const SizedBox(width: 8),
                 const Text(
                   'BENEFÍCIOS DE PARAR DE FUMAR',
@@ -322,7 +321,7 @@ class FooterWidget extends StatelessWidget {
       children: [
         Container(
           margin: const EdgeInsets.only(top: 2),
-          child: const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 16),
+          child: const Icon(Icons.check_circle, color: Color(0xFF2E8B6A), size: 16),
         ),
         const SizedBox(width: 12),
         Expanded(

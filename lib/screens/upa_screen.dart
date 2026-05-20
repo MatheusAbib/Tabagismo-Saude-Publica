@@ -5,7 +5,7 @@ import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/services/enrollment_service.dart';
 import 'package:tabagismo_app/widgets/footer_widget.dart';
 import 'package:tabagismo_app/widgets/header_widget.dart';
-import 'package:tabagismo_app/screens/fagerstrom_test_screen.dart';
+import 'package:tabagismo_app/screens/fagerstrom_test_modal.dart';
 import 'package:tabagismo_app/screens/my_enrollments_screen.dart';
 
 class UPAScreen extends StatefulWidget {
@@ -20,9 +20,9 @@ class UPAScreen extends StatefulWidget {
 
 class _UPAScreenState extends State<UPAScreen> {
   final _authService = AuthService();
-  final Color _primaryDark = Color(0xFF0F2B3D);
-  final Color _accentColor = Color(0xFF2C7DA0);
-  final Color _successColor = Color(0xFF10B981);
+final Color _primaryDark = const Color(0xFF334155);
+final Color _accentColor = const Color(0xFF1F4E6E);
+final Color _successColor = const Color(0xFF2E8B6A);
   
   List<Map<String, dynamic>> _upaList = [];
   List<Map<String, dynamic>> _paginatedList = [];
@@ -184,13 +184,13 @@ showDialog(
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF59E0B).withOpacity(0.1),
+              color: const Color(0xFFD97706).withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.warning_amber_rounded,
               size: 48,
-              color: Color(0xFFF59E0B),
+              color: Color(0xFFD97706),
             ),
           ),
           const SizedBox(height: 20),
@@ -219,14 +219,14 @@ showDialog(
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: const Color(0xFFE2E8F0),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
               children: [
                 Row(
                   children: [
-                    Icon(Icons.local_hospital, size: 16, color: const Color(0xFF2C7DA0)),
+                    Icon(Icons.local_hospital, size: 16, color: const Color(0xFF1F4E6E)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -243,7 +243,7 @@ showDialog(
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.schedule, size: 16, color: const Color(0xFF2C7DA0)),
+                    Icon(Icons.schedule, size: 16, color: const Color(0xFF1F4E6E)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -318,7 +318,7 @@ showDialog(
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2C7DA0),
+                    backgroundColor: const Color(0xFF1F4E6E),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -457,46 +457,7 @@ Widget _buildSearchSection() {
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 20),
-          child: _buildInfoBanner(),
-        ),
       ],
-    ),
-  );
-}
-
-Widget _buildInfoBanner() {
-  return Container(
-    child: InkWell(
-      onTap: _mostrarInformacoesGrupos,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.blue.shade50,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.blue.shade200),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.info_outline, color: Colors.blue.shade700, size: 18),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text(
-                'Como funcionam as turmas de apoio?',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.blue,
-                  fontWeight: FontWeight.w500,
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios, color: Colors.blue.shade700, size: 14),
-          ],
-        ),
-      ),
     ),
   );
 }
@@ -541,14 +502,80 @@ Widget _buildEmptyWidget() {
 }
 
 Widget _buildUPACardsList() {
-  final isMobile = MediaQuery.of(context).size.width < 600;
-
-  return ListView.builder(
+  final width = MediaQuery.of(context).size.width;
+  
+  int crossAxisCount;
+  double horizontalPadding;
+  double childAspectRatio;
+  
+  if (width < 480) {
+    crossAxisCount = 1;
+    horizontalPadding = 12.0;
+    childAspectRatio = 1.6;
+  } else if (width < 600) {
+    crossAxisCount = 1;
+    horizontalPadding = 16.0;
+    childAspectRatio = 2.4;
+  } else if (width < 700) {
+    crossAxisCount = 1;
+    horizontalPadding = 20.0;
+    childAspectRatio = 2.6;
+  } else if (width < 830) {
+    crossAxisCount = 1;
+    horizontalPadding = 16.0;
+    childAspectRatio = 3;
+  } else if (width < 900) {
+    crossAxisCount = 2;
+    horizontalPadding = 28.0;
+    childAspectRatio = 1.7;
+  } else if (width < 1000) {
+    crossAxisCount = 2;
+    horizontalPadding = 32.0;
+    childAspectRatio = 1.9;
+  } else if (width < 1100) {
+    crossAxisCount = 2;
+    horizontalPadding = 36.0;
+    childAspectRatio = 2.1;
+  } else if (width < 1200) {
+    crossAxisCount = 2;
+    horizontalPadding = 40.0;
+    childAspectRatio = 2.3;
+  } else if (width < 1300) {
+    crossAxisCount = 2;
+    horizontalPadding = 45.0;
+    childAspectRatio = 2.5;
+  } else if (width < 1400) {
+    crossAxisCount = 2;
+    horizontalPadding = 45.0;
+    childAspectRatio = 2.7;
+  } else if (width < 1500) {
+    crossAxisCount = 2;
+    horizontalPadding = 50.0;
+    childAspectRatio = 2.9;
+  } else if (width < 1600) {
+    crossAxisCount = 2;
+    horizontalPadding = 50.0;
+    childAspectRatio = 3.2;
+  } else if (width < 1700) {
+    crossAxisCount = 2;
+    horizontalPadding = 50.0;
+    childAspectRatio = 3.4;
+  }  
+  else {
+    crossAxisCount = 2;
+    horizontalPadding = 50.0;
+    childAspectRatio = 4.5;
+  }
+  
+  return GridView.builder(
     shrinkWrap: true,
     physics: const NeverScrollableScrollPhysics(),
-    padding: EdgeInsets.symmetric(
-      horizontal: isMobile ? 12 : 20,
-      vertical: 8,
+    padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
+    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: crossAxisCount,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      childAspectRatio: childAspectRatio,
     ),
     itemCount: _paginatedList.length,
     itemBuilder: (context, index) => _buildUPACard(_paginatedList[index]),
@@ -560,132 +587,141 @@ Widget _buildUPACard(Map<String, dynamic> upa) {
   final telefoneFormatado = _formatarTelefone(upa['telefone'] ?? '');
 
   return Container(
-    margin: EdgeInsets.only(
-      bottom: 16,
-      left: isMobile ? 12 : 30,
-      right: isMobile ? 12 : 30,
-    ),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 15,
-          offset: const Offset(0, 4),
+          color: Colors.black.withOpacity(0.08),
+          blurRadius: 12,
+          offset: const Offset(0, 3),
         ),
       ],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            color: Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          padding: EdgeInsets.all(isMobile ? 10 : 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE2E8F0),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: EdgeInsets.all(isMobile ? 6 : 8),
                 decoration: BoxDecoration(
                   color: _primaryDark.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.local_hospital_outlined, color: _primaryDark, size: 20),
+                child: Icon(Icons.local_hospital_outlined, color: _primaryDark, size: isMobile ? 14 : 16),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  upa['nome'] ?? 'UPA não identificada',
+                  upa['nome'] ?? 'UPA',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: isMobile ? 13 : 14,
                     fontWeight: FontWeight.bold,
                     color: _primaryDark,
                     fontFamily: 'Poppins',
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isMobile ? 10 : 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.location_on, size: 16, color: Colors.grey.shade500),
-                  const SizedBox(width: 8),
+                  Icon(Icons.location_on, size: isMobile ? 12 : 14, color: Colors.grey.shade500),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       upa['endereco'] ?? 'Endereço não informado',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF475569),
+                      style: TextStyle(
+                        fontSize: isMobile ? 11 : 12,
+                        color: const Color(0xFF475569),
                         fontFamily: 'Inter',
+                        height: 1.3,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.phone_outlined, size: 16, color: Colors.grey.shade500),
-                  const SizedBox(width: 8),
+                  Icon(Icons.phone_outlined, size: isMobile ? 12 : 14, color: Colors.grey.shade500),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       telefoneFormatado,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF475569),
+                      style: TextStyle(
+                        fontSize: isMobile ? 11 : 12,
+                        color: const Color(0xFF475569),
                         fontFamily: 'Inter',
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.access_time_outlined, size: 16, color: Colors.grey.shade500),
-                  const SizedBox(width: 8),
+                  Icon(Icons.access_time_outlined, size: isMobile ? 12 : 14, color: Colors.grey.shade500),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       upa['horario'] ?? 'Horário não informado',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF475569),
+                      style: TextStyle(
+                        fontSize: isMobile ? 11 : 12,
+                        color: const Color(0xFF475569),
                         fontFamily: 'Inter',
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              const Divider(color: Color(0xFFE5E7EB)),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => _abrirModalMatricula(upa),
-                    icon: Icon(Icons.school_outlined, size: 18, color: _successColor),
-                    label: Text(
-                      'Matricular-se',
-                      style: TextStyle(color: _successColor, fontWeight: FontWeight.w500),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: _successColor),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ],
-              ),
+// No método _buildUPACard, substitua o SizedBox do botão por:
+
+const SizedBox(height: 12),
+const Divider(color: Color(0xFFE5E7EB), height: 1),
+const SizedBox(height: 8),
+Row(
+  mainAxisAlignment: MainAxisAlignment.end,
+  children: [
+    OutlinedButton.icon(
+      onPressed: () => _abrirModalMatricula(upa),
+      icon: Icon(Icons.school_outlined, size: isMobile ? 14 : 16, color: _successColor),
+      label: Text(
+        'Matricular-se',
+        style: TextStyle(color: _successColor, fontWeight: FontWeight.w500, fontSize: isMobile ? 11 : 12),
+      ),
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: _successColor),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    ),
+  ],
+),
             ],
           ),
         ),
@@ -704,231 +740,12 @@ String _formatarTelefone(String telefone) {
   }
   return telefone;
 }
-
-  void _mostrarInformacoesGrupos() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        insetPadding: EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: _InfoModal(),
-        ),
-      ),
-    );
-  }
 }
 
-class _InfoModal extends StatelessWidget {
-  final Color _primaryDark = Color(0xFF0F2B3D);
-  final Color _accentColor = Color(0xFF2C7DA0);
-  final Color _successColor = Color(0xFF10B981);
-  final Color _warningColor = Color(0xFFF59E0B);
-
-  
-  Widget _infoItem(IconData icon, String text, Color color) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(fontSize: 14),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: Colors.white,
-    body: Column(
-      children: [
-        Container(
-          decoration: const BoxDecoration(
-            color: Color.fromARGB(255, 231, 236, 240),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back_ios_new,
-                        color: _primaryDark, size: 20),
-                    onPressed: () => Navigator.pop(context),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Como Funcionam as Turmas',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: _primaryDark,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                _buildInfoSection(
-                  icon: Icons.how_to_reg_outlined,
-                  title: 'Processo de Matrícula',
-                  content:
-                      'Após realizar sua matrícula em uma das turmas disponíveis, você entrará na lista de espera. Em até 5 dias úteis, a UPA entrará em contato pelo telefone cadastrado para confirmar sua vaga e fornecer mais informações sobre o início das atividades.',
-                  color: _accentColor,
-                ),
-                const SizedBox(height: 24),
-                _buildInfoSection(
-                  icon: Icons.calendar_today_outlined,
-                  title: 'Frequência dos Encontros',
-                  content:
-                      'O programa de apoio é estruturado da seguinte forma:\n\n• Primeiro mês: Encontros SEMANAIS (1 vez por semana)\n• Meses seguintes: Encontros QUINZENAIS (a cada 15 dias)\n\nCada encontro tem duração aproximada de 2 horas.',
-                  color: _successColor,
-                ),
-                const SizedBox(height: 24),
-                _buildInfoSection(
-                  icon: Icons.group_outlined,
-                  title: 'Dinâmica dos Grupos',
-                  color: _warningColor,
-                  contentWidget: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Os grupos são espaços acolhedores e sigilosos onde você encontrará apoio para sua jornada de abandono do tabagismo.\n',
-                        style: TextStyle(
-                          fontSize: 14,
-                          height: 1.5,
-                          color: Color(0xFF475569),
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-                      _infoItem(Icons.chat_bubble_outline, 'Roda de Conversa', _warningColor),
-                      _infoItem(Icons.health_and_safety_outlined, 'Educação em Saúde', _warningColor),
-                      _infoItem(Icons.psychology_outlined, 'Estratégias de Enfrentamento', _warningColor),
-                      _infoItem(Icons.fitness_center_outlined, 'Atividades Práticas', _warningColor),
-                      _infoItem(Icons.person_outline, 'Acompanhamento Individual', _warningColor),
-                      _infoItem(Icons.people_outline, 'Rede de Apoio', _warningColor),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _buildInfoSection(
-                  icon: Icons.medical_services_outlined,
-                  title: 'Acompanhamento Profissional',
-                  content:
-                      'Os grupos são coordenados por uma equipe multidisciplinar composta por:\n\n• Médicos especialistas em tabagismo\n• Psicólogos\n• Enfermeiros\n• Educadores físicos',
-                  color: const Color(0xFF8B5CF6),
-                ),
-                const SizedBox(height: 24),
-                _buildInfoSection(
-                  icon: Icons.phone_android_outlined,
-                  title: 'Comunicação e Suporte',
-                  content:
-                      'Além dos encontros presenciais, você receberá:\n\n✓ Mensagens de apoio via WhatsApp\n✓ Material informativo complementar\n✓ Acompanhamento telefônico\n✓ Grupo de suporte online',
-                  color: const Color(0xFF14B8A6),
-                ),
-                const SizedBox(height: 32),
-                Center(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _accentColor,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Entendi',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
+class StatelessWidget {
+        
 }
 
-Widget _buildInfoSection({
-  required IconData icon,
-  required String title,
-  String? content,
-  Widget? contentWidget,
-  required Color color,
-}) {
-  return Container(
-    decoration: BoxDecoration(
-      border: Border(left: BorderSide(color: color, width: 4)),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.only(left: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 24),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (contentWidget != null)
-            contentWidget
-          else if (content != null)
-            Text(
-              content,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.5,
-                color: Color(0xFF475569),
-                fontFamily: 'Inter',
-              ),
-            ),
-        ],
-      ),
-    ),
-  );
-}
-}
 
 class EnrollmentModal extends StatefulWidget {
   final Map<String, dynamic> upa;
@@ -953,10 +770,10 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
   
   
   final Color _primaryDark = Color(0xFF0F2B3D);
-  final Color _accentColor = Color(0xFF2C7DA0);
-  final Color _successColor = Color(0xFF10B981);
-  final Color _warningColor = Color(0xFFF59E0B);
-  final Color _dangerColor = Color(0xFFEF4444);
+  final Color _accentColor = Color(0xFF1F4E6E);
+final Color _successColor = const Color(0xFF2E8B6A);
+final Color _warningColor = const Color(0xFFD97706);
+final Color _dangerColor = const Color(0xFFC65D47);
   
   String? _turmaSelecionada;
   String? _segundaOpcaoTurma;  
@@ -1021,13 +838,13 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  color: const Color(0xFF2E8B6A).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.school_rounded,
                   size: 48,
-                  color: Color(0xFF10B981),
+                  color: Color(0xFF2E8B6A),
                 ),
               ),
               const SizedBox(height: 20),
@@ -1089,7 +906,7 @@ class _EnrollmentModalState extends State<EnrollmentModal> {
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
+                            backgroundColor: const Color(0xFF2E8B6A),
                             foregroundColor: Colors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
@@ -1207,7 +1024,7 @@ final data = {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Row(
               children: [
-                Icon(Icons.warning_amber, color: Color(0xFFF59E0B), size: 28),
+                Icon(Icons.warning_amber, color: Color(0xFFD97706), size: 28),
                 SizedBox(width: 12),
                 Text('Matrícula Existente', style: TextStyle(fontWeight: FontWeight.bold)),
               ],
@@ -1236,7 +1053,7 @@ final data = {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2C7DA0),
+              backgroundColor: const Color(0xFF1F4E6E),
             ),
             child: const Text('Ver Minhas Matrículas'),
               ),
@@ -1265,117 +1082,212 @@ Widget build(BuildContext context) {
       _medicamento != null &&
       (_scoreFagestrom != null && _scoreFagestrom! > 0);
 
-  return Scaffold(
-    backgroundColor: Colors.white,
-appBar: AppBar(
-title: Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  mainAxisSize: MainAxisSize.min,
-  children: [
-    Text(
-      'Matrícula',
-      style: TextStyle(fontWeight: FontWeight.w600, fontFamily: 'Poppins', color: _primaryDark, fontSize: 18),
+  return Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(28),
     ),
-    Text(
-      widget.upa['nome'] ?? 'UPA',
-      style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontFamily: 'Inter'),
-    ),
-  ],
-),
-  backgroundColor: Colors.white,
-  elevation: 0,
-  leading: IconButton(
-    icon: Icon(Icons.arrow_back_ios_new, color: _primaryDark, size: 20),
-    onPressed: () => Navigator.pop(context),
-  ),
-  actions: [
-    Padding(
-      padding: const EdgeInsets.only(right: 16),
-      child: ElevatedButton.icon(
-        onPressed: isFormValid && !_isSubmitting ? _showConfirmationDialog : null,
-        icon: Icon(Icons.check_circle_outline, size: 18),
-        label: Text('Confirmar Matrícula'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _successColor,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      ),
-    ),
-  ],
-),
-    body: SingleChildScrollView(
-      padding: EdgeInsets.all(20),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-
-            SizedBox(height: 24),
-            _buildTurmaSection('Primeira opção', _turmaSelecionada, (value) => setState(() => _turmaSelecionada = value)),
-            SizedBox(height: 20),
-            _buildTurmaSection('Segunda opção', _segundaOpcaoTurma, (value) => setState(() => _segundaOpcaoTurma = value), isOptional: true),
-            SizedBox(height: 24),
-            Container(height: 1, color: Colors.grey.shade200),
-            SizedBox(height: 20),
-            Text(
-              'Informações Pessoais',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _primaryDark, fontFamily: 'Poppins'),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: Column(
+        children: [         
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF334155),
             ),
-            SizedBox(height: 16),
-           Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildDropdownField(
-                'Escolaridade',
-                _escolaridades,
-                _escolaridade,
-                (value) => setState(() => _escolaridade = value),
-              ),
-              const SizedBox(height: 12),
-              _buildMedicamentoField(),
-            ],
-          ),
-            SizedBox(height: 16),
-            _buildScoreFieldCompact(),
-            SizedBox(height: 24),
-            Container(height: 1, color: Colors.grey.shade200),
-            SizedBox(height: 20),
-            Row(
+            child: Row(
               children: [
-                Text(
-                  'Comorbidades',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _primaryDark, fontFamily: 'Poppins'),
-                ),
-                SizedBox(width: 8),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    'Opcional',
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  child: const Icon(
+                    Icons.school_outlined,
+                    color: Colors.white,
+                    size: 24,
                   ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Matrícula',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        widget.upa['nome'] ?? 'UPA',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
-            SizedBox(height: 8),
-            Text(
-              'Selecione as condições de saúde existentes',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontFamily: 'Inter'),
-            ),
-            SizedBox(height: 16),
-            _buildComorbidadesGrid(),
-            SizedBox(height: 32),
-          ],
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTurmaSection('Primeira opção', _turmaSelecionada, (value) => setState(() => _turmaSelecionada = value)),
+                    const SizedBox(height: 20),
+                    _buildTurmaSection('Segunda opção', _segundaOpcaoTurma, (value) => setState(() => _segundaOpcaoTurma = value), isOptional: true),
+                    const SizedBox(height: 24),
+                    Container(height: 1, color: Colors.grey.shade200),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Informações Pessoais',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildEscolaridadeField(),
+                    const SizedBox(height: 16),
+                    _buildMedicamentoField(),
+                    const SizedBox(height: 16),
+                    _buildScoreFieldCompact(),
+                    const SizedBox(height: 24),
+                    Container(height: 1, color: Colors.grey.shade200),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        const Text(
+                          'Comorbidades',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            'Opcional',
+                            style: TextStyle(fontSize: 10, color: Color(0xFF64748B), fontFamily: 'Inter'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Selecione as condições de saúde existentes',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontFamily: 'Inter'),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildComorbidadesGrid(),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: isFormValid && !_isSubmitting ? _showConfirmationDialog : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _successColor,
+                          disabledBackgroundColor: Colors.grey.shade300,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+             : const Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(Icons.check_circle_outline, size: 18, color: Colors.white),
+      SizedBox(width: 8),
+      Text(
+        'Confirmar Matrícula',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
         ),
       ),
+    ],
+  ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     ),
+  );
+}
+
+
+
+Widget _buildEscolaridadeField() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text('Escolaridade', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F172A), fontFamily: 'Inter')),
+      const SizedBox(height: 8),
+      Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: DropdownButtonFormField<String>(
+          value: _escolaridade,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+          icon: Icon(Icons.expand_more, color: _accentColor),
+          dropdownColor: Colors.white,
+          items: _escolaridades.map((item) {
+            return DropdownMenuItem(
+              value: item,
+              child: Text(item, style: const TextStyle(fontFamily: 'Inter', fontSize: 14)),
+            );
+          }).toList(),
+          onChanged: (value) => setState(() => _escolaridade = value),
+          validator: (v) => v == null ? 'Selecione a escolaridade' : null,
+        ),
+      ),
+    ],
   );
 }
 
@@ -1383,112 +1295,160 @@ Widget _buildMedicamentoField() {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text('Medicamento', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F2B3D))),
+      const Text('Medicamento', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F172A), fontFamily: 'Inter')),
       const SizedBox(height: 8),
-      DropdownButtonFormField<String>(
-        value: _medicamento,
-        decoration: InputDecoration(
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _accentColor, width: 2)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          filled: true,
-          fillColor: Colors.white,
+      Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
-        icon: Icon(Icons.arrow_drop_down, color: _accentColor),
-        items: _medicamentos.map((item) => DropdownMenuItem(value: item, child: Text(item, style: const TextStyle(fontFamily: 'Inter')))).toList(),
-        onChanged: (value) {
-          setState(() {
-            _medicamento = value;
-            if (value != 'Outro') {
-              _outroMedicamento = null;
-            }
-          });
-        },
-        validator: (v) => v == null ? 'Selecione o medicamento' : null,
+        child: DropdownButtonFormField<String>(
+          value: _medicamento,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+          icon: Icon(Icons.expand_more, color: _accentColor),
+          dropdownColor: Colors.white,
+          items: _medicamentos.map((item) {
+            return DropdownMenuItem(
+              value: item,
+              child: Text(item, style: const TextStyle(fontFamily: 'Inter', fontSize: 14)),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _medicamento = value;
+              if (value != 'Outro') _outroMedicamento = null;
+            });
+          },
+          validator: (v) => v == null ? 'Selecione o medicamento' : null,
+        ),
       ),
       if (_medicamento == 'Outro')
         Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: TextFormField(
-            decoration: InputDecoration(
-              hintText: 'Digite o medicamento',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              isDense: true,
+          padding: const EdgeInsets.only(top: 12),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
-            onChanged: (text) {
-              _outroMedicamento = text;
-            },
-            validator: (value) {
-              if (_medicamento == 'Outro' && (value == null || value.isEmpty)) {
-                return 'Digite o nome do medicamento';
-              }
-              return null;
-            },
+            child: TextFormField(
+              decoration: const InputDecoration(
+                hintText: 'Digite o medicamento',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+              onChanged: (text) => _outroMedicamento = text,
+              validator: (value) {
+                if (_medicamento == 'Outro' && (value == null || value.isEmpty)) {
+                  return 'Digite o nome do medicamento';
+                }
+                return null;
+              },
+            ),
           ),
         ),
     ],
   );
 }
 
+
 Widget _buildComorbidadesGrid() {
   final List<Map<String, dynamic>> categorias = [
-    {'titulo': 'Câncer', 'categoria': 'cancer', 'opcoes': _opcoesComorbidades['cancer']!},
-    {'titulo': 'Cardiovascular', 'categoria': 'cardiovascular', 'opcoes': _opcoesComorbidades['cardiovascular']!},
-    {'titulo': 'Metabólico', 'categoria': 'metabolico', 'opcoes': _opcoesComorbidades['metabolico']!},
-    {'titulo': 'Psiquiátrico', 'categoria': 'psiquiatrico', 'opcoes': _opcoesComorbidades['psiquiatrico']!},
-    {'titulo': 'Respiratório', 'categoria': 'respiratorio', 'opcoes': _opcoesComorbidades['respiratorio']!},
+    {'titulo': 'Câncer', 'categoria': 'cancer', 'opcoes': _opcoesComorbidades['cancer']!, 'icon': Icons.health_and_safety},
+    {'titulo': 'Cardiovascular', 'categoria': 'cardiovascular', 'opcoes': _opcoesComorbidades['cardiovascular']!, 'icon': Icons.favorite},
+    {'titulo': 'Metabólico', 'categoria': 'metabolico', 'opcoes': _opcoesComorbidades['metabolico']!, 'icon': Icons.science},
+    {'titulo': 'Psiquiátrico', 'categoria': 'psiquiatrico', 'opcoes': _opcoesComorbidades['psiquiatrico']!, 'icon': Icons.psychology},
+    {'titulo': 'Respiratório', 'categoria': 'respiratorio', 'opcoes': _opcoesComorbidades['respiratorio']!, 'icon': Icons.air},
   ];
   
   return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
     children: categorias.map((cat) {
       bool temOutroSelecionado = _comorbidades[cat['categoria']]!.any((item) => 
         item['valor'] == 'outro' || item['valor'] == 'outros');
       
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 16),
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              cat['titulo'],
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _primaryDark),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _accentColor.withOpacity(0.05),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Row(
+                children: [
+                  Icon(cat['icon'], size: 18, color: _accentColor),
+                  const SizedBox(width: 8),
+                  Text(
+                    cat['titulo'],
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0F172A),
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: (cat['opcoes'] as List<String>).map((opcao) {
-                bool isSelected = _isSelected(cat['categoria'], opcao);
-                bool isDisabled = _isNenhumSelected(cat['categoria']) && opcao != 'nenhum';
-                return FilterChip(
-                  label: Text(opcao, style: const TextStyle(fontSize: 12)),
-                  selected: isSelected,
-                  onSelected: isDisabled ? null : (selected) => _toggleComorbidade(cat['categoria'], opcao),
-                  backgroundColor: Colors.grey.shade100,
-                  selectedColor: _accentColor.withOpacity(0.2),
-                  checkmarkColor: _accentColor,
-                );
-              }).toList(),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: (cat['opcoes'] as List<String>).map((opcao) {
+                  bool isSelected = _isSelected(cat['categoria'], opcao);
+                  bool isDisabled = _isNenhumSelected(cat['categoria']) && opcao != 'nenhum';
+                  return FilterChip(
+                    label: Text(opcao, style: const TextStyle(fontSize: 12, fontFamily: 'Inter')),
+                    selected: isSelected,
+                    onSelected: isDisabled ? null : (selected) => _toggleComorbidade(cat['categoria'], opcao),
+                    backgroundColor: Colors.white,
+                    selectedColor: _accentColor.withOpacity(0.15),
+                    checkmarkColor: _accentColor,
+                    side: BorderSide(
+                      color: isSelected ? _accentColor : const Color(0xFFE2E8F0),
+                      width: 1,
+                    ),
+                    shape: StadiumBorder(),
+                  );
+                }).toList(),
+              ),
             ),
             if (temOutroSelecionado)
               Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: TextFormField(
-                  decoration: InputDecoration(
-                    hintText: 'Especifique',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    isDense: true,
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  onChanged: (text) {
-                    final item = _comorbidades[cat['categoria']]!.firstWhere(
-                      (item) => item['valor'] == 'outro' || item['valor'] == 'outros');
-                    item['outroTexto'] = text;
-                    setState(() {});
-                  },
+                  child: TextFormField(
+                    decoration: const InputDecoration(
+                      hintText: 'Especifique...',
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    onChanged: (text) {
+                      final item = _comorbidades[cat['categoria']]!.firstWhere(
+                        (item) => item['valor'] == 'outro' || item['valor'] == 'outros');
+                      item['outroTexto'] = text;
+                      setState(() {});
+                    },
+                  ),
                 ),
               ),
           ],
@@ -1497,7 +1457,6 @@ Widget _buildComorbidadesGrid() {
     }).toList(),
   );
 }
-
 
 Widget _buildScoreFieldCompact() {
   return Column(
@@ -1556,31 +1515,46 @@ Widget _buildScoreFieldCompact() {
                   style: TextStyle(fontWeight: FontWeight.w500, color: _warningColor, fontSize: 12),
                 ),
               ),
-              TextButton(
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FagerstromTestScreen(
-                        onScoreUpdated: (score) {
-                          _scoreFagestrom = score;
-                          setState(() {});
-                        },
-                      ),
-                    ),
-                  );
-                  if (result != null && mounted) {
-                    setState(() => _scoreFagestrom = result);
-                  }
+TextButton(
+  onPressed: () async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Container(
+            width: MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.95,
+            height: MediaQuery.of(context).size.height > 800 ? 700 : MediaQuery.of(context).size.height * 0.85,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: FagerstromTestModal(
+                onScoreUpdated: (score) {
+                  _scoreFagestrom = score;
+                  setState(() {});
                 },
-                style: TextButton.styleFrom(
-                  backgroundColor: _warningColor,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: Text('Fazer teste', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
               ),
+            ),
+          ),
+        );
+      },
+    );
+    await _carregarScoreUsuario();
+  },
+  style: TextButton.styleFrom(
+    backgroundColor: _warningColor,
+    foregroundColor: Colors.white,
+    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  ),
+  child: Text('Fazer teste', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+),
             ],
           ),
         ),
@@ -1588,148 +1562,143 @@ Widget _buildScoreFieldCompact() {
   );
 }
 
-
-
- Widget _buildTurmaSection(String title, String? selected, Function(String?) onChanged, {bool isOptional = false}) {
-    if (_carregandoTurmas) {
-      return Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isOptional ? _warningColor.withValues(alpha: 0.05) : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isOptional ? _warningColor.withValues(alpha: 0.3) : Colors.grey.shade200),
-        ),
-        child: Center(child: CircularProgressIndicator(color: _accentColor)),
-      );
-    }
-
-    if (_turmasComVagas.isEmpty) {
-      return Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isOptional ? _warningColor.withValues(alpha: 0.05) : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isOptional ? _warningColor.withValues(alpha: 0.3) : Colors.grey.shade200),
-        ),
-        child: Column(
-          children: [
-            Icon(Icons.warning_amber, color: _warningColor, size: 40),
-            SizedBox(height: 12),
-            Text(
-              'Nenhuma turma disponível no momento',
-              style: TextStyle(fontSize: 14, color: _warningColor),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
+Widget _buildTurmaSection(String title, String? selected, Function(String?) onChanged, {bool isOptional = false}) {
+  if (_carregandoTurmas) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: isOptional ? _warningColor.withValues(alpha: 0.05) : Colors.grey.shade50,
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isOptional ? _warningColor.withValues(alpha: 0.3) : Colors.grey.shade200),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  if (_turmasComVagas.isEmpty) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF3C7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _warningColor.withOpacity(0.3)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            if (isOptional) Icon(Icons.info_outline, color: _warningColor, size: 16),
-            SizedBox(width: 8),
-            Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isOptional ? _warningColor : _primaryDark)),
-          ]),
-          if (isOptional) SizedBox(height: 4),
-          if (isOptional) Text('Caso sua primeira opção não tenha vagas', style: TextStyle(fontSize: 11, color: _warningColor)),
-          SizedBox(height: 12),
-          ..._turmasComVagas.map((turma) {
-            String turmaTexto = '${turma['dia_semana']} - ${turma['horario']}';
-            int vagasDisponiveis = turma['vagas_disponiveis'] ?? 0;
-            int vagasTotais = turma['vagas_totais'] ?? 4;
-            bool estaLotado = turma['status'] == 'lotado' || vagasDisponiveis <= 0;
-            
-            return Container(
-              margin: EdgeInsets.only(bottom: 8),
-              decoration: BoxDecoration(
-                color: selected == turmaTexto ? _accentColor.withValues(alpha: 0.1) : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: selected == turmaTexto 
-                    ? _accentColor 
-                    : (estaLotado ? _dangerColor.withValues(alpha: 0.3) : Colors.grey.shade200),
-                ),
-              ),
-              child: RadioListTile<String>(
-                title: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        turmaTexto,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          color: estaLotado ? Colors.grey.shade500 : null,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: estaLotado 
-                          ? _dangerColor.withValues(alpha: 0.1)
-                          : (vagasDisponiveis <= 2 ? _warningColor.withValues(alpha: 0.1) : _successColor.withValues(alpha: 0.1)),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        estaLotado 
-                          ? 'Lotado' 
-                          : '$vagasDisponiveis/$vagasTotais vagas',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: estaLotado 
-                            ? _dangerColor
-                            : (vagasDisponiveis <= 2 ? _warningColor : _successColor),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                value: turmaTexto,
-                groupValue: selected,
-                onChanged: estaLotado ? null : onChanged,
-                activeColor: _accentColor,
-                contentPadding: EdgeInsets.symmetric(horizontal: 12),
-              ),
-            );
-          }).toList(),
+          Icon(Icons.warning_amber, color: _warningColor, size: 40),
+          const SizedBox(height: 12),
+          Text(
+            'Nenhuma turma disponível no momento',
+            style: TextStyle(fontSize: 14, color: _warningColor, fontFamily: 'Inter'),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDropdownField(String label, List<String> items, String? value, Function(String?) onChanged) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _primaryDark)),
-      SizedBox(height: 8),
-      DropdownButtonFormField<String>(
-        value: value,
-        decoration: InputDecoration(
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _accentColor, width: 2)),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          filled: true,
-          fillColor: Colors.white,
+  return Container(
+    decoration: BoxDecoration(
+      color: isOptional ? _warningColor.withOpacity(0.05) : const Color(0xFFF8FAFC),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: isOptional ? _warningColor.withOpacity(0.3) : const Color(0xFFE2E8F0)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isOptional ? _warningColor.withOpacity(0.1) : _accentColor.withOpacity(0.05),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: Row(
+            children: [
+              if (isOptional) Icon(Icons.info_outline, color: _warningColor, size: 16),
+              if (isOptional) const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isOptional ? _warningColor : const Color(0xFF0F172A),
+                  fontFamily: 'Inter',
+                ),
+              ),
+              if (isOptional) ...[
+                const SizedBox(width: 8),
+                const Text(
+                  '(opcional)',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontFamily: 'Inter'),
+                ),
+              ],
+            ],
+          ),
         ),
-        icon: Icon(Icons.arrow_drop_down, color: _accentColor),
-        items: items.map((item) => DropdownMenuItem(value: item, child: Text(item, style: TextStyle(fontFamily: 'Inter')))).toList(),
-        onChanged: onChanged,
-        validator: (v) => v == null ? 'Selecione $label' : null,
-      ),
-    ],
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: _turmasComVagas.map((turma) {
+              String turmaTexto = '${turma['dia_semana']} - ${turma['horario']}';
+              int vagasDisponiveis = turma['vagas_disponiveis'] ?? 0;
+              int vagasTotais = turma['vagas_totais'] ?? 4;
+              bool estaLotado = turma['status'] == 'lotado' || vagasDisponiveis <= 0;
+              
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: selected == turmaTexto ? _accentColor.withOpacity(0.08) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: selected == turmaTexto 
+                      ? _accentColor 
+                      : (estaLotado ? _dangerColor.withOpacity(0.2) : const Color(0xFFE2E8F0)),
+                  ),
+                ),
+                child: RadioListTile<String>(
+                  title: Text(
+                    turmaTexto,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: selected == turmaTexto ? FontWeight.w600 : FontWeight.normal,
+                      color: estaLotado ? const Color(0xFF94A3B8) : const Color(0xFF0F172A),
+                    ),
+                  ),
+                  secondary: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: estaLotado 
+                        ? _dangerColor.withOpacity(0.1)
+                        : (vagasDisponiveis <= 2 ? _warningColor.withOpacity(0.1) : _successColor.withOpacity(0.1)),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      estaLotado 
+                        ? 'Lotado' 
+                        : '$vagasDisponiveis/$vagasTotais vagas',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: estaLotado 
+                          ? _dangerColor
+                          : (vagasDisponiveis <= 2 ? _warningColor : _successColor),
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ),
+                  value: turmaTexto,
+                  groupValue: selected,
+                  onChanged: estaLotado ? null : onChanged,
+                  activeColor: _accentColor,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    ),
   );
 }
 }

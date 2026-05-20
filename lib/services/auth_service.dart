@@ -24,14 +24,17 @@ class AuthService {
     }
   }
 
-  Future<Map<String, dynamic>> register(User user) async {
-    try {
-      final response = await _api.post('/auth/register', user.toJson());
-      return response;
-    } catch (e) {
-      rethrow;
+Future<Map<String, dynamic>> register(User user) async {
+  try {
+    final response = await _api.post('/auth/register', user.toJson());
+    return response;
+  } catch (e) {
+    if (e.toString().contains('409') || e.toString().contains('CPF já cadastrado')) {
+      throw Exception('CPF já cadastrado no sistema');
     }
+    rethrow;
   }
+}
 
     Future<Map<String, dynamic>> getUserData() async {
       try {
@@ -49,6 +52,12 @@ Future<Map<String, dynamic>> updateUserData(Map<String, dynamic> data) async {
   } catch (e) {
     rethrow;
   }
+}
+
+Future<bool> isLoggedIn() async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+  return token != null && token.isNotEmpty;
 }
 
     Future<Map<String, dynamic>> changeUserPassword(String oldPassword, String newPassword) async {
