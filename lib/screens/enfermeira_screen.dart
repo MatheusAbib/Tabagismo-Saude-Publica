@@ -1137,43 +1137,44 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
         body: Column(
           children: [
             _buildHeader(horizontalPadding),
-            Container(
-              color: const Color(0xFFF1F5F9),
-              child: TabBar(
-                isScrollable: isMobile,
-                indicatorColor: _accentColor,
-                labelColor: _accentColor,
-                unselectedLabelColor: const Color(0xFF64748B),
-                labelStyle: TextStyle(
-                  fontSize: isMobile ? 14 : 16,
-                  fontWeight: FontWeight.w600,
-                ),
-                unselectedLabelStyle: TextStyle(
-                  fontSize: isMobile ? 13 : 14,
-                ),
-                padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 0),
-                tabs: _tabTitles.map((title) => Tab(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: 8),
-                    child: Text(title),
-                  ),
-                )).toList(),
-                onTap: (index) {
-                  setState(() {
-                    _selectedTabIndex = index;
-                    _searchQuery = '';
-                    _searchController.clear();
-                    _currentPage = 1;
-                    if (index == 1) {
-                      _statusFiltro = 'todos';
-                    }
-                  });
-                  if (index == 1) {
-                    _carregarUsuarios(page: 1);
-                  }
-                },
-              ),
-            ),
+  Container(
+  color: const Color(0xFFF1F5F9),
+  child: TabBar(
+    isScrollable: isMobile,
+    indicatorColor: _accentColor,
+    labelColor: _accentColor,
+    unselectedLabelColor: const Color(0xFF64748B),
+    labelStyle: TextStyle(
+      fontSize: isMobile ? 14 : 16,
+      fontWeight: FontWeight.w600,
+    ),
+    unselectedLabelStyle: TextStyle(
+      fontSize: isMobile ? 13 : 14,
+    ),
+    padding: EdgeInsets.zero,
+    indicatorPadding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12),
+    tabs: _tabTitles.map((title) => Tab(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 12),
+        child: Text(title),
+      ),
+    )).toList(),
+    onTap: (index) {
+      setState(() {
+        _selectedTabIndex = index;
+        _searchQuery = '';
+        _searchController.clear();
+        _currentPage = 1;
+        if (index == 1) {
+          _statusFiltro = 'todos';
+        }
+      });
+      if (index == 1) {
+        _carregarUsuarios(page: 1);
+      }
+    },
+  ),
+),
             Expanded(
               child: IndexedStack(
                 index: _selectedTabIndex,
@@ -1316,7 +1317,7 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
     );
   }
 
-  Widget _buildTurmaPresenca(Map<String, dynamic> turma, int turmaIndex, DateTime dataSelecionada, Function(Map<String, dynamic>) onTurmaUpdate) {
+ Widget _buildTurmaPresenca(Map<String, dynamic> turma, int turmaIndex, DateTime dataSelecionada, Function(Map<String, dynamic>) onTurmaUpdate) {
     final usuarios = List<Map<String, dynamic>>.from(turma['usuarios']);
     final isMobile = MediaQuery.of(context).size.width < 600;
     
@@ -1554,6 +1555,7 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
                         ? SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Container(
+                              width: 650,
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF8FAFC),
@@ -1561,33 +1563,52 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
                               ),
                               child: Column(
                                 children: [
-                                  Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 150,
-                                        child: Text(
-                                          'Aluno',
-                                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        width: 100,
-                                        child: Text(
-                                          'Presença',
-                                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        width: 120,
-                                        child: Text(
-                                          'Observação',
-                                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+    Row(
+  children: [
+    SizedBox(
+      width: 140,
+      child: Text(
+        'Aluno',
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF0F172A)),
+        textAlign: TextAlign.center,
+      ),
+    ),
+    SizedBox(
+      width: 100,
+      child: Text(
+        'CPF',
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF0F172A)),
+        textAlign: TextAlign.center,
+      ),
+    ),
+    SizedBox(
+      width: 60,
+      child: Text(
+        'Sexo',
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF0F172A)),
+        textAlign: TextAlign.center,
+      ),
+    ),
+    const Spacer(),
+    SizedBox(
+      width: 90,
+      child: Text(
+        'Presença',
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF0F172A)),
+        textAlign: TextAlign.center,
+      ),
+    ),
+    const SizedBox(width: 8),
+    SizedBox(
+      width: 100,
+      child: Text(
+        'Observação',
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF0F172A)),
+        textAlign: TextAlign.center,
+      ),
+    ),
+  ],
+),
                                   const SizedBox(height: 12),
                                   ...usuarios.map((usuario) => _buildLinhaPresencaMobile(usuario, setState)),
                                 ],
@@ -1602,34 +1623,49 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
                             ),
                             child: Column(
                               children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        'Aluno',
-                                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: 100,
-                                      child: Text(
-                                        'Presença',
-                                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: 120,
-                                      child: Text(
-                                        'Observação',
-                                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 40),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
+   Row(
+  mainAxisAlignment: MainAxisAlignment.start,
+  children: [
+    SizedBox(
+      width: 200,
+      child: Text(
+        'Aluno',
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
+        textAlign: TextAlign.center,
+      ),
+    ),
+    const Expanded(
+      child: Text(
+        'CPF',
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
+        textAlign: TextAlign.center,
+      ),
+    ),
+    const Expanded(
+      child: Text(
+        'Sexo',
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
+        textAlign: TextAlign.center,
+      ),
+    ),
+    const Expanded(
+      child: Text(
+        'Presença',
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
+        textAlign: TextAlign.center,
+      ),
+    ),
+    const SizedBox(width: 16),
+    const Expanded(
+      child: Text(
+        'Observação',
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
+        textAlign: TextAlign.center,
+      ),
+    ),
+  ],
+),
+                   const SizedBox(height: 12),
                                 ...usuarios.map((usuario) => _buildLinhaPresenca(usuario, setState)),
                               ],
                             ),
@@ -1678,191 +1714,230 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
     );
   }
 
-  Widget _buildLinhaPresencaMobile(Map<String, dynamic> usuario, Function setState) {
-    String? status = usuario['presenca_status'];
-    String statusDisplay = status ?? 'nenhum';
-    String? observacao = usuario['observacao_semanal'];
-    String observacaoDisplay = observacao ?? '';
-    
-    Map<String, String> statusOptions = {
-      'presente': 'Presente',
-      'falta': 'Falta',
-      'nenhum': '-',
-    };
-    
-    Map<String, Color> statusColors = {
-      'presente': _successColor,
-      'falta': _dangerColor,
-      'nenhum': const Color(0xFF94A3B8),
-    };
-    
-    Map<String, String> observacaoOptions = {
-      '': '-',
-      '1- Está fumando': 'Fumando',
-      '2- Sem fumar': 'Sem fumar',
-    };
-    
-    Color getObservacaoColor(String? observacao) {
-      if (observacao == '1- Está fumando') return _warningColor;
-      if (observacao == '2- Sem fumar') return _accentColor;
-      return const Color(0xFF94A3B8);
-    }
-    
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 150,
-            child: Text(
-              usuario['nome_completo'],
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Container(
-            width: 100,
-            decoration: BoxDecoration(
-              color: statusColors[statusDisplay]?.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: statusDisplay,
-                isExpanded: true,
-                icon: const Icon(Icons.arrow_drop_down, size: 18),
-                iconSize: 18,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: statusColors[statusDisplay],
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                items: statusOptions.entries.map((entry) {
-                  return DropdownMenuItem<String>(
-                    value: entry.key,
-                    child: Center(
-                      child: Text(
-                        entry.value,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: entry.key == 'nenhum' ? const Color(0xFF94A3B8) : statusColors[entry.key],
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (newValue) {
-                  if (newValue != null && newValue != 'nenhum') {
-                    setState(() {
-                      usuario['presenca_status'] = newValue;
-                    });
-                  } else if (newValue == 'nenhum') {
-                    setState(() {
-                      usuario['presenca_status'] = null;
-                    });
-                  }
-                },
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Container(
-            width: 120,
-            decoration: BoxDecoration(
-              color: getObservacaoColor(observacaoDisplay).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: observacaoDisplay,
-                isExpanded: true,
-                icon: const Icon(Icons.arrow_drop_down, size: 18),
-                iconSize: 18,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: getObservacaoColor(observacaoDisplay),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                items: observacaoOptions.entries.map((entry) {
-                  return DropdownMenuItem<String>(
-                    value: entry.key,
-                    child: Center(
-                      child: Text(
-                        entry.value,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: getObservacaoColor(entry.key),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (newValue) {
-                  setState(() {
-                    usuario['observacao_semanal'] = newValue == '' ? null : newValue;
-                  });
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+Widget _buildLinhaPresencaMobile(Map<String, dynamic> usuario, Function setState) {
+  String? status = usuario['presenca_status'];
+  String statusDisplay = status ?? 'nenhum';
+  String? observacao = usuario['observacao_semanal'];
+  String observacaoDisplay = observacao ?? '';
+  
+  Map<String, String> statusOptions = {
+    'presente': 'Presente',
+    'falta': 'Falta',
+    'nenhum': '-',
+  };
+  
+  Map<String, Color> statusColors = {
+    'presente': _successColor,
+    'falta': _dangerColor,
+    'nenhum': const Color(0xFF94A3B8),
+  };
+  
+  Map<String, String> observacaoOptions = {
+    '': '-',
+    '1- Está fumando': 'Fumando',
+    '2- Sem fumar': 'Sem fumar',
+  };
+  
+  Color getObservacaoColor(String? observacao) {
+    if (observacao == '1- Está fumando') return _warningColor;
+    if (observacao == '2- Sem fumar') return _accentColor;
+    return const Color(0xFF94A3B8);
   }
+  
+  return Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+    ),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 140,
+          child: Text(
+            usuario['nome_completo'],
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 100,
+          child: Text(
+            _formatarCpf(usuario['cpf'] ?? ''),
+            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        SizedBox(
+          width: 60,
+          child: Text(
+            usuario['sexo'] ?? '-',
+            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const Spacer(),
+        Container(
+          width: 90,
+          decoration: BoxDecoration(
+            color: statusColors[statusDisplay]?.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: statusDisplay,
+              isExpanded: true,
+              icon: const Icon(Icons.arrow_drop_down, size: 18),
+              iconSize: 18,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: statusColors[statusDisplay],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              items: statusOptions.entries.map((entry) {
+                return DropdownMenuItem<String>(
+                  value: entry.key,
+                  child: Center(
+                    child: Text(
+                      entry.value,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: entry.key == 'nenhum' ? const Color(0xFF94A3B8) : statusColors[entry.key],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+              onChanged: (newValue) {
+                if (newValue != null && newValue != 'nenhum') {
+                  setState(() {
+                    usuario['presenca_status'] = newValue;
+                  });
+                } else if (newValue == 'nenhum') {
+                  setState(() {
+                    usuario['presenca_status'] = null;
+                  });
+                }
+              },
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          width: 100,
+          decoration: BoxDecoration(
+            color: getObservacaoColor(observacaoDisplay).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: observacaoDisplay,
+              isExpanded: true,
+              icon: const Icon(Icons.arrow_drop_down, size: 18),
+              iconSize: 18,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: getObservacaoColor(observacaoDisplay),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              items: observacaoOptions.entries.map((entry) {
+                return DropdownMenuItem<String>(
+                  value: entry.key,
+                  child: Center(
+                    child: Text(
+                      entry.value,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: getObservacaoColor(entry.key),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+              onChanged: (newValue) {
+                setState(() {
+                  usuario['observacao_semanal'] = newValue == '' ? null : newValue;
+                });
+              },
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
-  Widget _buildLinhaPresenca(Map<String, dynamic> usuario, Function setState) {
-    String? status = usuario['presenca_status'];
-    String statusDisplay = status ?? 'nenhum';
-    String? observacao = usuario['observacao_semanal'];
-    String observacaoDisplay = observacao ?? '';
-    
-    Map<String, String> statusOptions = {
-      'presente': 'Presente',
-      'falta': 'Falta',
-      'nenhum': '-',
-    };
-    
-    Map<String, Color> statusColors = {
-      'presente': _successColor,
-      'falta': _dangerColor,
-      'nenhum': const Color(0xFF94A3B8),
-    };
-    
-    Map<String, String> observacaoOptions = {
-      '': '-',
-      '1- Está fumando': '1- Está fumando',
-      '2- Sem fumar': '2- Sem fumar',
-    };
-    
-    Color getObservacaoColor(String? observacao) {
-      if (observacao == '1- Está fumando') return _warningColor;
-      if (observacao == '2- Sem fumar') return _accentColor;
-      return const Color(0xFF94A3B8);
-    }
-    
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              usuario['nome_completo'],
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              overflow: TextOverflow.ellipsis,
-            ),
+Widget _buildLinhaPresenca(Map<String, dynamic> usuario, Function setState) {
+  String? status = usuario['presenca_status'];
+  String statusDisplay = status ?? 'nenhum';
+  String? observacao = usuario['observacao_semanal'];
+  String observacaoDisplay = observacao ?? '';
+  
+  Map<String, String> statusOptions = {
+    'presente': 'Presente',
+    'falta': 'Falta',
+    'nenhum': '-',
+  };
+  
+  Map<String, Color> statusColors = {
+    'presente': _successColor,
+    'falta': _dangerColor,
+    'nenhum': const Color(0xFF94A3B8),
+  };
+  
+  Map<String, String> observacaoOptions = {
+    '': '-',
+    '1- Está fumando': '1- Está fumando',
+    '2- Sem fumar': '2- Sem fumar',
+  };
+  
+  Color getObservacaoColor(String? observacao) {
+    if (observacao == '1- Está fumando') return _warningColor;
+    if (observacao == '2- Sem fumar') return _accentColor;
+    return const Color(0xFF94A3B8);
+  }
+  
+  return Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 200,
+          child: Text(
+            usuario['nome_completo'],
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
           ),
-          Container(
-            width: 100,
+        ),
+        Expanded(
+          child: Text(
+            _formatarCpf(usuario['cpf'] ?? ''),
+            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            usuario['sexo'] ?? '-',
+            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        Expanded(
+          child: Container(
             decoration: BoxDecoration(
               color: statusColors[statusDisplay]?.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
@@ -1874,11 +1949,11 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
                 icon: const Icon(Icons.arrow_drop_down, size: 18),
                 iconSize: 18,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: statusColors[statusDisplay],
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 items: statusOptions.entries.map((entry) {
                   return DropdownMenuItem<String>(
                     value: entry.key,
@@ -1886,7 +1961,7 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
                       child: Text(
                         entry.value,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.w500,
                           color: entry.key == 'nenhum' ? const Color(0xFF94A3B8) : statusColors[entry.key],
                         ),
@@ -1908,9 +1983,10 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 16),
-          Container(
-            width: 120,
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Container(
             decoration: BoxDecoration(
               color: getObservacaoColor(observacaoDisplay).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
@@ -1922,11 +1998,11 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
                 icon: const Icon(Icons.arrow_drop_down, size: 18),
                 iconSize: 18,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: getObservacaoColor(observacaoDisplay),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 items: observacaoOptions.entries.map((entry) {
                   return DropdownMenuItem<String>(
                     value: entry.key,
@@ -1934,7 +2010,7 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
                       child: Text(
                         entry.value,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.w500,
                           color: getObservacaoColor(entry.key),
                         ),
@@ -1950,10 +2026,11 @@ class _EnfermeiraScreenState extends State<EnfermeiraScreen> {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
 void _abrirHistoricoTurma(Map<String, dynamic> turma) {
   showDialog(

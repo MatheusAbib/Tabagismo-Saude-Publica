@@ -30,10 +30,10 @@ class HeaderWidget extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _HeaderWidgetState createState() => _HeaderWidgetState();
+  HeaderWidgetState createState() => HeaderWidgetState();
 }
 
-class _HeaderWidgetState extends State<HeaderWidget> {
+class HeaderWidgetState extends State<HeaderWidget> {
   final _authService = AuthService();
   final _sintomaService = SintomaService();
   final Color _accentColor = const Color(0xFF1F4E6E);
@@ -689,7 +689,7 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
     _showLogoutConfirmationDialog();
   }
 
-  void _showSintomasModal() {
+  void showSintomasModal() {
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -745,7 +745,7 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Diário de Sintomas',
+                                  'Registrar Sintomas',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -865,14 +865,14 @@ Widget _buildNotificationCard(Map<String, dynamic> notif) {
   );
 }
 
- void _showSintomasGrafico() async {
+ void showSintomasGrafico() async {
   try {
     final sintomas = await _sintomaService.getSintomas(limit: 30);
     
     if (sintomas.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Ainda não há registros de sintomas. Registre seu primeiro diário!'),
+          content: Text('Ainda não há registros de sintomas. Registre seus sintomas!'),
           backgroundColor: Color(0xFFD97706),
         ),
       );
@@ -1644,8 +1644,8 @@ borderData: fl_chart.FlBorderData(
     );
   }
 
-void _openFagerstromTest() {
-  showDialog(
+Future<void> openFagerstromTest() async {
+  await showDialog(
     context: context,
     barrierDismissible: false,
     builder: (BuildContext context) {
@@ -1789,11 +1789,11 @@ Widget _buildMobileMenu() {
             if (value == 'turmas_apoio') {
               _openUPAScreen();
             } else if (value == 'diario') {
-              _showSintomasModal();
+              showSintomasModal();
             } else if (value == 'grafico') {
-              _showSintomasGrafico();
+              showSintomasGrafico();
             } else if (value == 'teste_fagerstrom') {
-              _openFagerstromTest();
+              openFagerstromTest();
             } else if (value == 'minhas_matriculas') {
               _openMyEnrollments();
             } else if (value == 'alterar_senha') {
@@ -1822,7 +1822,7 @@ Widget _buildMobileMenu() {
                 children: [
                   Icon(Icons.monitor_heart_outlined, size: 20, color: Color(0xFF1F4E6E)),
                   SizedBox(width: 12),
-                  Text('Diário de Sintomas', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
+                  Text('Registrar Sintomas', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
                 ],
               ),
             ),
@@ -2006,11 +2006,11 @@ Widget _buildDesktopMenu() {
           ),
           onSelected: (String value) {
             if (value == 'diario') {
-              _showSintomasModal();
+              showSintomasModal();
             } else if (value == 'grafico') {
-              _showSintomasGrafico();
+              showSintomasGrafico();
             } else if (value == 'teste_fagerstrom') {
-              _openFagerstromTest();
+              openFagerstromTest();
             } else if (value == 'minhas_matriculas') {
               _openMyEnrollments();
             } else if (value == 'alterar_senha') {
@@ -2028,7 +2028,7 @@ Widget _buildDesktopMenu() {
                 children: [
                   Icon(Icons.monitor_heart_outlined, size: 20, color: Color(0xFF1F4E6E)),
                   SizedBox(width: 12),
-                  Text('Diário de Sintomas', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
+                  Text('Registrar Sintomas', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
                 ],
               ),
             ),
