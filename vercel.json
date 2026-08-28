@@ -1,0 +1,16 @@
+{
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "http://64.227.6.51:3000/api/$1"
+    },
+    {
+      "src": "/(.*)\\.(js|css|woff2|woff|ttf|svg|png|jpg|jpeg|gif|ico|json|map)",
+      "dest": "/$1.$2"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}

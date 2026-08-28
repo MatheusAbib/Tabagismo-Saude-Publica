@@ -181,19 +181,25 @@ exports.getUserEnrollments = async (req, res) => {
   try {
     const userId = req.userId || req.user?.id;
     
-    const [matriculas] = await pool.query(
-      `SELECT 
-        m.*,
-        'matricula' as tipo,
-        NULL as percentual_presenca,
-        NULL as total_presencas,
-        NULL as total_faltas,
-        NULL as evolucao
-       FROM matriculas m
-       WHERE m.usuario_id = ?
-       ORDER BY m.created_at DESC`,
-      [userId]
-    );
+const [matriculas] = await pool.query(
+  `SELECT 
+    m.*,
+    u.endereco as upa_endereco,
+    u.cidade as upa_cidade,
+    u.telefone as upa_telefone,
+    u.cep as upa_cep,
+    'matricula' as tipo,
+    NULL as percentual_presenca,
+    NULL as total_presencas,
+    NULL as total_faltas,
+    NULL as evolucao
+   FROM matriculas m
+   JOIN upas u ON m.upa_id = u.id
+   WHERE m.usuario_id = ?
+   ORDER BY m.created_at DESC`,
+  [userId]
+);
+     console.log('📦 Matrículas retornadas:', JSON.stringify(matriculas[0], null, 2));
     
     const [concluidas] = await pool.query(
       `SELECT 

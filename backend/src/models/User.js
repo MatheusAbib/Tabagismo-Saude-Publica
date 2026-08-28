@@ -48,6 +48,14 @@ class User {
     return rows[0];
   }
 
+  static async findByCpf(cpf) {
+    const [rows] = await pool.execute(
+      'SELECT id, nome_completo, email, cpf FROM usuarios WHERE cpf = ?',
+      [cpf]
+    );
+    return rows[0] || null;
+  }
+
   static async update(id, userData) {
     const { nomeCompleto, sexo, email, telefone } = userData;
     const [result] = await pool.execute(
@@ -69,8 +77,6 @@ class User {
   }
 
   static async updateTipoUsuario(id, tipoUsuario, upaId = null) {
-    // Este método pode ser removido ou mantido para compatibilidade
-    // Como a coluna tipo_usuario foi removida, ele não faz mais nada
     console.log('updateTipoUsuario não está mais disponível para usuarios comuns');
     return 0;
   }

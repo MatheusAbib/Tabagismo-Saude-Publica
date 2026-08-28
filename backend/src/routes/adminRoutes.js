@@ -29,13 +29,11 @@ router.get('/upas-lista', adminController.getUPAsParaEnfermeira);
 router.get('/dashboard-stats', adminController.getAdminDashboardStats);
 router.get('/evolucao-geral', adminController.getAdminEvolucaoGeral);
 
-// Rotas de turmas (adicione se tiver)
 router.get('/turmas/:upaId', turmaController.getTurmasPorUPA);
 router.post('/turmas', turmaController.criarTurma);
 router.put('/turmas/:id', turmaController.atualizarTurma);
 router.delete('/turmas/:id', turmaController.deletarTurma);
 
-// Rotas de UPA com turmas
 router.post('/upas-com-turmas', upaController.criarUPAComTurmas);
 router.put('/upas-com-turmas/:id', upaController.atualizarUPAComTurmas);
 

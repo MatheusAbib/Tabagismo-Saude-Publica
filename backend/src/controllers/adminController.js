@@ -375,7 +375,7 @@ exports.deletarUPA = async (req, res) => {
 exports.getEnfermeiras = async (req, res) => {
   try {
     const [enfermeiras] = await pool.execute(
-      `SELECT e.id, e.nome_completo, e.email, e.telefone, e.upa_id, up.nome as upa_nome, e.tipo_usuario 
+      `SELECT e.id, e.nome_completo, e.email, e.telefone, e.cpf, e.upa_id, up.nome as upa_nome, e.tipo_usuario 
        FROM enfermeiros e
        LEFT JOIN upas up ON e.upa_id = up.id 
        ORDER BY e.id DESC`
@@ -389,15 +389,33 @@ exports.getEnfermeiras = async (req, res) => {
 
 exports.criarEnfermeira = async (req, res) => {
   try {
-    const { nomeCompleto, email, senha, telefone, upaId } = req.body;
+    const { nomeCompleto, email, senha, telefone, cpf, upaId } = req.body;
     
-    console.log('Dados recebidos:', { nomeCompleto, email, senha, telefone, upaId });
+    console.log('Dados recebidos:', { nomeCompleto, email, senha, telefone, cpf, upaId });
+    
+    if (cpf) {
+      const [existing] = await pool.execute(
+        'SELECT id FROM enfermeiros WHERE cpf = ?',
+        [cpf]
+      );
+      if (existing.length > 0) {
+        return res.status(409).json({ error: 'CPF já cadastrado' });
+      }
+    }
+    
+    const [emailExists] = await pool.execute(
+      'SELECT id FROM enfermeiros WHERE email = ?',
+      [email]
+    );
+    if (emailExists.length > 0) {
+      return res.status(409).json({ error: 'Email já cadastrado' });
+    }
     
     const hashedPassword = await bcrypt.hash(senha, 10);
     
     const [result] = await pool.execute(
-      'INSERT INTO enfermeiros (nome_completo, email, senha, telefone, upa_id, tipo_usuario) VALUES (?, ?, ?, ?, ?, "enfermeira")',
-      [nomeCompleto, email, hashedPassword, telefone, upaId || null]
+      'INSERT INTO enfermeiros (nome_completo, email, senha, telefone, cpf, upa_id, tipo_usuario) VALUES (?, ?, ?, ?, ?, ?, "enfermeira")',
+      [nomeCompleto, email, hashedPassword, telefone, cpf, upaId || null]
     );
     
     res.json({ message: 'Enfermeira criada com sucesso', id: result.insertId });
@@ -410,11 +428,29 @@ exports.criarEnfermeira = async (req, res) => {
 exports.atualizarEnfermeira = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nomeCompleto, email, telefone, upaId } = req.body;
+    const { nomeCompleto, email, telefone, cpf, upaId } = req.body;
+    
+    if (cpf) {
+      const [existing] = await pool.execute(
+        'SELECT id FROM enfermeiros WHERE cpf = ? AND id != ?',
+        [cpf, id]
+      );
+      if (existing.length > 0) {
+        return res.status(409).json({ error: 'CPF já cadastrado para outra enfermeira' });
+      }
+    }
+    
+    const [emailExists] = await pool.execute(
+      'SELECT id FROM enfermeiros WHERE email = ? AND id != ?',
+      [email, id]
+    );
+    if (emailExists.length > 0) {
+      return res.status(409).json({ error: 'Email já cadastrado para outra enfermeira' });
+    }
     
     const [result] = await pool.execute(
-      'UPDATE enfermeiros SET nome_completo = ?, email = ?, telefone = ?, upa_id = ? WHERE id = ?',
-      [nomeCompleto, email, telefone, upaId, id]
+      'UPDATE enfermeiros SET nome_completo = ?, email = ?, telefone = ?, cpf = ?, upa_id = ? WHERE id = ?',
+      [nomeCompleto, email, telefone, cpf, upaId, id]
     );
     
     if (result.affectedRows === 0) {

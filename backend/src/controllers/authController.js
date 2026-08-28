@@ -11,7 +11,14 @@ exports.register = async (req, res) => {
     
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
-      return res.status(400).json({ message: 'Email já cadastrado' });
+      return res.status(400).json({ error: 'Email já cadastrado' });
+    }
+    
+    if (cpf) {
+      const existingCpf = await User.findByCpf(cpf);
+      if (existingCpf) {
+        return res.status(400).json({ error: 'CPF já cadastrado' });
+      }
     }
     
     const userId = await User.create(req.body);
@@ -25,6 +32,7 @@ exports.register = async (req, res) => {
     res.status(500).json({ message: 'Erro ao cadastrar usuário' });
   }
 };
+
 
 exports.login = async (req, res) => {
   try {
@@ -47,11 +55,11 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Email ou senha inválidos' });
     }
     
-    const token = jwt.sign(
-      { id: user.id, email: user.email, tipo: tipo },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+const token = jwt.sign(
+  { id: user.id, email: user.email, tipo: tipo, table: tipo === 'enfermeira' ? 'enfermeiros' : 'usuarios' },
+  process.env.JWT_SECRET,
+  { expiresIn: '7d' }
+);
     
     let userData;
     

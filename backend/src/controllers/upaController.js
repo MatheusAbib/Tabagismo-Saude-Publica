@@ -4,7 +4,7 @@ exports.searchUPA = async (req, res) => {
   try {
     const { bairro } = req.query;
     
-    let query = 'SELECT id, nome, endereco, cidade, telefone, horario FROM upas';
+    let query = 'SELECT id, nome, endereco, cep, cidade, telefone, horario FROM upas';
     let params = [];
     
     if (bairro && bairro.trim() !== '') {
@@ -26,7 +26,7 @@ exports.getUPAs = async (req, res) => {
     const { page = 1, limit = 10, search = '' } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     
-    let query = 'SELECT id, nome, endereco, cidade, telefone, horario FROM upas';
+    let query = 'SELECT id, nome, endereco, cep, cidade, telefone, horario FROM upas';
     let countQuery = 'SELECT COUNT(*) as total FROM upas';
     let params = [];
     
@@ -66,14 +66,14 @@ exports.getUPAs = async (req, res) => {
 
 exports.criarUPAComTurmas = async (req, res) => {
   try {
-    const { nome, endereco, cidade, telefone, horario, turmas } = req.body;
+    const { nome, endereco, cep, cidade, telefone, horario, turmas } = req.body;
     
-    console.log('Dados recebidos:', { nome, endereco, cidade, telefone, horario });
+    console.log('Dados recebidos:', { nome, endereco, cep, cidade, telefone, horario });
     console.log('Turmas:', turmas);
     
     const [result] = await pool.execute(
-      'INSERT INTO upas (nome, endereco, cidade, telefone, horario) VALUES (?, ?, ?, ?, ?)',
-      [nome, endereco, cidade, telefone || null, horario || null]
+      'INSERT INTO upas (nome, endereco, cep, cidade, telefone, horario) VALUES (?, ?, ?, ?, ?, ?)',
+      [nome, endereco, cep || null, cidade, telefone || null, horario || null]
     );
     
     const upaId = result.insertId;
@@ -98,15 +98,15 @@ exports.criarUPAComTurmas = async (req, res) => {
 exports.atualizarUPAComTurmas = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nome, endereco, cidade, telefone, horario, turmas } = req.body;
+    const { nome, endereco, cep, cidade, telefone, horario, turmas } = req.body;
     
-    console.log('Atualizando UPA:', { id, nome, endereco, cidade, telefone, horario, turmas });
+    console.log('Atualizando UPA:', { id, nome, endereco, cep, cidade, telefone, horario, turmas });
     
     await pool.query('START TRANSACTION');
     
     await pool.query(
-      'UPDATE upas SET nome = ?, endereco = ?, cidade = ?, telefone = ?, horario = ? WHERE id = ?',
-      [nome, endereco, cidade, telefone || null, horario || null, id]
+      'UPDATE upas SET nome = ?, endereco = ?, cep = ?, cidade = ?, telefone = ?, horario = ? WHERE id = ?',
+      [nome, endereco, cep || null, cidade, telefone || null, horario || null, id]
     );
     
     if (turmas && turmas.length > 0) {
@@ -144,7 +144,7 @@ exports.getUPAById = async (req, res) => {
   try {
     const { id } = req.params;
     const [rows] = await pool.execute(
-      'SELECT id, nome, endereco, cidade, telefone, horario FROM upas WHERE id = ?',
+      'SELECT id, nome, endereco, cep, cidade, telefone, horario FROM upas WHERE id = ?',
       [id]
     );
     
@@ -161,15 +161,15 @@ exports.getUPAById = async (req, res) => {
 
 exports.criarUPA = async (req, res) => {
   try {
-    const { nome, endereco, cidade, telefone, horario } = req.body;
+    const { nome, endereco, cep, cidade, telefone, horario } = req.body;
     
     if (!nome || !endereco || !cidade) {
       return res.status(400).json({ message: 'Nome, endereço e cidade são obrigatórios' });
     }
     
     const [result] = await pool.execute(
-      'INSERT INTO upas (nome, endereco, cidade, telefone, horario) VALUES (?, ?, ?, ?, ?)',
-      [nome, endereco, cidade, telefone || null, horario || null]
+      'INSERT INTO upas (nome, endereco, cep, cidade, telefone, horario) VALUES (?, ?, ?, ?, ?, ?)',
+      [nome, endereco, cep || null, cidade, telefone || null, horario || null]
     );
     
     res.status(201).json({ 
@@ -185,15 +185,15 @@ exports.criarUPA = async (req, res) => {
 exports.atualizarUPA = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nome, endereco, cidade, telefone, horario } = req.body;
+    const { nome, endereco, cep, cidade, telefone, horario } = req.body;
     
     if (!nome || !endereco || !cidade) {
       return res.status(400).json({ message: 'Nome, endereço e cidade são obrigatórios' });
     }
     
     const [result] = await pool.execute(
-      'UPDATE upas SET nome = ?, endereco = ?, cidade = ?, telefone = ?, horario = ? WHERE id = ?',
-      [nome, endereco, cidade, telefone || null, horario || null, id]
+      'UPDATE upas SET nome = ?, endereco = ?, cep = ?, cidade = ?, telefone = ?, horario = ? WHERE id = ?',
+      [nome, endereco, cep || null, cidade, telefone || null, horario || null, id]
     );
     
     if (result.affectedRows === 0) {

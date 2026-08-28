@@ -6,9 +6,11 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const router = express.Router();
 
 router.use(authMiddleware);
+router.get('/me', enfermeiraController.getUserData);
 router.get('/usuarios-espera', enfermeiraController.getUsuariosEmEspera);
 router.put('/matricula-status', enfermeiraController.atualizarStatusMatricula);
 router.get('/usuarios', enfermeiraController.getUsuariosDaUPA);
+router.get('/contadores-usuarios', enfermeiraController.getContadoresUsuarios);
 router.get('/dashboard-stats', enfermeiraController.getDashboardStats);
 
 router.post('/presenca', enfermeiraController.registrarPresenca);
@@ -33,5 +35,6 @@ router.delete('/cronograma/:id', enfermeiraController.deletarAulaCronograma);
 
 router.get('/turmas-concluidas', enfermeiraController.getTurmasConcluidas);
 router.get('/turmas-concluidas/:id', enfermeiraController.getDetalhesTurmaConcluida);
+router.put('/change-password', enfermeiraController.changePassword);
 
 module.exports = router;

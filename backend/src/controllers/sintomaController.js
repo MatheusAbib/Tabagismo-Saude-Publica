@@ -4,25 +4,37 @@ const notificacaoController = require('./notificacaoController');
 exports.registrarSintoma = async (req, res) => {
   try {
     const usuarioId = req.userId;
-    const { data, ansiedade, irritabilidade, insonia, fome, dificuldadeConcentracao, vontadeFumar, observacoes } = req.body;
+    const { data, ansiedade, irritabilidade, insonia, fome, dificuldade_concentracao, vontade_fumar, observacoes } = req.body;
+    
+    console.log('📦 Body recebido:', req.body);
+    console.log('📦 Valores extraídos:', {
+      usuarioId,
+      data,
+      ansiedade,
+      irritabilidade,
+      insonia,
+      fome,
+      dificuldade_concentracao,
+      vontade_fumar,
+      observacoes
+    });
     
     const ansiedadeVal = ansiedade !== undefined ? ansiedade : null;
     const irritabilidadeVal = irritabilidade !== undefined ? irritabilidade : null;
     const insoniaVal = insonia !== undefined ? insonia : null;
     const fomeVal = fome !== undefined ? fome : null;
-    const dificuldadeConcentracaoVal = dificuldadeConcentracao !== undefined ? dificuldadeConcentracao : null;
-    const vontadeFumarVal = vontadeFumar !== undefined ? vontadeFumar : null;
+    const dificuldadeConcentracaoVal = dificuldade_concentracao !== undefined ? dificuldade_concentracao : null;
+    const vontadeFumarVal = vontade_fumar !== undefined ? vontade_fumar : null;
     const observacoesVal = observacoes !== undefined && observacoes !== '' ? observacoes : null;
     
-    console.log('Dados recebidos:', { 
-      usuarioId, data, 
-      ansiedade: ansiedadeVal, 
-      irritabilidade: irritabilidadeVal, 
-      insonia: insoniaVal, 
-      fome: fomeVal, 
-      dificuldadeConcentracao: dificuldadeConcentracaoVal, 
-      vontadeFumar: vontadeFumarVal, 
-      observacoes: observacoesVal 
+    console.log('📦 Valores processados:', {
+      ansiedadeVal,
+      irritabilidadeVal,
+      insoniaVal,
+      fomeVal,
+      dificuldadeConcentracaoVal,
+      vontadeFumarVal,
+      observacoesVal
     });
     
     const [existing] = await pool.execute(
@@ -30,36 +42,38 @@ exports.registrarSintoma = async (req, res) => {
       [usuarioId, data]
     );
     
+    let result;
     if (existing.length > 0) {
-      await pool.execute(
+      result = await pool.execute(
         `UPDATE sintomas_diarios 
          SET ansiedade = ?, irritabilidade = ?, insonia = ?, fome = ?, 
              dificuldade_concentracao = ?, vontade_fumar = ?, observacoes = ?
          WHERE usuario_id = ? AND data = ?`,
         [ansiedadeVal, irritabilidadeVal, insoniaVal, fomeVal, dificuldadeConcentracaoVal, vontadeFumarVal, observacoesVal, usuarioId, data]
       );
+      console.log('✅ UPDATE realizado');
     } else {
-      await pool.execute(
+      result = await pool.execute(
         `INSERT INTO sintomas_diarios 
          (usuario_id, data, ansiedade, irritabilidade, insonia, fome, dificuldade_concentracao, vontade_fumar, observacoes)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [usuarioId, data, ansiedadeVal, irritabilidadeVal, insoniaVal, fomeVal, dificuldadeConcentracaoVal, vontadeFumarVal, observacoesVal]
       );
+      console.log('✅ INSERT realizado');
     }
     
-await notificacaoController.criarNotificacao(
-  usuarioId,
-  'Diário Registrado',
-  'Registro de hoje salvo!\n\n'
-  + 'Acesse o gráfico para acompanhar sua evolução\n'
-  + 'Continue assim!',
-  'sintoma',
-  '/home?tab=grafico'
-);
+    await notificacaoController.criarNotificacao(
+      usuarioId,
+      'Diário Registrado',
+      'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!',
+      'sintoma',
+      '/home?tab=grafico'
+    );
     
     res.json({ message: 'Sintomas registrados com sucesso' });
   } catch (error) {
-    console.error('Erro detalhado ao registrar sintomas:', error);
+    console.error('❌ Erro detalhado ao registrar sintomas:', error);
+    console.error('❌ Stack:', error.stack);
     res.status(500).json({ error: error.message, stack: error.stack });
   }
 };

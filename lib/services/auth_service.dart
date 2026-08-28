@@ -6,23 +6,23 @@ import 'package:tabagismo_app/services/api_service.dart';
 class AuthService {
   final ApiService _api = ApiService();
 
-  Future<Map<String, dynamic>> login(String email, String senha) async {
-    try {
-      final response = await _api.post('/auth/login', {
-        'email': email,
-        'senha': senha,
-      });
-      
-      if (response['token'] != null) {
-        _api.setToken(response['token']);
-        await _saveUserData(response['token'], response['user']);
-      }
-      
-      return response;
-    } catch (e) {
-      rethrow;
+Future<Map<String, dynamic>> login(String email, String senha) async {
+  try {
+    final response = await _api.post('/auth/login', {
+      'email': email,
+      'senha': senha,
+    });
+    
+    if (response['token'] != null) {
+      _api.setToken(response['token']);
+      await _saveUserData(response['token'], response['user']);
     }
+    
+    return response;
+  } catch (e) {
+    rethrow;
   }
+}
 
 Future<Map<String, dynamic>> register(User user) async {
   try {
@@ -60,18 +60,27 @@ Future<bool> isLoggedIn() async {
   return token != null && token.isNotEmpty;
 }
 
-    Future<Map<String, dynamic>> changeUserPassword(String oldPassword, String newPassword) async {
-      try {
-        final response = await _api.put('/user/change-password', {
-          'oldPassword': oldPassword,
-          'newPassword': newPassword,
-        });
-        return response;
-      } catch (e) {
-        rethrow;
-      }
+Future<Map<String, dynamic>> changeUserPassword(String oldPassword, String newPassword) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final tipoUsuario = prefs.getString('tipo_usuario') ?? 'comum';
+    
+    String endpoint;
+    if (tipoUsuario == 'enfermeira') {
+      endpoint = '/enfermeira/change-password';
+    } else {
+      endpoint = '/user/change-password';
     }
-
+    
+    final response = await _api.put(endpoint, {
+      'currentPassword': oldPassword,
+      'newPassword': newPassword,
+    });
+    return response;
+  } catch (e) {
+    rethrow;
+  }
+}
 
 
 Future<List<Map<String, dynamic>>> searchUPA(String bairro) async {
@@ -122,16 +131,19 @@ Future<void> _saveUserData(String token, Map<String, dynamic> user) async {
 Future<Map<String, dynamic>?> getSavedUser() async {
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('token');
-  final userName = prefs.getString('user_nome');
-  final tipoUsuario = prefs.getString('tipo_usuario') ?? 'comum';
-  final upaId = prefs.getInt('upa_id');
+  final userDataString = prefs.getString('user_data');
   
   print('Token recuperado: $token');
-  print('UserName recuperado: $userName');
-  print('tipoUsuario recuperado: $tipoUsuario');
+  print('UserDataString recuperado: $userDataString');
   
-  if (token != null && userName != null && userName.isNotEmpty) {
+  if (token != null && userDataString != null) {
     _api.setToken(token);
+    
+    final user = json.decode(userDataString);
+    final tipoUsuario = user['tipo_usuario'] ?? 'comum';
+    final upaId = user['upa_id'];
+    
+    print('UserData recuperado: $user');
     
     String upaNome = '';
     if (upaId != null && tipoUsuario == 'enfermeira') {
@@ -145,21 +157,13 @@ Future<Map<String, dynamic>?> getSavedUser() async {
       }
     }
     
-    final userData = {
+    return {
       'token': token,
       'user': {
-        'nomeCompleto': userName,
-        'email': prefs.getString('user_email') ?? '',
-        'id': prefs.getInt('user_id') ?? 0,
-        'is_admin': prefs.getInt('is_admin') ?? 0,
-        'tipo_usuario': tipoUsuario,
-        'upa_id': upaId,
+        ...user,
         'upa_nome': upaNome,
       }
     };
-    
-    print('UserData recuperado: $userData');
-    return userData;
   }
   return null;
 }
@@ -321,6 +325,14 @@ Future<void> criarEnfermeira(Map<String, dynamic> data) async {
   }
 }
 
+Future<void> atualizarEnfermeira(int id, Map<String, dynamic> data) async {
+  try {
+    await _api.put('/admin/enfermeiras/$id', data);
+  } catch (e) {
+    throw Exception('Erro ao atualizar enfermeira: $e');
+  }
+}
+
 Future<Map<String, dynamic>> getAdminEvolucaoGeral() async {
   try {
     final response = await _api.get('/admin/evolucao-geral');
@@ -336,14 +348,6 @@ Future<Map<String, dynamic>> getAdminDashboardStats() async {
     return response;
   } catch (e) {
     throw Exception('Erro ao buscar estatísticas do dashboard: $e');
-  }
-}
-
-Future<void> atualizarEnfermeira(int id, Map<String, dynamic> data) async {
-  try {
-    await _api.put('/admin/enfermeiras/$id', data);
-  } catch (e) {
-    throw Exception('Erro ao atualizar enfermeira: $e');
   }
 }
 
@@ -389,6 +393,15 @@ Future<void> atualizarStatusMatricula(int matriculaId, String status) async {
     });
   } catch (e) {
     throw Exception('Erro ao atualizar status: $e');
+  }
+}
+
+Future<Map<String, dynamic>> getContadoresUsuarios() async {
+  try {
+    final response = await _api.get('/enfermeira/contadores-usuarios');
+    return response;
+  } catch (e) {
+    throw Exception('Erro ao buscar contadores: $e');
   }
 }
 

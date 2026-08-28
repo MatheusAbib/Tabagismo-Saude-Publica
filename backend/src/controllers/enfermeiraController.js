@@ -748,6 +748,87 @@ exports.getEstatisticasPresenca = async (req, res) => {
   }
 };
 
+exports.changePassword = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { currentPassword, newPassword } = req.body;
+    
+    const bcrypt = require('bcryptjs');
+    const pool = require('../config/database');
+    
+    const [users] = await pool.query('SELECT * FROM enfermeiros WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'Enfermeira não encontrada' });
+    }
+    
+    const user = users[0];
+    
+    // Verificar senha atual
+    const isValid = await bcrypt.compare(currentPassword, user.senha);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Senha atual incorreta' });
+    }
+    
+    // Hash da nova senha
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Atualizar senha
+    await pool.query('UPDATE enfermeiros SET senha = ? WHERE id = ?', [hashedPassword, userId]);
+    
+    res.json({ message: 'Senha alterada com sucesso' });
+  } catch (error) {
+    console.error('Erro ao alterar senha:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getContadoresUsuarios = async (req, res) => {
+  try {
+    const enfermeiraId = req.userId;
+    
+    const [enfermeira] = await pool.execute(
+      'SELECT upa_id FROM enfermeiros WHERE id = ?',
+      [enfermeiraId]
+    );
+    
+    if (enfermeira.length === 0 || !enfermeira[0].upa_id) {
+      return res.json({ total: 0, em_espera: 0, matriculado: 0, cancelada: 0 });
+    }
+    
+    const upaId = enfermeira[0].upa_id;
+    
+    const [total] = await pool.execute(
+      'SELECT COUNT(*) as total FROM matriculas WHERE upa_id = ?',
+      [upaId]
+    );
+    
+    const [emEspera] = await pool.execute(
+      'SELECT COUNT(*) as total FROM matriculas WHERE upa_id = ? AND status = "em_espera"',
+      [upaId]
+    );
+    
+    const [matriculado] = await pool.execute(
+      'SELECT COUNT(*) as total FROM matriculas WHERE upa_id = ? AND status = "matriculado"',
+      [upaId]
+    );
+    
+    const [cancelada] = await pool.execute(
+      'SELECT COUNT(*) as total FROM matriculas WHERE upa_id = ? AND status = "cancelada"',
+      [upaId]
+    );
+    
+    res.json({
+      total: total[0].total,
+      em_espera: emEspera[0].total,
+      matriculado: matriculado[0].total,
+      cancelada: cancelada[0].total
+    });
+  } catch (error) {
+    console.error('Erro ao buscar contadores:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.getUsuariosMatriculadosComPresencas = async (req, res) => {
   try {
     const enfermeiraId = req.userId;
@@ -766,7 +847,7 @@ exports.getUsuariosMatriculadosComPresencas = async (req, res) => {
     const upaId = enfermeira[0].upa_id;
     
     const [usuarios] = await pool.execute(
-      `SELECT u.id, u.nome_completo, u.email, m.id as matricula_id, m.turma_horario
+      `SELECT u.id, u.nome_completo, u.email, u.cpf, m.id as matricula_id, m.turma_horario
        FROM usuarios u
        INNER JOIN matriculas m ON u.id = m.usuario_id
        WHERE m.upa_id = ? AND m.status = 'matriculado'
@@ -781,16 +862,20 @@ exports.getUsuariosMatriculadosComPresencas = async (req, res) => {
       if (!turmasMap[turma]) {
         turmasMap[turma] = {
           usuarios: [],
-          turma_id: null
+          turma_id: null,
+          dia_semana: '',
+          horario: ''
         };
         
         const [turmaInfo] = await pool.execute(
-          'SELECT id, vagas_totais FROM turmas WHERE upa_id = ? AND CONCAT(dia_semana, " - ", horario) = ?',
+          'SELECT id, vagas_totais, dia_semana, horario FROM turmas WHERE upa_id = ? AND CONCAT(dia_semana, " - ", horario) = ?',
           [upaId, turma]
         );
         if (turmaInfo.length > 0) {
           turmasMap[turma].turma_id = turmaInfo[0].id;
           turmasMap[turma].vagas_totais = turmaInfo[0].vagas_totais;
+          turmasMap[turma].dia_semana = turmaInfo[0].dia_semana;
+          turmasMap[turma].horario = turmaInfo[0].horario;
         }
       }
       
@@ -836,12 +921,17 @@ exports.getUsuariosMatriculadosComPresencas = async (req, res) => {
         }
       }
       
-      turmas.push({
-        nome: nome,
-        usuarios: dataTurma.usuarios,
-        vagas_totais: dataTurma.vagas_totais || 4,
-        proxima_aula: proximaAula
-      });
+turmas.push({
+  nome: dataTurma.dia_semana + ' - ' + dataTurma.horario,
+  dia_semana: dataTurma.dia_semana,
+  horario: dataTurma.horario,
+  usuarios: dataTurma.usuarios,
+  vagas_totais: dataTurma.vagas_totais || 4,
+  proxima_aula: proximaAula
+});
+console.log('DEBUG - dia_semana:', dataTurma.dia_semana);
+console.log('DEBUG - horario:', dataTurma.horario);
+console.log('DEBUG - nome completo:', dataTurma.dia_semana + ' - ' + dataTurma.horario);
     }
     
     res.json({ turmas, dataAtual });
@@ -1260,6 +1350,48 @@ exports.getCronograma = async (req, res) => {
   } catch (error) {
     console.error('Erro ao buscar cronograma:', error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getUserData = async (req, res) => {
+  try {
+    const userId = req.userId;
+    
+    const [rows] = await pool.execute(
+      'SELECT id, nome_completo, email, telefone, cpf, upa_id, tipo_usuario, created_at FROM enfermeiros WHERE id = ?',
+      [userId]
+    );
+    
+    const user = rows[0];
+    
+    if (!user) {
+      return res.status(404).json({ message: 'Enfermeira não encontrada' });
+    }
+    
+    res.json({ 
+      success: true,
+      user: {
+        id: user.id,
+        nomeCompleto: user.nome_completo || '',
+        sexo: '',
+        dataNascimento: null,
+        idade: null,
+        email: user.email || '',
+        cpf: user.cpf || '',
+        telefone: user.telefone || '',
+        scoreFagestrom: null,
+        stop_date: null,
+        target_days: null,
+        cigarros_por_dia: null,
+        valor_carteira: null,
+        is_admin: 0,
+        tipo_usuario: user.tipo_usuario || 'enfermeira',
+        upa_id: user.upa_id || null,
+      }
+    });
+  } catch (error) {
+    console.error('Erro em getUserData enfermeira:', error);
+    res.status(500).json({ message: 'Erro ao buscar dados da enfermeira: ' + error.message });
   }
 };
 
