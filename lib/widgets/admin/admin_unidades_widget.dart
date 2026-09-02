@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/services/cep_service.dart';
@@ -25,21 +26,42 @@ class _AdminUPAsWidgetState extends State<AdminUPAsWidget> {
   int _totalUPAs = 0;
   String _searchQuery = '';
   TextEditingController _searchController = TextEditingController();
+  final ValueNotifier<bool> _carregandoLista = ValueNotifier(false);
 
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(_onSearchChanged);
     _carregarDados();
+  }
+
+  void _onSearchChanged() {
+    if (_searchController.text != _searchQuery) {
+      _searchQuery = _searchController.text;
+      _currentPage = 1;
+      _debounceSearch();
+    }
+  }
+
+  Timer? _debounceTimer;
+  void _debounceSearch() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _carregarDados();
+    });
   }
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _debounceTimer?.cancel();
+    _carregandoLista.dispose();
     super.dispose();
   }
 
   Future<void> _carregarDados() async {
-    setState(() => _carregando = true);
+    _carregandoLista.value = true;
     try {
       final authService = AuthService();
       final response = await authService.getUPAs(
@@ -55,7 +77,9 @@ class _AdminUPAsWidgetState extends State<AdminUPAsWidget> {
         _enfermeiras = enfermeiras;
         _carregando = false;
       });
+      _carregandoLista.value = false;
     } catch (e) {
+      _carregandoLista.value = false;
       setState(() => _carregando = false);
       ToastService.showError(context, 'Erro ao carregar dados: $e');
     }
@@ -233,9 +257,16 @@ class _AdminUPAsWidgetState extends State<AdminUPAsWidget> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         minimumSize: const Size(double.infinity, 44),
                       ),
-                      child: const Text(
-                        'Excluir',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Excluir',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -253,39 +284,34 @@ class _AdminUPAsWidgetState extends State<AdminUPAsWidget> {
     final isMobile = MediaQuery.of(context).size.width < 600;
     final horizontalPadding = isMobile ? 16.0 : 20.0;
 
-    if (_carregando) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     return Column(
       children: [
         Padding(
           padding: EdgeInsets.all(horizontalPadding),
           child: isMobile
-              ? Column(
+              ? Row(
                   children: [
-                    TextField(
-                      controller: _searchController,
-                      decoration: _buildInputDecoration('Buscar por nome, endereço ou cidade...', Icons.search),
-                      onChanged: (value) {
-                        _searchQuery = value;
-                        _currentPage = 1;
-                        _carregarDados();
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: () => _abrirModalUPA(),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Nova Unidade'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _successColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        minimumSize: const Size(0, 42),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: _buildInputDecoration('Buscar por nome, endereço ou cidade...', Icons.search),
                       ),
                     ),
+                    const SizedBox(width: 8),
+SizedBox(
+  height: 56,
+  child: ElevatedButton(
+    onPressed: () => _abrirModalUPA(),
+    style: ElevatedButton.styleFrom(
+      backgroundColor: _successColor,
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      minimumSize: const Size(0, 56),
+    ),
+    child: const Icon(Icons.add, color: Colors.white, size: 24),
+  ),
+),
                   ],
                 )
               : Row(
@@ -294,11 +320,6 @@ class _AdminUPAsWidgetState extends State<AdminUPAsWidget> {
                       child: TextField(
                         controller: _searchController,
                         decoration: _buildInputDecoration('Buscar por nome, endereço ou cidade...', Icons.search),
-                        onChanged: (value) {
-                          _searchQuery = value;
-                          _currentPage = 1;
-                          _carregarDados();
-                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -317,8 +338,13 @@ class _AdminUPAsWidgetState extends State<AdminUPAsWidget> {
                   ],
                 ),
         ),
-        Expanded(
-          child: SingleChildScrollView(
+Expanded(
+  child: ValueListenableBuilder(
+    valueListenable: _carregandoLista,
+    builder: (context, carregando, child) {
+      return Stack(
+        children: [
+          SingleChildScrollView(
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,14 +361,36 @@ class _AdminUPAsWidgetState extends State<AdminUPAsWidget> {
                   style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                 ),
                 const SizedBox(height: 16),
-                ..._upas.map((upa) => _buildUPACard(upa)),
+                if (_upas.isEmpty && !carregando)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(40),
+                      child: Text(
+                        'Nenhuma unidade encontrada',
+                        style: TextStyle(fontSize: 16, color: Color(0xFF64748B)),
+                      ),
+                    ),
+                  )
+                else
+                  ..._upas.map((upa) => _buildUPACard(upa)),
                 const SizedBox(height: 16),
                 _buildPaginacao(),
                 const SizedBox(height: 20),
               ],
             ),
           ),
-        ),
+          if (carregando)
+            Container(
+              color: Colors.black.withValues(alpha: 0.3),
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+        ],
+      );
+    },
+  ),
+),
       ],
     );
   }
@@ -358,7 +406,7 @@ class _AdminUPAsWidgetState extends State<AdminUPAsWidget> {
           IconButton(
             icon: const Icon(Icons.chevron_left, size: 20),
             onPressed: _currentPage > 1 ? () {
-              setState(() => _currentPage--);
+              _currentPage--;
               _carregarDados();
             } : null,
             style: IconButton.styleFrom(
@@ -383,7 +431,7 @@ class _AdminUPAsWidgetState extends State<AdminUPAsWidget> {
           IconButton(
             icon: const Icon(Icons.chevron_right, size: 20),
             onPressed: _currentPage < _totalPages ? () {
-              setState(() => _currentPage++);
+              _currentPage++;
               _carregarDados();
             } : null,
             style: IconButton.styleFrom(
@@ -397,102 +445,203 @@ class _AdminUPAsWidgetState extends State<AdminUPAsWidget> {
     );
   }
 
-  Widget _buildUPACard(Map<String, dynamic> upa) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final telefoneFormatado = _formatarTelefone(upa['telefone']);
+Widget _buildUPACard(Map<String, dynamic> upa) {
+  final isMobile = MediaQuery.of(context).size.width < 600;
+  final telefoneFormatado = _formatarTelefone(upa['telefone']);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.06),
+          blurRadius: 12,
+          offset: const Offset(0, 3),
+        ),
+      ],
+    ),
+    child: isMobile
+        ? Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _accentColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.local_hospital, color: _accentColor, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        upa['nome'],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F172A),
+                          fontSize: 14,
+                          fontFamily: 'Poppins',
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, size: 13, color: const Color(0xFF94A3B8)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '${upa['endereco'] ?? 'Endereço não informado'}${upa['cep'] != null && upa['cep'].toString().isNotEmpty ? ' - CEP: ${_formatarCep(upa['cep'].toString())}' : ''}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF64748B),
+                                fontFamily: 'Inter',
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Icon(Icons.phone, size: 13, color: const Color(0xFF94A3B8)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              telefoneFormatado,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF64748B),
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.visibility, color: const Color(0xFF3B82F6), size: 18),
+                      onPressed: () => _abrirModalVisualizarUPA(upa),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.edit, color: _warningColor, size: 18),
+                      onPressed: () => _abrirModalUPA(upa: upa),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete, color: _dangerColor, size: 18),
+                      onPressed: () => _confirmarDeletarUPA(upa),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          )
+        : Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _accentColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(Icons.local_hospital, color: _accentColor, size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        upa['nome'],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F172A),
+                          fontSize: 16,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, size: 15, color: const Color(0xFF94A3B8)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '${upa['endereco'] ?? 'Endereço não informado'}${upa['cep'] != null && upa['cep'].toString().isNotEmpty ? ' - CEP: ${_formatarCep(upa['cep'].toString())}' : ''}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF64748B),
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Icon(Icons.phone, size: 15, color: const Color(0xFF94A3B8)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              telefoneFormatado,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF64748B),
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.visibility, color: const Color(0xFF3B82F6), size: 22),
+                      onPressed: () => _abrirModalVisualizarUPA(upa),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.edit, color: _warningColor, size: 22),
+                      onPressed: () => _abrirModalUPA(upa: upa),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete, color: _dangerColor, size: 22),
+                      onPressed: () => _confirmarDeletarUPA(upa),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE2E8F0),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(Icons.local_hospital, color: _accentColor, size: isMobile ? 18 : 24),
-        ),
-        title: Text(
-          upa['nome'],
-          style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF0F172A), fontSize: isMobile ? 14 : 16),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 2),
-            Row(
-              children: [
-                const Icon(Icons.location_on, size: 12, color: Color(0xFF94A3B8)),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    upa['endereco'] ?? 'Endereço não informado',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                  ),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                const Icon(Icons.place, size: 12, color: Color(0xFF94A3B8)),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    upa['cep'] != null && upa['cep'].toString().isNotEmpty
-                        ? 'CEP: ${_formatarCep(upa['cep'].toString())}'
-                        : 'CEP não informado',
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
-                  ),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                Icon(Icons.phone, size: isMobile ? 12 : 14, color: const Color(0xFF94A3B8)),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    telefoneFormatado,
-                    style: TextStyle(fontSize: isMobile ? 10 : 11, color: const Color(0xFF94A3B8)),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: Icon(Icons.visibility, color: const Color(0xFF3B82F6), size: isMobile ? 18 : 20),
-              onPressed: () => _abrirModalVisualizarUPA(upa),
-            ),
-            IconButton(
-              icon: Icon(Icons.edit, color: _warningColor, size: isMobile ? 18 : 20),
-              onPressed: () => _abrirModalUPA(upa: upa),
-            ),
-            IconButton(
-              icon: Icon(Icons.delete, color: _dangerColor, size: isMobile ? 18 : 20),
-              onPressed: () => _confirmarDeletarUPA(upa),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
+  );
+}
   void _abrirModalVisualizarUPA(Map<String, dynamic> upa) {
     final isMobile = MediaQuery.of(context).size.width < 600;
     final isSmallMobile = MediaQuery.of(context).size.width < 400;

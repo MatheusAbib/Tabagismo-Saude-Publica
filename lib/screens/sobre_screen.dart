@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tabagismo_app/widgets/login_cadastro_widget.dart';
+import 'package:tabagismo_app/widgets/header/modals/login_cadastro_widget.dart';
 import 'package:tabagismo_app/widgets/footer_widget.dart';
 import 'package:tabagismo_app/main.dart';
 import 'package:tabagismo_app/services/loader_service.dart';
@@ -65,21 +65,21 @@ slivers: [
                 'DESFUMO',
                 style: TextStyle(
                   fontFamily: 'BebasNeue',
-                  fontSize: isSmallMobile ? 20 : 22,
+                  fontSize: isSmallMobile ? 22 : 24,
                   fontWeight: FontWeight.w400,
                   letterSpacing: 1,
                   color: Colors.white,
                   height: 0.9,
                 ),
               ),
-              if (!isSmallMobile)
                 const Text(
                   'Apoio ao Tabagismo',
                   style: TextStyle(
                     color: Colors.white70,
-                    fontSize: 9,
+                    fontSize: 10,
                     fontWeight: FontWeight.w400,
                     height: 0.9,
+                    letterSpacing: 1,
                   ),
                 ),
             ],
@@ -87,7 +87,7 @@ slivers: [
         ],
       ),
     ),
-   actions: [
+  actions: [
   Padding(
     padding: EdgeInsets.only(right: horizontalPadding),
     child: Row(
@@ -102,8 +102,8 @@ slivers: [
               width: 1,
             ),
             padding: isSmallMobile
-                ? const EdgeInsets.symmetric(horizontal: 16, vertical: 10)
-                : const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                ? const EdgeInsets.symmetric(horizontal: 20, vertical: 14)
+                : const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(30),
             ),
@@ -111,7 +111,7 @@ slivers: [
             visualDensity: VisualDensity.compact,
           ),
           child: isSmallMobile
-              ? const Icon(Icons.login_outlined, size: 20)
+              ? const Icon(Icons.login_outlined, size: 18)
               : const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -135,17 +135,17 @@ slivers: [
             backgroundColor: const Color(0xFF2E8B6A),
             foregroundColor: Colors.white,
             padding: isSmallMobile
-                ? const EdgeInsets.symmetric(horizontal: 16, vertical: 10)
-                : const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                ? const EdgeInsets.symmetric(horizontal: 20, vertical: 14)
+                : const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(30),
             ),
             elevation: 0,
-            minimumSize: isSmallMobile ? const Size(40, 32) : null,
+            minimumSize: isSmallMobile ? const Size(40, 35) : null,
             visualDensity: VisualDensity.compact,
           ),
           child: isSmallMobile
-              ? const Icon(Icons.person_add_outlined, size: 22)
+              ? const Icon(Icons.person_add_outlined, size: 18)
               : const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -189,19 +189,27 @@ void _showAuthModal(BuildContext context, {int initialTab = 0}) {
   
   showDialog(
     context: context,
+    useRootNavigator: false,
     barrierDismissible: true,
     builder: (context) => Dialog(
-      insetPadding: EdgeInsets.all(isMobile ? (isSmallMobile ? 8 : 12) : 20),
+      insetPadding: EdgeInsets.all(isSmallMobile ? 4 : (isMobile ? 8 : 20)),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(28),
       ),
       child: Container(
         width: isMobile ? double.infinity : 500,
-        padding: EdgeInsets.all(isMobile ? (isSmallMobile ? 12 : 16) : 24),
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.95,
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+          minHeight: isMobile ? 300 : 400,
         ),
-        child: AuthModal(initialTab: initialTab),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(isMobile ? (isSmallMobile ? 12 : 16) : 24),
+          child: AuthModal(initialTab: initialTab),
+        ),
       ),
     ),
   ).then((_) {
@@ -320,7 +328,7 @@ void _showAuthModal(BuildContext context, {int initialTab = 0}) {
                                   fontSize: isSmallMobile ? 10 : 12,
                                   color: Colors.white60,
                                   fontWeight: FontWeight.w300,
-                                  letterSpacing: 4,
+                                  letterSpacing: 2,
                                 ),
                               ),
                             ],
@@ -648,7 +656,7 @@ void _showAuthModal(BuildContext context, {int initialTab = 0}) {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'O Desfumo é um programa de apoio ao tabagismo que conecta pessoas que desejam parar de fumar a grupos de apoio em Unidades de Pronto Atendimento (UPAs) e UBSs. Oferecemos acompanhamento profissional, material educativo e uma comunidade de apoio.',
+                  'O Desfumo é um programa de apoio ao tabagismo que conecta pessoas que desejam parar de fumar a grupos de apoio em Unidades de Pronto Atendimento (UPAs) e Unidades Básica de Saúde (UBSs). Oferecemos acompanhamento profissional, material educativo, avaliações e uma comunidade de apoio.',
                   style: TextStyle(
                     fontSize: isSmallMobile ? 14 : 15,
                     color: const Color(0xFF475569),

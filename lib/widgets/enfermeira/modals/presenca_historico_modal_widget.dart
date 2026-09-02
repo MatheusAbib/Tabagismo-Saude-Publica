@@ -66,11 +66,11 @@ class _HistoricoTurmaModalState extends State<HistoricoTurmaModal> {
     return '-';
   }
 
-  Color getObservacaoColor(String? observacao) {
-    if (observacao == '1- Está fumando') return _warningColor;
-    if (observacao == '2- Sem fumar') return _accentColor;
-    return const Color(0xFF94A3B8);
-  }
+Color getObservacaoColor(String? observacao) {
+  if (observacao == '1- Está fumando') return _warningColor;
+  if (observacao == '2- Sem fumar') return _accentColor;
+  return const Color(0xFF64748B);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -335,270 +335,278 @@ class _HistoricoTurmaModalState extends State<HistoricoTurmaModal> {
 }
 
   Widget _buildTableCard() {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: EdgeInsets.all(isMobile ? 10 : 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(Icons.table_chart, color: _accentColor, size: isMobile ? 14 : 16),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  isMobile ? 'Presenças' : 'Registro de Presenças',
-                  style: TextStyle(
-                    fontSize: isMobile ? 12 : 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF0F172A),
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-              ],
-            ),
+  final isMobile = MediaQuery.of(context).size.width < 600;
+  
+  return Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFE2E8F0)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: EdgeInsets.all(isMobile ? 10 : 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
           ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.table_chart, color: _accentColor, size: isMobile ? 14 : 16),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isMobile ? 'Presenças' : 'Registro de Presenças',
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F172A),
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ],
+          ),
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: EdgeInsets.all(isMobile ? 6 : 10),
+                color: const Color(0xFFF8FAFC),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: isMobile ? 42 : 60,
+                      child: Text(
+                        'Taxa',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: isMobile ? 8 : 10,
+                          color: Color(0xFF0F172A),
+                          fontFamily: 'Inter',
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    SizedBox(
+                      width: isMobile ? 120 : 180,
+                      child: Text(
+                        'Aluno',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: isMobile ? 8 : 10,
+                          color: Color(0xFF0F172A),
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ),
+                    ..._datas.map((data) => Container(
+                      width: isMobile ? 55 : 75,
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        data,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: isMobile ? 7 : 9,
+                          color: Color(0xFF0F172A),
+                          fontFamily: 'Inter',
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    )),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+              ..._usuarios.asMap().entries.map((entry) {
+                final index = entry.key;
+                final usuario = entry.value;
+                
+                int presentes = 0;
+                int total = 0;
+                for (var data in _datas) {
+                  final status = usuario['presencas'][data];
+                  if (status != null) {
+                    total++;
+                    if (status == 'presente') presentes++;
+                  }
+                }
+                final percentual = total > 0 ? (presentes / total * 100).toStringAsFixed(0) : '0';
+                final percentualInt = int.parse(percentual);
+                
+                return Container(
                   padding: EdgeInsets.all(isMobile ? 6 : 10),
-                  color: const Color(0xFFF8FAFC),
+                  decoration: BoxDecoration(
+                    color: index % 2 == 0 ? Colors.white : const Color(0xFFF8FAFC),
+                    border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SizedBox(
                         width: isMobile ? 42 : 60,
-                        child: Text(
-                          'Taxa',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: isMobile ? 8 : 10,
-                            color: Color(0xFF0F172A),
-                            fontFamily: 'Inter',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: percentualInt >= 75 
+                                ? _successColor.withOpacity(0.12) 
+                                : percentualInt >= 50
+                                    ? _warningColor.withOpacity(0.12)
+                                    : _dangerColor.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          textAlign: TextAlign.center,
+                          child: Text(
+                            '$percentual%',
+                            style: TextStyle(
+                              fontSize: isMobile ? 8 : 10,
+                              fontWeight: FontWeight.w600,
+                              color: percentualInt >= 75 
+                                  ? _successColor 
+                                  : percentualInt >= 50
+                                      ? _warningColor
+                                      : _dangerColor,
+                              fontFamily: 'Inter',
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ),
                       SizedBox(
                         width: isMobile ? 120 : 180,
                         child: Text(
-                          'Aluno',
+                          usuario['nome'],
                           style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: isMobile ? 8 : 10,
+                            fontSize: isMobile ? 12 : 12,
+                            fontWeight: FontWeight.w500,
                             color: Color(0xFF0F172A),
                             fontFamily: 'Inter',
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      ..._datas.map((data) => Container(
-                        width: isMobile ? 55 : 75,
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Text(
-                          data,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: isMobile ? 7 : 9,
-                            color: Color(0xFF0F172A),
-                            fontFamily: 'Inter',
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      )),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                ..._usuarios.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final usuario = entry.value;
-                  
-                  int presentes = 0;
-                  int total = 0;
-                  for (var data in _datas) {
-                    final status = usuario['presencas'][data];
-                    if (status != null) {
-                      total++;
-                      if (status == 'presente') presentes++;
-                    }
+                      ..._datas.map((data) {
+                        final status = usuario['presencas'][data];
+                        final observacao = usuario['observacoes'][data];
+                        final isPresente = status == 'presente';
+                        final isFalta = status == 'falta';
+                        final statusColor = isPresente 
+                            ? _successColor
+                            : isFalta
+                                ? _dangerColor
+                                : Colors.grey.shade300;
+                        final statusText = getStatusText(status);
+                        
+                        String obsText;
+                        if (observacao != null && observacao.isNotEmpty) {
+                          obsText = getObservacaoText(observacao);
+                        } else {
+                          obsText = '-';
+                        }
+                  Color obsColor;
+                  if (observacao != null && observacao.isNotEmpty) {
+                    obsColor = getObservacaoColor(observacao);
+                  } else {
+                    obsColor = Colors.grey.shade400;
                   }
-                  final percentual = total > 0 ? (presentes / total * 100).toStringAsFixed(0) : '0';
-                  final percentualInt = int.parse(percentual);
-                  
-                  return Container(
-                    padding: EdgeInsets.all(isMobile ? 6 : 10),
-                    decoration: BoxDecoration(
-                      color: index % 2 == 0 ? Colors.white : const Color(0xFFF8FAFC),
-                      border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: isMobile ? 42 : 60,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: percentualInt >= 75 
-                                  ? _successColor.withOpacity(0.12) 
-                                  : percentualInt >= 50
-                                      ? _warningColor.withOpacity(0.12)
-                                      : _dangerColor.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '$percentual%',
-                              style: TextStyle(
-                                fontSize: isMobile ? 8 : 10,
-                                fontWeight: FontWeight.w600,
-                                color: percentualInt >= 75 
-                                    ? _successColor 
-                                    : percentualInt >= 50
-                                        ? _warningColor
-                                        : _dangerColor,
-                                fontFamily: 'Inter',
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          width: isMobile ? 120 : 180,
-                          child: Text(
-                            usuario['nome'],
-                            style: TextStyle(
-                              fontSize: isMobile ? 12 : 12,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF0F172A),
-                              fontFamily: 'Inter',
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        ..._datas.map((data) {
-                          final status = usuario['presencas'][data];
-                          final observacao = usuario['observacoes'][data];
-                          final isPresente = status == 'presente';
-                          final isFalta = status == 'falta';
-                          final statusColor = isPresente 
-                              ? _successColor
-                              : isFalta
-                                  ? _dangerColor
-                                  : Colors.grey.shade300;
-                          final statusText = getStatusText(status);
-                          final obsText = getObservacaoText(observacao);
-                          final obsColor = getObservacaoColor(observacao);
-                          
-                          return Container(
-                            width: isMobile ? 55 : 75,
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Column(
-                              children: [
-                                Container(
-                                  width: isMobile ? 24 : 32,
-                                  padding: const EdgeInsets.symmetric(vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                      color: statusColor.withOpacity(0.3),
-                                      width: 0.5,
-                                    ),
+                        return Container(
+                          width: isMobile ? 55 : 75,
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: isMobile ? 24 : 32,
+                                padding: const EdgeInsets.symmetric(vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: statusColor.withOpacity(0.3),
+                                    width: 0.5,
                                   ),
-                                  child: Center(
-                                    child: Text(
-                                      statusText,
-                                      style: TextStyle(
-                                        fontSize: isMobile ? 9 : 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: statusColor,
-                                        fontFamily: 'Inter',
-                                      ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    statusText,
+                                    style: TextStyle(
+                                      fontSize: isMobile ? 9 : 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: statusColor,
+                                      fontFamily: 'Inter',
                                     ),
                                   ),
                                 ),
-                                if (obsText != '-')
-                                  const SizedBox(height: 2),
-                                if (obsText != '-')
-                                  Container(
-                                    width: isMobile ? 24 : 32,
-                                    padding: const EdgeInsets.symmetric(vertical: 1),
-                                    decoration: BoxDecoration(
-                                      color: obsColor.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        obsText,
-                                        style: TextStyle(
-                                          fontSize: isMobile ? 6 : 8,
-                                          fontWeight: FontWeight.w500,
-                                          color: obsColor,
-                                          fontFamily: 'Inter',
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
-                  );
-                }),
-              ],
-            ),
+                              ),
+const SizedBox(height: 2),
+Container(
+  width: isMobile ? 24 : 32,
+  padding: const EdgeInsets.symmetric(vertical: 1),
+  decoration: BoxDecoration(
+    color: obsColor.withOpacity(0.1),
+    borderRadius: BorderRadius.circular(4),
+  ),
+  child: Center(
+    child: Text(
+      obsText,
+      style: TextStyle(
+        fontSize: isMobile ? 6 : 8,
+        fontWeight: FontWeight.w500,
+        color: obsColor,
+        fontFamily: 'Inter',
+      ),
+    ),
+  ),
+),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                );
+              }),
+            ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
-  Widget _buildLegendCard() {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 8 : 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Wrap(
-        spacing: isMobile ? 6 : 12,
-        runSpacing: 4,
-        alignment: WrapAlignment.center,
-        children: [
-          _buildLegendItem(_successColor, 'Presente', 'P', isMobile),
-          _buildLegendItem(_dangerColor, 'Falta', 'F', isMobile),
-          _buildLegendItem(Colors.grey.shade300, 'N/R', '-', isMobile),
-          _buildLegendItem(_warningColor, 'Fumando', 'F', isMobile),
-          _buildLegendItem(_accentColor, 'Sem fumar', 'SM', isMobile),
-        ],
-      ),
-    );
-  }
+Widget _buildLegendCard() {
+  final isMobile = MediaQuery.of(context).size.width < 600;
+  
+  return Container(
+    padding: EdgeInsets.all(isMobile ? 8 : 12),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF8FAFC),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFE2E8F0)),
+    ),
+    child: Wrap(
+      spacing: isMobile ? 6 : 12,
+      runSpacing: 4,
+      alignment: WrapAlignment.center,
+      children: [
+        _buildLegendItem(_successColor, 'Presente', 'P', isMobile),
+        _buildLegendItem(_dangerColor, 'Falta', 'F', isMobile),
+        _buildLegendItem(Colors.grey.shade400, 'Não registrado', '-', isMobile),
+        _buildLegendItem(_warningColor, 'Fumando', 'F', isMobile),
+        _buildLegendItem(_accentColor, 'Sem fumar', 'SM', isMobile),
+      ],
+    ),
+  );
+}
 
   Widget _buildLegendItem(Color color, String label, String code, bool isMobile) {
     return Row(

@@ -30,40 +30,40 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _bannerLoading = true;
   int _ultimaVersao = 0;
 
-  final List<Map<String, dynamic>> _banners = [
-    {
-      'title': 'Encontre Sua Turma de Apoio',
-      'subtitle': 'Acesse "Turmas de Apoio" e comece sua jornada com acompanhamento profissional.',
-      'icon': Icons.people_outline,
-      'color': Color(0xFF0F172A),
-      'gradient': [Color(0xFF0F172A), Color(0xFF1E293B)],
-      'image': '/assets/images/Grupo-Apoio.png',
-    },
-    {
-      'title': 'Benefícios Imediatos',
-      'subtitle': 'Em apenas 20 minutos, sua pressão arterial e pulsação voltam ao normal.',
-      'icon': Icons.favorite_outline,
-      'color': Color(0xFF0F172A),
-      'gradient': [Color(0xFF0F172A), Color(0xFF1E293B)],
-      'image': '/assets/images/Beneficios-Imediatos.png',
-    },
-    {
-      'title': 'Economize Milhares de Reais',
-      'subtitle': 'Em um ano sem cigarro, você economiza cerca de R\$7.000.',
-      'icon': Icons.attach_money_outlined,
-      'color': Color(0xFF0F172A),
-      'gradient': [Color(0xFF0F172A), Color(0xFF1E293B)],
-      'image': '/assets/images/Economize.png',
-    },
-    {
-      'title': 'Viva Mais e Melhor',
-      'subtitle': 'Parar de fumar pode aumentar sua expectativa de vida em até 10 anos.',
-      'icon': Icons.self_improvement_outlined,
-      'color': Color(0xFF0F172A),
-      'gradient': [Color(0xFF0F172A), Color(0xFF1E293B)],
-      'image': '/assets/images/Viva-Mais.png',
-    },
-  ];
+final List<Map<String, dynamic>> _banners = [
+  {
+    'title': 'Encontre Sua Turma de Apoio',
+    'subtitle': 'Acesse "Turmas de Apoio" e comece sua jornada com acompanhamento profissional.',
+    'icon': Icons.people_outline,
+    'color': Color(0xFF0F172A),
+    'gradient': [Color(0xFF0F172A), Color(0xFF1E293B)],
+    'image': 'assets/images/Grupo-Apoio.png',
+  },
+  {
+    'title': 'Benefícios Imediatos',
+    'subtitle': 'Em apenas 20 minutos, sua pressão arterial e pulsação voltam ao normal.',
+    'icon': Icons.favorite_outline,
+    'color': Color(0xFF0F172A),
+    'gradient': [Color(0xFF0F172A), Color(0xFF1E293B)],
+    'image': 'assets/images/Beneficios-Imediatos.png',
+  },
+  {
+    'title': 'Economize Milhares de Reais',
+    'subtitle': 'Em um ano sem cigarro, você economiza cerca de R\$7.000.',
+    'icon': Icons.attach_money_outlined,
+    'color': Color(0xFF0F172A),
+    'gradient': [Color(0xFF0F172A), Color(0xFF1E293B)],
+    'image': 'assets/images/Economize.png',
+  },
+  {
+    'title': 'Viva Mais e Melhor',
+    'subtitle': 'Parar de fumar pode aumentar sua expectativa de vida em até 10 anos.',
+    'icon': Icons.self_improvement_outlined,
+    'color': Color(0xFF0F172A),
+    'gradient': [Color(0xFF0F172A), Color(0xFF1E293B)],
+    'image': 'assets/images/Viva-Mais.png',
+  },
+];
 
   Timer? _updateTimer;
 

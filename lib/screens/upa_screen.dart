@@ -192,44 +192,54 @@ class _UPAScreenState extends State<UPAScreen> {
   void _nextPage() => _goToPage(_currentPage + 1);
   void _previousPage() => _goToPage(_currentPage - 1);
 
-  void _abrirModalMatricula(Map<String, dynamic> upa) async {
-    try {
-      final authService = AuthService();
-      final response = await authService.verificarMatriculaAtiva();
-      
-      if (response['hasActiveEnrollment']) {
-        final matricula = response['enrollment'];
-        final statusTexto = matricula['status'] == 'em_espera' ? 'em espera' : 'ativa';
-        final isEmEspera = matricula['status'] == 'em_espera';
-        
-        showDialog(
-          context: context,
-          builder: (context) => Dialog(
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            child: Container(
-              width: MediaQuery.of(context).size.width < 500 ? MediaQuery.of(context).size.width * 0.92 : 420,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 30,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
+void _abrirModalMatricula(Map<String, dynamic> upa) async {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final isSmallMobile = screenWidth < 400;
+  final isMobile = screenWidth < 800;
+
+  try {
+    final authService = AuthService();
+    final response = await authService.verificarMatriculaAtiva();
+
+    if (response['hasActiveEnrollment']) {
+      final matricula = response['enrollment'];
+      final statusTexto = matricula['status'] == 'em_espera' ? 'em espera' : 'ativa';
+      final isEmEspera = matricula['status'] == 'em_espera';
+
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          insetPadding: EdgeInsets.all(isSmallMobile ? 8 : (isMobile ? 12 : 20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Container(
+            width: isMobile
+                ? double.infinity
+                : (MediaQuery.of(context).size.width > 500 ? 500 : MediaQuery.of(context).size.width * 0.95),
+            constraints: BoxConstraints(maxWidth: 500),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(isSmallMobile ? 12 : (isMobile ? 16 : 24)),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isEmEspera 
-                        ? const Color(0xFFD97706).withValues(alpha: 0.1)
-                        : const Color(0xFF2E8B6A).withValues(alpha: 0.1),
+                      color: isEmEspera
+                          ? const Color(0xFFD97706).withValues(alpha: 0.1)
+                          : const Color(0xFF2E8B6A).withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -328,8 +338,8 @@ class _UPAScreenState extends State<UPAScreen> {
                   const SizedBox(height: 16),
                   Text(
                     isEmEspera
-                      ? 'Você receberá um contato em até 5 dias úteis para confirmar sua vaga.'
-                      : 'Sua matrícula está confirmada. Acompanhe os detalhes na seção de matrículas.',
+                        ? 'Você receberá um contato em até 5 dias úteis para confirmar sua vaga.'
+                        : 'Sua matrícula está confirmada. Acompanhe os detalhes na seção de matrículas.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
@@ -401,49 +411,50 @@ class _UPAScreenState extends State<UPAScreen> {
               ),
             ),
           ),
-        );
-        return;
-      }
-      
-      final isMobile = MediaQuery.of(context).size.width < 600;
-      
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => Dialog(
-          insetPadding: EdgeInsets.all(isMobile ? 8 : 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: EnrollmentModal(
-              upa: upa,
-              userData: widget.userData,
-              onNameUpdated: widget.onNameUpdated,
-            ),
-          ),
         ),
       );
-    } catch (e) {
-      final isMobile = MediaQuery.of(context).size.width < 600;
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => Dialog(
-          insetPadding: EdgeInsets.all(isMobile ? 8 : 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: EnrollmentModal(
-              upa: upa,
-              userData: widget.userData,
-              onNameUpdated: widget.onNameUpdated,
-            ),
-          ),
-        ),
-      );
+      return;
     }
-  }
 
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        insetPadding: EdgeInsets.all(isSmallMobile ? 8 : (isMobile ? 12 : 20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: EnrollmentModal(
+            upa: upa,
+            userData: widget.userData,
+            onNameUpdated: widget.onNameUpdated,
+          ),
+        ),
+      ),
+    );
+  } catch (e) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        insetPadding: EdgeInsets.all(isSmallMobile ? 8 : (isMobile ? 12 : 20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: EnrollmentModal(
+            upa: upa,
+            userData: widget.userData,
+            onNameUpdated: widget.onNameUpdated,
+          ),
+        ),
+      ),
+    );
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Consumer<PollingService>(
@@ -630,7 +641,11 @@ Widget _buildUPACardsList() {
   double horizontalPadding;
   double childAspectRatio;
   
- if (width < 480) {
+  if (width < 400) {
+      crossAxisCount = 1;
+      horizontalPadding = 8.0;
+      childAspectRatio = 1.45;
+    }else if (width < 480) {
       crossAxisCount = 1;
       horizontalPadding = 12.0;
       childAspectRatio = 1.6;

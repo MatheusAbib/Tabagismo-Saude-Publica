@@ -47,186 +47,191 @@ class _HomeMetasWidgetState extends State<HomeMetasWidget> {
     }
   }
 
-  void _showGoalModal() {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final isSmallMobile = MediaQuery.of(context).size.width < 400;
+ void _showGoalModal() {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final isSmallMobile = screenWidth < 400;
+  final isMobile = screenWidth < 800;
 
-    DateTime? existingStopDate;
-    int? existingTargetDays;
-    int? existingCigarrosPorDia;
-    double? existingValorCarteira;
+  DateTime? existingStopDate;
+  int? existingTargetDays;
+  int? existingCigarrosPorDia;
+  double? existingValorCarteira;
 
-    if (_userData.containsKey('stopDate') && _userData['stopDate'] != null) {
-      final stopDateStr = _userData['stopDate'].toString();
-      if (stopDateStr.isNotEmpty && stopDateStr != 'null') {
-        try {
-          existingStopDate = DateTime.parse(stopDateStr);
-        } catch (e) {
-          final parts = stopDateStr.split('-');
-          if (parts.length == 3) {
-            existingStopDate = DateTime(
-              int.parse(parts[0]),
-              int.parse(parts[1]),
-              int.parse(parts[2]),
-            );
-          }
+  if (_userData.containsKey('stopDate') && _userData['stopDate'] != null) {
+    final stopDateStr = _userData['stopDate'].toString();
+    if (stopDateStr.isNotEmpty && stopDateStr != 'null') {
+      try {
+        existingStopDate = DateTime.parse(stopDateStr);
+      } catch (e) {
+        final parts = stopDateStr.split('-');
+        if (parts.length == 3) {
+          existingStopDate = DateTime(
+            int.parse(parts[0]),
+            int.parse(parts[1]),
+            int.parse(parts[2]),
+          );
         }
       }
     }
-    if (_userData.containsKey('targetDays') && _userData['targetDays'] != null) {
-      existingTargetDays = _userData['targetDays'];
-    }
-    if (_userData.containsKey('cigarrosPorDia') && _userData['cigarrosPorDia'] != null) {
-      existingCigarrosPorDia = _userData['cigarrosPorDia'];
-    }
-    if (_userData.containsKey('valorCarteira') && _userData['valorCarteira'] != null) {
-      existingValorCarteira = _userData['valorCarteira'];
-    }
+  }
+  if (_userData.containsKey('targetDays') && _userData['targetDays'] != null) {
+    existingTargetDays = _userData['targetDays'];
+  }
+  if (_userData.containsKey('cigarrosPorDia') && _userData['cigarrosPorDia'] != null) {
+    existingCigarrosPorDia = _userData['cigarrosPorDia'];
+  }
+  if (_userData.containsKey('valorCarteira') && _userData['valorCarteira'] != null) {
+    existingValorCarteira = _userData['valorCarteira'];
+  }
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            TextEditingController dataController = TextEditingController(
-              text: existingStopDate != null ? _formatDate(existingStopDate) : ''
-            );
-            TextEditingController metaController = TextEditingController(text: existingTargetDays?.toString() ?? '');
-            TextEditingController cigarrosController = TextEditingController(text: existingCigarrosPorDia?.toString() ?? '');
-            TextEditingController valorController = TextEditingController(text: existingValorCarteira?.toStringAsFixed(2).replaceAll('.', ',') ?? '');
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          TextEditingController dataController = TextEditingController(
+            text: existingStopDate != null ? _formatDate(existingStopDate) : ''
+          );
+          TextEditingController metaController = TextEditingController(text: existingTargetDays?.toString() ?? '');
+          TextEditingController cigarrosController = TextEditingController(text: existingCigarrosPorDia?.toString() ?? '');
+          TextEditingController valorController = TextEditingController(text: existingValorCarteira?.toStringAsFixed(2).replaceAll('.', ',') ?? '');
 
-            return Dialog(
-              insetPadding: EdgeInsets.all(isSmallMobile ? 4 : (isMobile ? 8 : 20)),
-              shape: RoundedRectangleBorder(
+          return Dialog(
+            insetPadding: EdgeInsets.all(isSmallMobile ? 8 : (isMobile ? 12 : 20)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Container(
+              width: isMobile 
+                  ? double.infinity 
+                  : (MediaQuery.of(context).size.width > 800 ? 600 : MediaQuery.of(context).size.width * 0.8),
+              height: isMobile 
+                  ? MediaQuery.of(context).size.height * 0.9
+                  : (MediaQuery.of(context).size.height > 800 ? 600 : MediaQuery.of(context).size.height * 0.65),
+              constraints: BoxConstraints(maxWidth: 700),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(28)),
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(28),
-              ),
-              child: Container(
-                width: isMobile ? double.infinity : (MediaQuery.of(context).size.width > 800 ? 600 : MediaQuery.of(context).size.width * 0.8),
-                height: isMobile ? MediaQuery.of(context).size.height * 0.6 : (MediaQuery.of(context).size.height > 800 ? 600 : MediaQuery.of(context).size.height * 0.65),
-                constraints: BoxConstraints(maxWidth: 700),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(28)),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(isMobile ? 12 : 20),
-                        decoration: BoxDecoration(color: const Color(0xFF334155)),
-                        child: Row(
+                child: Column(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(isMobile ? 12 : 20),
+                      decoration: BoxDecoration(color: const Color(0xFF334155)),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.celebration_outlined, color: Colors.white, size: 20),
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Definir Meta',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                                Text(
+                                  'Registre quando parou de fumar e defina sua meta',
+                                  style: TextStyle(fontSize: 10, color: Colors.white70),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(isMobile ? 16 : 20),
+                        child: Column(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.celebration_outlined, color: Colors.white, size: 20),
+                            _buildGoalModalContent(
+                              dataController,
+                              metaController,
+                              cigarrosController,
+                              valorController,
                             ),
-                            const SizedBox(width: 10),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Definir Meta',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            const SizedBox(height: 20),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: Color(0xFFE2E8F0)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      minimumSize: const Size(double.infinity, 44),
+                                    ),
+                                    child: const Text(
+                                      'Cancelar',
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                                    ),
                                   ),
-                                  Text(
-                                    'Registre quando parou de fumar e defina sua meta',
-                                    style: TextStyle(fontSize: 10, color: Colors.white70),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      final stopDate = _parseDate(dataController.text);
+                                      final targetDays = metaController.text.isNotEmpty ? int.tryParse(metaController.text) : null;
+                                      final cigarrosPorDia = cigarrosController.text.isNotEmpty ? int.tryParse(cigarrosController.text) : null;
+                                      final valorCarteira = valorController.text.isNotEmpty ? double.tryParse(valorController.text.replaceAll(',', '.')) : null;
+
+                                      if (stopDate != null && targetDays != null && targetDays > 0) {
+                                        _saveGoal(
+                                          stopDate,
+                                          targetDays,
+                                          cigarrosPorDia: cigarrosPorDia,
+                                          valorCarteira: valorCarteira,
+                                        );
+                                        Navigator.pop(context);
+                                      } else {
+                                        ToastService.showWarning(context, 'Preencha a data (DD/MM/AAAA) e a meta corretamente');
+                                      }
+                                    },
+                                    icon: const Icon(Icons.save, size: 16),
+                                    label: const Text(
+                                      'Salvar Meta',
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF2E8B6A),
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      minimumSize: const Size(double.infinity, 44),
+                                    ),
                                   ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close, color: Colors.white, size: 20),
-                              onPressed: () => Navigator.pop(context),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.all(isMobile ? 16 : 20),
-                          child: Column(
-                            children: [
-                              _buildGoalModalContent(
-                                dataController,
-                                metaController,
-                                cigarrosController,
-                                valorController,
-                              ),
-                              const SizedBox(height: 20),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      style: OutlinedButton.styleFrom(
-                                        side: const BorderSide(color: Color(0xFFE2E8F0)),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
-                                        minimumSize: const Size(double.infinity, 44),
-                                      ),
-                                      child: const Text(
-                                        'Cancelar',
-                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: () {
-                                        final stopDate = _parseDate(dataController.text);
-                                        final targetDays = metaController.text.isNotEmpty ? int.tryParse(metaController.text) : null;
-                                        final cigarrosPorDia = cigarrosController.text.isNotEmpty ? int.tryParse(cigarrosController.text) : null;
-                                        final valorCarteira = valorController.text.isNotEmpty ? double.tryParse(valorController.text.replaceAll(',', '.')) : null;
-
-                                        if (stopDate != null && targetDays != null && targetDays > 0) {
-                                          _saveGoal(
-                                            stopDate,
-                                            targetDays,
-                                            cigarrosPorDia: cigarrosPorDia,
-                                            valorCarteira: valorCarteira,
-                                          );
-                                          Navigator.pop(context);
-                                        } else {
-                                          ToastService.showWarning(context, 'Preencha a data (DD/MM/AAAA) e a meta corretamente');
-                                        }
-                                      },
-                                      icon: const Icon(Icons.save, size: 16),
-                                      label: const Text(
-                                        'Salvar Meta',
-                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF2E8B6A),
-                                        foregroundColor: Colors.white,
-                                        elevation: 0,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
-                                        minimumSize: const Size(double.infinity, 44),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   Widget _buildGoalModalContent(
     TextEditingController dataController,

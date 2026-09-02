@@ -9,10 +9,11 @@
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?logo=javascript&logoColor=black)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)
 ![DigitalOcean](https://img.shields.io/badge/DigitalOcean-VPS-0080FF?logo=digitalocean&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-Deploy-000000?logo=vercel&logoColor=white)
 
 ---
 
-# 📋 Sobre o Projeto
+## 📋 Sobre o Projeto
 
 O **Desfumo** é uma plataforma web desenvolvida para auxiliar pessoas que desejam parar de fumar, oferecendo acompanhamento estruturado, suporte profissional e recursos educacionais.
 
@@ -20,91 +21,112 @@ A plataforma conecta **usuários**, **enfermeiras** e **Unidades de Pronto Atend
 
 Além do acompanhamento clínico, o sistema oferece ferramentas para registro diário de sintomas, definição de metas, controle de frequência em grupos de apoio, relatórios gerenciais e indicadores estatísticos.
 
+> Acesse o projeto online: (https://desfumo.vercel.app/)
 ---
 
-# 🎯 Objetivo
+## 📚 Documentação do Projeto
+
+Todos os artefatos utilizados durante o desenvolvimento estão disponíveis na pasta [`/documentos`](./documentos).
+
+| Documento | Descrição | Arquivo |
+|---|---|---|
+| **Documentação ABNT** | Documento principal do projeto | [Abrir PDF](./documentos/Desfumo.pdf) |
+| **BPMN** | Fluxo dos processos do sistema | [Abrir PDF](./documentos/BPMN.pdf) |
+| **DOD & Board Visual** | Quadro visual do projeto | [Abrir PDF](./documentos/DOD_BoardVisual.pdf) |
+| **User Stories & Product Backlog** | Histórias de usuário e backlog do produto | [Abrir PDF](./documentos/user_stories_product_backlog.pdf) |
+| **Métricas de Fluxo** | Indicadores de fluxo | [Abrir PDF](./documentos/MetricasFluxo.pdf) |
+| **Performance Ágil** | Indicadores ágeis do projeto | [Abrir PDF](./documentos/PerformanceAgil.pdf) |
+| **Apresentação Canva** | Slides da apresentação final | [Abrir PDF](./documentos/Desfumo_Apresentacao.pdf) |
+
+## 🎯 Objetivo
 
 Promover o combate ao tabagismo através de uma solução digital capaz de:
 
-* ✅ Facilitar o acompanhamento dos pacientes
-* ✅ Auxiliar profissionais de saúde no monitoramento
-* ✅ Centralizar informações e históricos
-* ✅ Disponibilizar materiais educativos
-* ✅ Gerar relatórios e indicadores de desempenho
-* ✅ Incentivar a permanência do paciente no tratamento
+- ✅ Facilitar o acompanhamento dos pacientes
+- ✅ Auxiliar profissionais de saúde no monitoramento
+- ✅ Centralizar informações e históricos
+- ✅ Disponibilizar materiais educativos
+- ✅ Gerar relatórios e indicadores de desempenho
+- ✅ Incentivar a permanência do paciente no tratamento
 
 ### 🌎 Alinhamento com os Objetivos de Desenvolvimento Sustentável
 
 Este projeto está alinhado ao **ODS 3 – Saúde e Bem-Estar**, contribuindo para a promoção da saúde e para a redução dos impactos causados pelo tabagismo por meio do uso da tecnologia.
+
 ---
 
-# 👥 Perfis de Usuário
+## 🌐 Demonstração
 
-## 👤 Usuário Comum (Paciente)
+- **Frontend (Vercel):** [https://desfumo.vercel.app](https://desfumo.vercel.app)
+- **Backend (DigitalOcean):** `http://64.227.6.51:3000`
+
+---
+
+## 👥 Perfis de Usuário
+
+### 👤 Usuário Comum (Paciente)
 
 O usuário é a pessoa que deseja abandonar o tabagismo.
 
-### Funcionalidades
-
-* Cadastro completo
-* Login e recuperação de acesso
-* Teste de Fagerström
-* Matrícula em turmas de apoio
-* Lista de espera automática
-* Registro diário de sintomas
-* Definição de metas personalizadas
-* Acompanhamento da evolução através de gráficos
-* Biblioteca de materiais educativos
-* Visualização do cronograma de aulas
-* Gerenciamento de matrículas
-* Recebimento de notificações
+**Funcionalidades:**
+- Cadastro completo com validação de CPF e email
+- Login e recuperação de acesso
+- Teste de Fagerström com salvamento do resultado
+- Matrícula em turmas de apoio com lista de espera automática
+- Registro diário de sintomas (ansiedade, irritabilidade, insônia, etc.)
+- Definição de metas personalizadas (data de parada, dias meta, valor da carteira)
+- Acompanhamento da evolução através de gráficos interativos
+- Biblioteca de materiais educativos (PDFs, vídeos e links)
+- Visualização do cronograma de aulas
+- Gerenciamento de matrículas com histórico completo
+- Recebimento de notificações em tempo real
+- Dashboard com estatísticas pessoais
 
 ---
 
-## 👩‍⚕️ Enfermeira
+### 👩‍⚕️ Enfermeira
 
 Profissional responsável pelo acompanhamento dos pacientes vinculados à sua UPA.
 
-### Funcionalidades
-
-* Dashboard da unidade
-* Visualização dos pacientes cadastrados
-* Controle de frequência das turmas
-* Registro de observações semanais
-* Gestão de cronogramas
-* Encerramento de turmas
-* Emissão de relatórios
-* Acompanhamento da evolução dos pacientes
+**Funcionalidades:**
+- Dashboard da unidade com indicadores de desempenho
+- Visualização dos pacientes cadastrados com filtros por status
+- Controle de frequência das turmas com registro de presenças em lote
+- Registro de observações semanais dos pacientes
+- Gestão de cronogramas de aulas
+- Encerramento de turmas com geração de histórico
+- Emissão de relatórios em PDF
+- Acompanhamento da evolução dos pacientes com gráficos
+- Ficha do paciente com histórico completo
 
 ---
 
-## 👨‍💼 Administrador
+### 👨‍💼 Administrador
 
 Responsável pela gestão global da plataforma.
 
-### Funcionalidades
-
-* Dashboard geral do sistema
-* Gestão de usuários
-* Gestão de enfermeiras
-* Gestão de UPAs
-* Gestão de turmas
-* Controle de matrículas
-* Relatórios administrativos
-* Estatísticas gerais da plataforma
+**Funcionalidades:**
+- Dashboard geral do sistema com métricas e indicadores
+- Gestão de usuários (visualização, edição e detalhes)
+- Gestão de enfermeiras (criação, edição e exclusão)
+- Gestão de UPAs (criação, edição e exclusão com turmas)
+- Gestão de turmas e cronogramas
+- Controle de matrículas
+- Relatórios administrativos em PDF
+- Estatísticas gerais da plataforma
 
 ---
 
-# 🔐 Credenciais para Demonstração
+## 🔐 Credenciais para Demonstração
 
-## Administrador
+### Administrador
 
 | Campo  | Valor                                     |
 | ------ | ----------------------------------------- |
 | E-mail | [admin@admin.com](mailto:admin@admin.com) |
 | Senha  | Admin123#                                 |
 
-## Enfermeira
+### Enfermeira
 
 | Campo  | Valor                                               |
 | ------ | --------------------------------------------------- |
@@ -115,86 +137,67 @@ Responsável pela gestão global da plataforma.
 
 ---
 
-# 🛠️ Principais Funcionalidades
+## 🛠️ Principais Funcionalidades
 
-## Teste de Fagerström
+### Teste de Fagerström
+Avalia o nível de dependência à nicotina e classifica o paciente conforme sua pontuação (Muito Baixa a Muito Elevada).
 
-Avalia o nível de dependência à nicotina e classifica o paciente conforme sua pontuação.
+### Sistema de Matrículas
+- Controle de vagas disponíveis
+- Lista de espera automática
+- Cancelamento de matrícula
+- Histórico de participação
+- Confirmação de matrícula por enfermeira
 
----
-
-## Sistema de Matrículas
-
-* Controle de vagas
-* Lista de espera
-* Cancelamento de matrícula
-* Histórico de participação
-
----
-
-## Registro Diário de Sintomas
-
+### Registro Diário de Sintomas
 Permite registrar diariamente:
+- Ansiedade
+- Irritabilidade
+- Insônia
+- Fome
+- Vontade de fumar
+- Dificuldade de concentração
+- Observações adicionais
+- Gráfico de evolução dos sintomas
 
-* Ansiedade
-* Irritabilidade
-* Insônia
-* Vontade de fumar
-* Dificuldade de concentração
-* Outros sintomas relacionados
-
----
-
-## Metas Personalizadas
-
+### Metas Personalizadas
 O usuário pode definir:
-
-* Data em que parou de fumar
-* Quantidade de dias de meta
-* Valor gasto mensalmente com cigarros
+- Data em que parou de fumar
+- Quantidade de dias de meta
+- Valor gasto mensalmente com cigarros
 
 O sistema calcula automaticamente:
+- Tempo sem fumar
+- Economia acumulada
+- Progresso da meta
 
-* Tempo sem fumar
-* Economia acumulada
-* Progresso da meta
-
----
-
-## Biblioteca de Recursos
-
+### Biblioteca de Recursos
 Disponibiliza materiais de apoio como:
+- PDFs educativos (Guia Prático)
+- Vídeos informativos
+- Sites especializados
+- Conteúdos produzidos pelo Ministério da Saúde
 
-* PDFs educativos
-* Vídeos informativos
-* Sites especializados
-* Conteúdos produzidos pelo Ministério da Saúde
-
----
-
-## Notificações
-
+### Notificações
 Sistema interno de alertas para:
+- Confirmação de matrícula
+- Lembretes de registros diários
+- Atualizações importantes
+- Avisos sobre turmas
+- Marcação de todas como lidas
 
-* Confirmação de matrícula
-* Lembretes de registros diários
-* Atualizações importantes
-* Avisos sobre turmas
-
----
-
-## Relatórios
-
+### Relatórios
 Exportação de relatórios em PDF contendo:
-
-* Frequência dos participantes
-* Evolução dos sintomas
-* Estatísticas das UPAs
-* Indicadores gerais do sistema
+- Frequência dos participantes
+- Evolução dos sintomas
+- Estatísticas das UPAs
+- Indicadores gerais do sistema
+- Dashboard completo da enfermeira
+- Dashboard administrativo
 
 ---
 
-# 📊 Estrutura Geral do Banco de Dados
+## 📊 Estrutura Geral do Banco de Dados
 
 O banco de dados foi projetado para gerenciar o programa de combate ao tabagismo, permitindo o controle de pacientes, profissionais de saúde, turmas de acompanhamento, frequência, sintomas e notificações ao longo do tratamento.
 
@@ -224,75 +227,54 @@ O banco de dados foi projetado para gerenciar o programa de combate ao tabagismo
 - Cada **usuário** pode receber múltiplas **notificações**.
 - Cada **turma** possui um **cronograma** com seus encontros planejados.
 - As tabelas **turmas_concluidas** e **alunos_concluidos** preservam o histórico do programa após seu encerramento.
-# 🚀 Tecnologias Utilizadas
 
 ---
 
-## Frontend
+## 🚀 Tecnologias Utilizadas
 
-* Flutter Web
-* Dart
-* Material Design
-* Widgets Personalizados
+### Frontend
+- Flutter Web 3.19
+- Dart 3.x
+- Material Design
+- Widgets Personalizados
+- Provider (Gerenciamento de estado)
+- Shared Preferences (Armazenamento local)
+- fl_chart (Gráficos interativos)
+- pdf & printing (Geração de PDFs)
 
-## Backend
+### Backend
+- Node.js 20.x
+- Express.js 4.x
+- JWT Authentication
+- REST API
+- Bcryptjs (Hash de senhas)
+- MySQL2 (Driver MySQL)
+- Dotenv (Variáveis de ambiente)
 
-* Node.js
-* Express.js
-* JWT Authentication
-* REST API
+### Banco de Dados
+- MySQL 8.0
 
-## Banco de Dados
-
-* MySQL
-
-## Infraestrutura
-
-* Ubuntu Server
-* DigitalOcean VPS
-* PM2
-
----
-
-# 📚 Documentação do Projeto
-
-Todos os artefatos utilizados durante o desenvolvimento estão disponíveis na pasta `/documentos`.
-
-| Documento         | Descrição                      | Arquivo                                      |
-| ----------------- | ------------------------------ | -------------------------------------------- |
-| Documentação ABNT | Documento principal do projeto | [Abrir PDF](documentos/Desfumo.pdf) |
-| BPMN              | Fluxo dos processos do sistema | [Abrir PDF](documentos/BPMN.pdf)             |
-| DOD & Board Visual| Quadro visual do projeto       | [Abrir PDF](documentos/DOD_BoardVisual.pdf)  |
-| User Stories & Product Backlog| Histórias de usuário e produto | [Abrir PDF](documentos/user_stories_product_backlog.pdf)|
-| Métricas de Fluxo | Indicadores de fluxo           | [Abrir PDF](documentos/MetricasFluxo.pdf)    |
-| Performance Ágil  | Indicadores ágeis do projeto   | [Abrir PDF](documentos/PerformanceAgil.pdf)  |
-| Apresentação Canva| Slides da apresentação final   | [Abrir PDF](documentos/Desfumo_Apresentacao.pdf)|
-
+### Infraestrutura
+- Ubuntu Server
+- DigitalOcean VPS
+- PM2 (Gerenciamento de processos)
+- Vercel (Deploy do Frontend)
 
 ---
 
-# 📈 Indicadores e Monitoramento
+## 📈 Indicadores e Monitoramento
 
-A plataforma disponibiliza dashboards com:
+A plataforma disponibiliza dashboards para acompanhamento e monitoramento dos principais indicadores do sistema:
 
-* Quantidade de usuários cadastrados
-* Quantidade de enfermeiras
-* Total de UPAs
-* Matrículas realizadas
-* Taxa de comparecimento
-* Evolução dos pacientes
-* Distribuição demográfica
-* Relatórios estatísticos
-
----
-
-# 👨‍💻 Autor
-
-**Matheus Bilitardo Abib**
-
-Graduado em Análise e Desenvolvimento de Sistemas pela Fatec Mogi das Cruzes.
-Cursando Engenharia de Software na Universidade de Mogi das Cruzes (UMC)
-
-Projeto desenvolvido como solução tecnológica para apoio ao tratamento e combate ao tabagismo (ODS-3).
+- Quantidade de usuários cadastrados
+- Quantidade de enfermeiras
+- Total de UPAs
+- Matrículas realizadas
+- Taxa de comparecimento
+- Evolução dos pacientes
+- Distribuição demográfica
+- Relatórios estatísticos
+- Indicadores de desempenho por UPA
 
 ---
+

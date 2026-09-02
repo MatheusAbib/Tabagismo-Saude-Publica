@@ -66,7 +66,7 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
               ElevatedButton.icon(
                 onPressed: () => _exportarPDF(),
                 icon: const Icon(Icons.picture_as_pdf, size: 18),
-                label: isMobile ? const Text('PDF') : const Text('Exportar PDF'),
+                label: isMobile ? const Text('Exportar PDF') : const Text('Exportar PDF'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _dangerColor,
                   foregroundColor: Colors.white,
@@ -321,64 +321,85 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
   }
 
   Widget _buildHealthSection() {
-    final usuariosComCancer = _stats['usuariosComCancer'] ?? 0;
-    final usuariosComCardiovascular = _stats['usuariosComCardiovascular'] ?? 0;
-    final mediaScore = _stats['mediaScoreFagestrom'] ?? 0;
+  final usuariosComCancer = _stats['usuariosComCancer'] ?? 0;
+  final usuariosComCardiovascular = _stats['usuariosComCardiovascular'] ?? 0;
+  final mediaScore = _stats['mediaScoreFagestrom'] ?? 0;
+  final isMobile = MediaQuery.of(context).size.width < 600;
 
-    double mediaScoreDouble = 0.0;
-    if (mediaScore is String) {
-      mediaScoreDouble = double.tryParse(mediaScore) ?? 0.0;
-    } else if (mediaScore is int) {
-      mediaScoreDouble = mediaScore.toDouble();
-    } else if (mediaScore is double) {
-      mediaScoreDouble = mediaScore;
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.health_and_safety, size: 20, color: Color(0xFFEF4444)),
-                SizedBox(width: 8),
-                Text('Saúde', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(child: _buildHealthItem('Câncer', '$usuariosComCancer', Icons.health_and_safety, _dangerColor)),
-                const SizedBox(width: 12),
-                Expanded(child: _buildHealthItem('Cardiovascular', '$usuariosComCardiovascular', Icons.favorite, const Color(0xFFEC4899))),
-                const SizedBox(width: 12),
-                Expanded(child: _buildHealthItem('Score Fagerström', '${mediaScoreDouble.toStringAsFixed(1)}', Icons.assessment, _accentColor)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  double mediaScoreDouble = 0.0;
+  if (mediaScore is String) {
+    mediaScoreDouble = double.tryParse(mediaScore) ?? 0.0;
+  } else if (mediaScore is int) {
+    mediaScoreDouble = mediaScore.toDouble();
+  } else if (mediaScore is double) {
+    mediaScoreDouble = mediaScore;
   }
+
+  return Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.06),
+          blurRadius: 12,
+          offset: const Offset(0, 3),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE2E8F0),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.health_and_safety, size: 20, color: Color(0xFFEF4444)),
+              SizedBox(width: 8),
+              Text('Saúde', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: isMobile
+              ? Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: _buildHealthItem('Câncer', '$usuariosComCancer', Icons.health_and_safety, _dangerColor)),
+                        const SizedBox(width: 12),
+                        Expanded(child: _buildHealthItem('Cardiovascular', '$usuariosComCardiovascular', Icons.favorite, const Color(0xFFEC4899))),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(child: _buildHealthItem('Score Fagerström', '${mediaScoreDouble.toStringAsFixed(1)}', Icons.assessment, _accentColor)),
+                        const SizedBox(width: 12),
+                        Expanded(child: Container()),
+                      ],
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: _buildHealthItem('Câncer', '$usuariosComCancer', Icons.health_and_safety, _dangerColor)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildHealthItem('Cardiovascular', '$usuariosComCardiovascular', Icons.favorite, const Color(0xFFEC4899))),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildHealthItem('Score Fagerström', '${mediaScoreDouble.toStringAsFixed(1)}', Icons.assessment, _accentColor)),
+                  ],
+                ),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildHealthItem(String title, String value, IconData icon, Color color) {
     final isMobile = MediaQuery.of(context).size.width < 500;
@@ -421,63 +442,70 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
     );
   }
 
-  Widget _buildEvolucaoSection() {
-    final alunosAtivos = _evolucao['alunos_ativos'] ?? {};
-    final alunosConcluidos = _evolucao['alunos_concluidos'] ?? {};
+Widget _buildEvolucaoSection() {
+  final alunosAtivos = _evolucao['alunos_ativos'] ?? {};
+  final alunosConcluidos = _evolucao['alunos_concluidos'] ?? {};
+  final isMobile = MediaQuery.of(context).size.width < 600;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
+  return Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.06),
+          blurRadius: 12,
+          offset: const Offset(0, 3),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE2E8F0),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.trending_up, size: 20, color: Color(0xFF1F4E6E)),
-                SizedBox(width: 8),
-                Text('Evolução dos Alunos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
-              ],
-            ),
+          child: const Row(
+            children: [
+              Icon(Icons.trending_up, size: 20, color: Color(0xFF1F4E6E)),
+              SizedBox(width: 8),
+              Text('Evolução dos Alunos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: _buildEvolucaoCard('Alunos Ativos', alunosAtivos, const Color(0xFF3B82F6))),
-                    const SizedBox(width: 16),
-                    Expanded(child: _buildEvolucaoCard('Alunos Concluídos', alunosConcluidos, _successColor)),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                _buildEvolucaoChart(),
-                const SizedBox(height: 24),
-                _buildAlunosDetalhados(),
-              ],
-            ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              isMobile
+                  ? Column(
+                      children: [
+                        _buildEvolucaoCard('Alunos Ativos', alunosAtivos, const Color(0xFF3B82F6)),
+                        const SizedBox(height: 12),
+                        _buildEvolucaoCard('Alunos Concluídos', alunosConcluidos, _successColor),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(child: _buildEvolucaoCard('Alunos Ativos', alunosAtivos, const Color(0xFF3B82F6))),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildEvolucaoCard('Alunos Concluídos', alunosConcluidos, _successColor)),
+                      ],
+                    ),
+              const SizedBox(height: 24),
+              _buildEvolucaoChart(),
+              const SizedBox(height: 24),
+              _buildAlunosDetalhados(),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
+        ),
+      ],
+    ),
+  );
+}
   Widget _buildEvolucaoCard(String titulo, Map<String, dynamic> dados, Color cor) {
     final total = _parseToInt(dados['total']);
     final fumando = _parseToInt(dados['fumando']);
@@ -726,163 +754,214 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
   }
 
   Widget _buildAlunosDetalhados() {
-    final alunos = List<Map<String, dynamic>>.from(_evolucao['alunos_detalhados'] ?? []);
+  final alunos = List<Map<String, dynamic>>.from(_evolucao['alunos_detalhados'] ?? []);
 
-    if (alunos.isEmpty) {
-      return const SizedBox.shrink();
-    }
+  if (alunos.isEmpty) {
+    return const SizedBox.shrink();
+  }
 
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final totalPages = (alunos.length / _alunosPerPage).ceil();
-    final startIndex = _alunosPage * _alunosPerPage;
-    final endIndex = (startIndex + _alunosPerPage) > alunos.length ? alunos.length : (startIndex + _alunosPerPage);
-    final alunosPaginados = alunos.sublist(startIndex, endIndex);
+  final isMobile = MediaQuery.of(context).size.width < 600;
+  final isSmallMobile = MediaQuery.of(context).size.width < 400;
+  final totalPages = (alunos.length / _alunosPerPage).ceil();
+  final startIndex = _alunosPage * _alunosPerPage;
+  final endIndex = (startIndex + _alunosPerPage) > alunos.length ? alunos.length : (startIndex + _alunosPerPage);
+  final alunosPaginados = alunos.sublist(startIndex, endIndex);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Situação Atual dos Alunos', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text('Situação Atual dos Alunos', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+      const SizedBox(height: 12),
+      Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE2E8F0),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              ),
+              child: isSmallMobile
+                  ? Column(
+                      children: [
+                        Row(
+                          children: [
+                            const Expanded(child: Text('Aluno', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11))),
+                            SizedBox(width: 50, child: Text('Turma', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 10), textAlign: TextAlign.center)),
+                            SizedBox(width: 50, child: Text('Situação', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 10), textAlign: TextAlign.center)),
+                          ],
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        const Expanded(child: Text('Aluno', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+                        SizedBox(width: isMobile ? 60 : 80, child: Text('Turma', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
+                        SizedBox(width: isMobile ? 60 : 80, child: Text('Situação', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
+                      ],
+                    ),
+            ),
+            ...alunosPaginados.map((aluno) {
+              final ultimaObservacao = aluno['ultima_observacao'];
+              final semanasFumando = _parseToInt(aluno['semanas_fumando']);
+              final semanasSemFumar = _parseToInt(aluno['semanas_sem_fumar']);
+
+              String situacao;
+              Color situacaoCor;
+
+              if (ultimaObservacao == '2- Sem fumar') {
+                situacao = 'Sem fumar';
+                situacaoCor = const Color(0xFF3B82F6);
+              } else if (ultimaObservacao == '1- Está fumando') {
+                situacao = 'Fumando';
+                situacaoCor = _warningColor;
+              } else {
+                situacao = 'Sem registro';
+                situacaoCor = const Color(0xFF94A3B8);
+              }
+
+              return Container(
+                padding: EdgeInsets.all(isSmallMobile ? 8 : 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  border: Border(bottom: BorderSide(color: const Color(0xFFE2E8F0))),
                 ),
+                child: isSmallMobile
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(aluno['nome_completo'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: situacaoCor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  situacao,
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: situacaoCor),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                'Turma: ${aluno['turma_horario']?.split(' - ')[0] ?? '-'}',
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'F: $semanasFumando • SF: $semanasSemFumar',
+                                style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(aluno['nome_completo'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                                Text(
+                                  'F: $semanasFumando • SF: $semanasSemFumar',
+                                  style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(
+                            width: isMobile ? 60 : 80,
+                            child: Text(
+                              aluno['turma_horario']?.split(' - ')[0] ?? '-',
+                              style: const TextStyle(fontSize: 11),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          SizedBox(
+                            width: isMobile ? 60 : 80,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: situacaoCor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                situacao,
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: situacaoCor),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+              );
+            }).toList(),
+            if (totalPages > 1)
+              Padding(
+                padding: const EdgeInsets.all(12),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Expanded(child: Text('Aluno', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
-                    SizedBox(width: isMobile ? 60 : 80, child: Text('Turma', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
-                    SizedBox(width: isMobile ? 60 : 80, child: Text('Situação', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left, size: 20),
+                      onPressed: _alunosPage > 0
+                          ? () {
+                              setState(() => _alunosPage--);
+                            }
+                          : null,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '${_alunosPage + 1} de $totalPages',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: _accentColor),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right, size: 20),
+                      onPressed: _alunosPage < totalPages - 1
+                          ? () {
+                              setState(() => _alunosPage++);
+                            }
+                          : null,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              ...alunosPaginados.map((aluno) {
-                final ultimaObservacao = aluno['ultima_observacao'];
-                final semanasFumando = _parseToInt(aluno['semanas_fumando']);
-                final semanasSemFumar = _parseToInt(aluno['semanas_sem_fumar']);
-
-                String situacao;
-                Color situacaoCor;
-
-                if (ultimaObservacao == '2- Sem fumar') {
-                  situacao = 'Sem fumar';
-                  situacaoCor = const Color(0xFF3B82F6);
-                } else if (ultimaObservacao == '1- Está fumando') {
-                  situacao = 'Fumando';
-                  situacaoCor = _warningColor;
-                } else {
-                  situacao = 'Sem registro';
-                  situacaoCor = const Color(0xFF94A3B8);
-                }
-
-                return Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: const Color(0xFFE2E8F0))),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(aluno['nome_completo'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                            Text(
-                              'F: $semanasFumando • SF: $semanasSemFumar',
-                              style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(
-                        width: isMobile ? 60 : 80,
-                        child: Text(
-                          aluno['turma_horario']?.split(' - ')[0] ?? '-',
-                          style: const TextStyle(fontSize: 11),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      SizedBox(
-                        width: isMobile ? 60 : 80,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: situacaoCor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            situacao,
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: situacaoCor),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-              if (totalPages > 1)
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left, size: 20),
-                        onPressed: _alunosPage > 0
-                            ? () {
-                                setState(() => _alunosPage--);
-                              }
-                            : null,
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          side: const BorderSide(color: Color(0xFFE2E8F0)),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE2E8F0),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '${_alunosPage + 1} de $totalPages',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: _accentColor),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right, size: 20),
-                        onPressed: _alunosPage < totalPages - 1
-                            ? () {
-                                setState(() => _alunosPage++);
-                              }
-                            : null,
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          side: const BorderSide(color: Color(0xFFE2E8F0)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+          ],
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
   Widget _buildChartSection() {
     final usuariosPorMes = _stats['usuariosPorMes'] as List? ?? [];

@@ -10,35 +10,40 @@ class FagerstromTestModal extends StatefulWidget {
   @override
   _FagerstromTestModalState createState() => _FagerstromTestModalState();
 
-  static Future<void> show(BuildContext context, {Function(int)? onScoreUpdated}) {
-    final isMobile = MediaQuery.of(context).size.width < 800;
-    final isSmallMobile = MediaQuery.of(context).size.width < 480;
+static Future<void> show(BuildContext context, {Function(int)? onScoreUpdated}) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final isSmallMobile = screenWidth < 400;
+  final isMobile = screenWidth < 800;
 
-    return showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          insetPadding: EdgeInsets.all(isSmallMobile ? 4 : (isMobile ? 6 : 20)),
-          shape: RoundedRectangleBorder(
+  return showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return Dialog(
+        insetPadding: EdgeInsets.all(isSmallMobile ? 8 : (isMobile ? 12 : 20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Container(
+          width: isMobile 
+              ? double.infinity 
+              : (MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.95),
+          height: isMobile 
+              ? MediaQuery.of(context).size.height * 0.8
+              : (MediaQuery.of(context).size.height > 800 ? 650 : MediaQuery.of(context).size.height * 1.0),
+          constraints: BoxConstraints(maxWidth: 700),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(28)),
+          child: ClipRRect(
             borderRadius: BorderRadius.circular(28),
-          ),
-          child: Container(
-  width: isMobile ? double.infinity : (MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.95),
-  height: isMobile ? MediaQuery.of(context).size.height * 0.7 : (MediaQuery.of(context).size.height > 800 ? 650 : MediaQuery.of(context).size.height * 0.85),
-  constraints: BoxConstraints(maxWidth: 700),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(28)),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: FagerstromTestModal(
-                onScoreUpdated: onScoreUpdated,
-              ),
+            child: FagerstromTestModal(
+              onScoreUpdated: onScoreUpdated,
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 }
 
 class _FagerstromTestModalState extends State<FagerstromTestModal> {

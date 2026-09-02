@@ -112,25 +112,25 @@ class SintomasModalWidget {
                                 padding: EdgeInsets.all(isSmallMobile ? 12 : 20),
                                 child: Column(
                                   children: [
-                                    _buildFormulario(
-                                      context,
-                                      ansiedade,
-                                      irritabilidade,
-                                      insonia,
-                                      fome,
-                                      dificuldadeConcentracao,
-                                      vontadeFumar,
-                                      observacoes,
-                                      isLoading,
-                                      setState,
-                                      carregarGrafico,
-                                      _sintomaService,
-                                    ),
+                              _buildFormulario(
+                                context,
+                                ansiedade,
+                                irritabilidade,
+                                insonia,
+                                fome,
+                                dificuldadeConcentracao,
+                                vontadeFumar,
+                                observacoes,
+                                isLoading,
+                                setState,
+                                carregarGrafico,
+                                _sintomaService,
+                                sintomas,
+                                isLoadingGrafico,
+                              ),
                                     const SizedBox(height: 20),
-                                    _GraficoSintomasWidget(
-                                      sintomas: sintomas,
-                                      isLoadingGrafico: isLoadingGrafico,
-                                    )
+                                    if (sintomas.isNotEmpty)
+                                      _buildResumoCards(sintomas),
                                   ],
                                 ),
                               )
@@ -141,21 +141,23 @@ class SintomasModalWidget {
                                     flex: 4,
                                     child: SingleChildScrollView(
                                       padding: const EdgeInsets.all(20),
-                                      child: _buildFormulario(
-                                        context,
-                                        ansiedade,
-                                        irritabilidade,
-                                        insonia,
-                                        fome,
-                                        dificuldadeConcentracao,
-                                        vontadeFumar,
-                                        observacoes,
-                                        isLoading,
-                                        setState,
-                                        carregarGrafico,
-                                        _sintomaService,
-                                      ),
-                                    ),
+                                      child:_buildFormulario(
+                        context,
+                        ansiedade,
+                        irritabilidade,
+                        insonia,
+                        fome,
+                        dificuldadeConcentracao,
+                        vontadeFumar,
+                        observacoes,
+                        isLoading,
+                        setState,
+                        carregarGrafico,
+                        _sintomaService,
+                        sintomas,
+                        isLoadingGrafico,
+                      ),
+                                                          ),
                                   ),
                                   Container(width: 1, color: Colors.grey.shade200),
                                   Expanded(
@@ -165,7 +167,7 @@ class SintomasModalWidget {
                                       child: _GraficoSintomasWidget(
                                         sintomas: sintomas,
                                         isLoadingGrafico: isLoadingGrafico,
-                                      )
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -182,105 +184,363 @@ class SintomasModalWidget {
     );
   }
 
-  static Widget _buildFormulario(
-    BuildContext context,
-    ValueNotifier<int> ansiedade,
-    ValueNotifier<int> irritabilidade,
-    ValueNotifier<int> insonia,
-    ValueNotifier<int> fome,
-    ValueNotifier<int> dificuldadeConcentracao,
-    ValueNotifier<int> vontadeFumar,
-    String observacoes,
-    bool isLoading,
-    StateSetter setState,
-    Future<void> Function() carregarGrafico,
-    SintomaService _sintomaService,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Registrar Sintomas',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF0F172A),
-            fontFamily: 'Poppins',
+static Widget _buildResumoCards(List<Map<String, dynamic>> sintomas) {
+  if (sintomas.isEmpty) return const SizedBox.shrink();
+
+  final ultimo = sintomas.first;
+
+  final sintomasList = [
+    {
+      'titulo': 'Ansiedade',
+      'valor': ultimo['ansiedade'] ?? 0,
+      'cor': const Color(0xFF1F4E6E),
+      'icon': Icons.psychology,
+      'descricao': _getDescricaoSintoma('ansiedade', ultimo['ansiedade'] ?? 0),
+    },
+    {
+      'titulo': 'Irritabilidade',
+      'valor': ultimo['irritabilidade'] ?? 0,
+      'cor': const Color(0xFFC65D47),
+      'icon': Icons.flash_on,
+      'descricao': _getDescricaoSintoma('irritabilidade', ultimo['irritabilidade'] ?? 0),
+    },
+    {
+      'titulo': 'Insônia',
+      'valor': ultimo['insonia'] ?? 0,
+      'cor': const Color(0xFF6B21A8),
+      'icon': Icons.nightlight_round,
+      'descricao': _getDescricaoSintoma('insonia', ultimo['insonia'] ?? 0),
+    },
+    {
+      'titulo': 'Fome',
+      'valor': ultimo['fome'] ?? 0,
+      'cor': const Color(0xFFD97706),
+      'icon': Icons.restaurant,
+      'descricao': _getDescricaoSintoma('fome', ultimo['fome'] ?? 0),
+    },
+    {
+      'titulo': 'Dificuldade de Concentração',
+      'valor': ultimo['dificuldade_concentracao'] ?? 0,
+      'cor': const Color(0xFF2E8B6A),
+      'icon': Icons.auto_awesome,
+      'descricao': _getDescricaoSintoma('dificuldade_concentracao', ultimo['dificuldade_concentracao'] ?? 0),
+    },
+    {
+      'titulo': 'Vontade de Fumar',
+      'valor': ultimo['vontade_fumar'] ?? 0,
+      'cor': const Color(0xFFC65D47),
+      'icon': Icons.smoking_rooms,
+      'descricao': _getDescricaoSintoma('vontade_fumar', ultimo['vontade_fumar'] ?? 0),
+    },
+  ];
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Row(
+        children: [
+          Icon(Icons.assessment, size: 18, color: Color(0xFF1F4E6E)),
+          SizedBox(width: 8),
+          Text(
+            'Último registro',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A), fontFamily: 'Poppins'),
           ),
-        ),
-        const SizedBox(height: 16),
-        _buildSintomaSlider('Ansiedade', Icons.psychology, ansiedade, const Color(0xFF1F4E6E)),
-        _buildSintomaSlider('Irritabilidade', Icons.flash_on, irritabilidade, const Color(0xFFC65D47)),
-        _buildSintomaSlider('Insônia', Icons.nightlight_round, insonia, const Color(0xFF6B21A8)),
-        _buildSintomaSlider('Fome', Icons.restaurant, fome, const Color(0xFFD97706)),
-        _buildSintomaSlider('Dificuldade de Concentração', Icons.auto_awesome, dificuldadeConcentracao, const Color(0xFF2E8B6A)),
-        _buildSintomaSlider('Vontade de Fumar', Icons.smoking_rooms, vontadeFumar, const Color(0xFFC65D47)),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+        ],
+      ),
+      const SizedBox(height: 12),
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final availableWidth = constraints.maxWidth;
+
+          int crossAxisCount = 1;
+          if (availableWidth > 400) crossAxisCount = 2;
+          if (availableWidth > 650) crossAxisCount = 3;
+          if (availableWidth > 900) crossAxisCount = 4;
+          if (availableWidth > 1200) crossAxisCount = 6;
+
+          final cardWidth = (availableWidth - (12 * (crossAxisCount - 1))) / crossAxisCount;
+
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            alignment: WrapAlignment.start,
+            children: sintomasList.map((item) {
+              return SizedBox(
+                width: cardWidth,
+                child: _buildSintomaCard(
+                  titulo: item['titulo'] as String,
+                  valor: item['valor'] as int,
+                  cor: item['cor'] as Color,
+                  icon: item['icon'] as IconData,
+                  descricao: item['descricao'] as String,
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
+    ],
+  );
+}
+
+  static Widget _buildSintomaCard({
+    required String titulo,
+    required int valor,
+    required Color cor,
+    required IconData icon,
+    required String descricao,
+  }) {
+    String getNivel(int valor) {
+      if (valor <= 2) return 'Baixo';
+      if (valor <= 4) return 'Moderado';
+      if (valor <= 6) return 'Elevado';
+      return 'Muito Elevado';
+    }
+
+    IconData getNivelIcon(int valor) {
+      if (valor <= 2) return Icons.emoji_emotions_outlined;
+      if (valor <= 4) return Icons.sentiment_satisfied_outlined;
+      if (valor <= 6) return Icons.sentiment_neutral_outlined;
+      return Icons.sentiment_very_dissatisfied_outlined;
+    }
+
+    Color getNivelColor(int valor) {
+      if (valor <= 2) return const Color(0xFF2E8B6A);
+      if (valor <= 4) return const Color(0xFF84CC16);
+      if (valor <= 6) return const Color(0xFFD97706);
+      return const Color(0xFFC65D47);
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cor.withValues(alpha: 0.2), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: TextField(
-            maxLines: 3,
-            decoration: const InputDecoration(
-              hintText: 'Observações (opcional)',
-              border: InputBorder.none,
-              hintStyle: TextStyle(color: Color(0xFF94A3B8), fontFamily: 'Inter'),
-            ),
-            onChanged: (value) => observacoes = value,
-          ),
-        ),
-        const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: isLoading
-                ? null
-                : () async {
-                    setState(() => isLoading = true);
-                    try {
-                      final hoje = DateTime.now().toIso8601String().split('T')[0];
-                      await _sintomaService.registrarSintoma(
-                        data: hoje,
-                        ansiedade: ansiedade.value,
-                        irritabilidade: irritabilidade.value,
-                        insonia: insonia.value,
-                        fome: fome.value,
-                        dificuldadeConcentracao: dificuldadeConcentracao.value,
-                        vontadeFumar: vontadeFumar.value,
-                        observacoes: observacoes,
-                      );
-                      ToastService.showSuccess(context, 'Sintomas registrados com sucesso!');
-                      await carregarGrafico();
-                    } catch (e) {
-                      ToastService.showError(context, 'Erro ao registrar sintomas: $e');
-                    } finally {
-                      setState(() => isLoading = false);
-                    }
-                  },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2E8B6A),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-            child: isLoading
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.save, size: 18, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text('Registrar Sintomas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-                    ],
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: cor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 16, color: cor),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF0F172A),
+                    fontFamily: 'Inter',
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                valor.toString(),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: cor, fontFamily: 'Poppins'),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '/ 10',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade400, fontFamily: 'Inter'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(getNivelIcon(valor), size: 14, color: getNivelColor(valor)),
+              const SizedBox(width: 4),
+              Text(
+                getNivel(valor),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: getNivelColor(valor), fontFamily: 'Inter'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            descricao,
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontFamily: 'Inter', height: 1.2),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
+
+  static String _getDescricaoSintoma(String sintoma, int valor) {
+    switch (sintoma) {
+      case 'ansiedade':
+        if (valor <= 2) return 'Tranquilo';
+        if (valor <= 4) return 'Leve apreensão';
+        if (valor <= 6) return 'Ansiedade moderada';
+        if (valor <= 8) return 'Ansiedade intensa';
+        return 'Crise de ansiedade';
+      case 'irritabilidade':
+        if (valor <= 2) return 'Calmo';
+        if (valor <= 4) return 'Levemente irritado';
+        if (valor <= 6) return 'Irritado';
+        if (valor <= 8) return 'Muito irritado';
+        return 'Extremamente irritado';
+      case 'insonia':
+        if (valor <= 2) return 'Dorme bem';
+        if (valor <= 4) return 'Leve dificuldade';
+        if (valor <= 6) return 'Dificuldade moderada';
+        if (valor <= 8) return 'Muita dificuldade';
+        return 'Não dorme';
+      case 'fome':
+        if (valor <= 2) return 'Normal';
+        if (valor <= 4) return 'Leve fome';
+        if (valor <= 6) return 'Fome moderada';
+        if (valor <= 8) return 'Muita fome';
+        return 'Fome excessiva';
+      case 'dificuldade_concentracao':
+        if (valor <= 2) return 'Foco total';
+        if (valor <= 4) return 'Leve dispersão';
+        if (valor <= 6) return 'Dificuldade moderada';
+        if (valor <= 8) return 'Muita dificuldade';
+        return 'Sem concentração';
+      case 'vontade_fumar':
+        if (valor <= 2) return 'Sem vontade';
+        if (valor <= 4) return 'Vontade leve';
+        if (valor <= 6) return 'Vontade moderada';
+        if (valor <= 8) return 'Vontade intensa';
+        return 'Fissura extrema';
+      default:
+        return '';
+    }
+  }
+
+  static Widget _buildFormulario(
+  BuildContext context,
+  ValueNotifier<int> ansiedade,
+  ValueNotifier<int> irritabilidade,
+  ValueNotifier<int> insonia,
+  ValueNotifier<int> fome,
+  ValueNotifier<int> dificuldadeConcentracao,
+  ValueNotifier<int> vontadeFumar,
+  String observacoes,
+  bool isLoading,
+  StateSetter setState,
+  Future<void> Function() carregarGrafico,
+  SintomaService _sintomaService,
+  List<Map<String, dynamic>> sintomas,
+  bool isLoadingGrafico,
+) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        'Registrar Sintomas',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF0F172A),
+          fontFamily: 'Poppins',
+        ),
+      ),
+      const SizedBox(height: 16),
+      _buildSintomaSlider('Ansiedade', Icons.psychology, ansiedade, const Color(0xFF1F4E6E)),
+      _buildSintomaSlider('Irritabilidade', Icons.flash_on, irritabilidade, const Color(0xFFC65D47)),
+      _buildSintomaSlider('Insônia', Icons.nightlight_round, insonia, const Color(0xFF6B21A8)),
+      _buildSintomaSlider('Fome', Icons.restaurant, fome, const Color(0xFFD97706)),
+      _buildSintomaSlider('Dificuldade de Concentração', Icons.auto_awesome, dificuldadeConcentracao, const Color(0xFF2E8B6A)),
+      _buildSintomaSlider('Vontade de Fumar', Icons.smoking_rooms, vontadeFumar, const Color(0xFFC65D47)),
+      const SizedBox(height: 16),
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: TextField(
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Observações (opcional)',
+            border: InputBorder.none,
+            hintStyle: TextStyle(color: Color(0xFF94A3B8), fontFamily: 'Inter'),
+          ),
+          onChanged: (value) => observacoes = value,
+        ),
+      ),
+      const SizedBox(height: 24),
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: isLoading
+              ? null
+              : () async {
+                  setState(() => isLoading = true);
+                  try {
+                    final hoje = DateTime.now().toIso8601String().split('T')[0];
+                    await _sintomaService.registrarSintoma(
+                      data: hoje,
+                      ansiedade: ansiedade.value,
+                      irritabilidade: irritabilidade.value,
+                      insonia: insonia.value,
+                      fome: fome.value,
+                      dificuldadeConcentracao: dificuldadeConcentracao.value,
+                      vontadeFumar: vontadeFumar.value,
+                      observacoes: observacoes,
+                    );
+                    ToastService.showSuccess(context, 'Sintomas registrados com sucesso!');
+                    
+                    setState(() {
+                      sintomas.clear();
+                      isLoadingGrafico = true;
+                    });
+                    
+                    await carregarGrafico();
+                  } catch (e) {
+                    ToastService.showError(context, 'Erro ao registrar sintomas: $e');
+                  } finally {
+                    setState(() => isLoading = false);
+                  }
+                },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF2E8B6A),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+          child: isLoading
+              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.save, size: 18, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text('Registrar Sintomas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                  ],
+                ),
+        ),
+      ),
+    ],
+  );
+}
 
   static Widget _buildSintomaSlider(
     String titulo,
@@ -422,7 +682,7 @@ class _GraficoSintomasWidgetState extends State<_GraficoSintomasWidget> {
                   CircularProgressIndicator(color: Color(0xFF1F4E6E)),
                   SizedBox(height: 16),
                   Text(
-                    'Carregando gráfico...',
+                    'Carregando Sintomas...',
                     style: TextStyle(fontSize: 14, color: Color(0xFF64748B), fontFamily: 'Inter'),
                   ),
                 ],

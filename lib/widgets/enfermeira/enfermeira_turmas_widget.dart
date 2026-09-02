@@ -198,16 +198,15 @@ class _ListaPresencaWidgetState extends State<ListaPresencaWidget> {
         int vagasOcupadas = usuarios.length;
         int vagasTotais = turma['vagas_totais'] ?? 4;
 
-        bool podeSalvar() {
-          for (var usuario in usuarios) {
-            bool temPresenca = usuario['presenca_status'] != null && usuario['presenca_status'] != 'nenhum';
-            bool temObservacao = usuario['observacao_semanal'] != null && usuario['observacao_semanal'] != '';
-            if (!temPresenca || !temObservacao) {
-              return false;
+          bool podeSalvar() {
+            for (var usuario in usuarios) {
+              bool temPresenca = usuario['presenca_status'] != null && usuario['presenca_status'] != 'nenhum';
+              if (!temPresenca) {
+                return false;
+              }
             }
+            return usuarios.isNotEmpty;
           }
-          return usuarios.isNotEmpty;
-        }
 
         Future<void> salvarPresencas() async {
           setState(() => _salvando = true);
@@ -862,8 +861,8 @@ void _abrirHistoricoTurma(Map<String, dynamic> turma) {
     builder: (BuildContext context) {
       return Dialog(
         insetPadding: EdgeInsets.only(
-          left: isSmallMobile ? 4 : (isMobile ? 6 : 20),
-          right: isSmallMobile ? 4 : (isMobile ? 6 : 20),
+          left: isSmallMobile ? 8 : (isMobile ? 12 : 20),
+          right: isSmallMobile ? 8 : (isMobile ? 12 : 20),
           top: 20,
           bottom: 20,
         ),
@@ -872,7 +871,9 @@ void _abrirHistoricoTurma(Map<String, dynamic> turma) {
         ),
         child: Container(
           width: isMobile ? MediaQuery.of(context).size.width * 0.96 : (MediaQuery.of(context).size.width > 1200 ? 1100 : MediaQuery.of(context).size.width * 0.95),
-          height: isMobile ? MediaQuery.of(context).size.height * 0.5 : (MediaQuery.of(context).size.height > 800 ? 500 : MediaQuery.of(context).size.height * 0.7),
+          height: isMobile 
+              ? MediaQuery.of(context).size.height * 0.8
+              : (MediaQuery.of(context).size.height > 800 ? 750 : MediaQuery.of(context).size.height * 0.85),
           constraints: BoxConstraints(maxWidth: 1100),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(28),
@@ -889,6 +890,7 @@ void _abrirHistoricoTurma(Map<String, dynamic> turma) {
     },
   );
 }
+
 void _confirmarEncerrarTurma(Map<String, dynamic> turma) async {
   String? tipoSelecionado;
   final isMobile = MediaQuery.of(context).size.width < 500;

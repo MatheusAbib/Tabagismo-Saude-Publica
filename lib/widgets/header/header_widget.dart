@@ -237,6 +237,7 @@ class _HeaderWidgetState extends State<HeaderWidget> {
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
                       height: 0.9,
+                      letterSpacing: 2,
                     ),
                   ),
                 ],

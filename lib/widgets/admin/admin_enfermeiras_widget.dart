@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/services/toast_service.dart';
@@ -20,36 +21,56 @@ class _AdminEnfermeirasWidgetState extends State<AdminEnfermeirasWidget> {
   bool _carregando = true;
   String _searchQuery = '';
   TextEditingController _searchController = TextEditingController();
+  final ValueNotifier<bool> _carregandoLista = ValueNotifier(false);
 
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(_onSearchChanged);
     _carregarDados();
+  }
+
+void _onSearchChanged() {
+  setState(() {
+    _searchQuery = _searchController.text;
+  });
+}
+
+  Timer? _debounceTimer;
+  void _debounceSearch() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _carregarDados();
+    });
   }
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _debounceTimer?.cancel();
+    _carregandoLista.dispose();
     super.dispose();
   }
 
-  Future<void> _carregarDados() async {
-    setState(() => _carregando = true);
-    try {
-      final authService = AuthService();
-      final enfermeiras = await authService.getEnfermeiras();
-      final upas = await authService.getUPAsLista();
-      setState(() {
-        _enfermeiras = enfermeiras;
-        _upasLista = upas;
-        _carregando = false;
-      });
-    } catch (e) {
-      setState(() => _carregando = false);
-      ToastService.showError(context, 'Erro ao carregar dados: $e');
-    }
+Future<void> _carregarDados() async {
+  _carregandoLista.value = true;
+  try {
+    final authService = AuthService();
+    final enfermeiras = await authService.getEnfermeiras();
+    final upas = await authService.getUPAsLista();
+    _enfermeiras = enfermeiras;
+    _upasLista = upas;
+    _carregando = false;
+    _carregandoLista.value = false;
+    setState(() {});
+  } catch (e) {
+    _carregando = false;
+    _carregandoLista.value = false;
+    setState(() {});
+    ToastService.showError(context, 'Erro ao carregar dados: $e');
   }
-
+}
   InputDecoration _buildInputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
@@ -78,14 +99,6 @@ class _AdminEnfermeirasWidgetState extends State<AdminEnfermeirasWidget> {
       fillColor: Colors.grey.shade50,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
-  }
-
-  List<Map<String, dynamic>> _getEnfermeirasFiltradas() {
-    if (_searchQuery.isEmpty) return _enfermeiras;
-    return _enfermeiras.where((e) {
-      return e['nome_completo'].toLowerCase().contains(_searchQuery) ||
-          (e['upa_nome'] != null && e['upa_nome'].toLowerCase().contains(_searchQuery));
-    }).toList();
   }
 
   Map<int, List<Map<String, dynamic>>> _agruparPorUPA(List<Map<String, dynamic>> enfermeiras) {
@@ -185,9 +198,16 @@ class _AdminEnfermeirasWidgetState extends State<AdminEnfermeirasWidget> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         minimumSize: const Size(double.infinity, 44),
                       ),
-                      child: const Text(
-                        'Excluir',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Excluir',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -204,36 +224,41 @@ class _AdminEnfermeirasWidgetState extends State<AdminEnfermeirasWidget> {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
     final horizontalPadding = isMobile ? 16.0 : 20.0;
-    final enfermeirasFiltradas = _getEnfermeirasFiltradas();
-    final grupos = _agruparPorUPA(enfermeirasFiltradas);
+    final enfermeirasFiltradas = _enfermeiras.where((e) {
+  final nome = e['nome_completo'].toLowerCase();
+  final upaNome = (e['upa_nome'] ?? '').toLowerCase();
+  final search = _searchQuery.toLowerCase();
+  return nome.contains(search) || upaNome.contains(search);
+}).toList();
 
-    if (_carregando) {
-      return const Center(child: CircularProgressIndicator());
-    }
+final grupos = _agruparPorUPA(enfermeirasFiltradas);
 
     return Column(
       children: [
         Padding(
           padding: EdgeInsets.all(horizontalPadding),
           child: isMobile
-              ? Column(
+              ? Row(
                   children: [
-                    TextField(
-                      controller: _searchController,
-                      decoration: _buildInputDecoration('Buscar por nome da enfermeira ou UPA...', Icons.search),
-                      onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: _buildInputDecoration('Buscar por nome ou unidade...', Icons.search),
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: () => _abrirModalEnfermeira(),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Nova Enfermeira'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _successColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        minimumSize: const Size(0, 42),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: () => _abrirModalEnfermeira(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _successColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          minimumSize: const Size(0, 56),
+                        ),
+                        child: const Icon(Icons.add, color: Colors.white, size: 24),
                       ),
                     ),
                   ],
@@ -243,8 +268,7 @@ class _AdminEnfermeirasWidgetState extends State<AdminEnfermeirasWidget> {
                     Expanded(
                       child: TextField(
                         controller: _searchController,
-                        decoration: _buildInputDecoration('Buscar por nome da enfermeira ou unidade...', Icons.search),
-                        onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+                        decoration: _buildInputDecoration('Buscar por nome ou unidade...', Icons.search),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -264,87 +288,129 @@ class _AdminEnfermeirasWidgetState extends State<AdminEnfermeirasWidget> {
                 ),
         ),
         Expanded(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _searchQuery.isEmpty
-                      ? 'Enfermeiras Cadastradas'
-                      : 'Resultados para: "$_searchQuery"',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Total: ${enfermeirasFiltradas.length} enfermeiras',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                ),
-                const SizedBox(height: 16),
-                ...grupos.entries.map((entry) {
-                  final upaNome = _getUpaNome(entry.key == 0 ? null : entry.key);
-                  final enfermeirasDaUPA = entry.value;
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(top: 8, bottom: 12),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE2E8F0),
-                          borderRadius: BorderRadius.circular(20),
+          child: ValueListenableBuilder(
+            valueListenable: _carregandoLista,
+            builder: (context, carregando, child) {
+              return Stack(
+                children: [
+                  SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _searchQuery.isEmpty
+                              ? 'Enfermeiras Cadastradas'
+                              : 'Resultados para: "$_searchQuery"',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.local_hospital, size: isMobile ? 14 : 16, color: _accentColor),
-                            const SizedBox(width: 6),
-                            Text(
-                              upaNome,
-                              style: TextStyle(
-                                fontSize: isMobile ? 12 : 14,
-                                fontWeight: FontWeight.w600,
-                                color: _accentColor,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: _accentColor.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Total: ${enfermeirasFiltradas.length} enfermeiras',
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                        const SizedBox(height: 16),
+                        if (enfermeirasFiltradas.isEmpty && !carregando)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(40),
                               child: Text(
-                                '${enfermeirasDaUPA.length}',
-                                style: TextStyle(
-                                  fontSize: isMobile ? 9 : 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: _accentColor,
-                                ),
+                                'Nenhuma enfermeira encontrada',
+                                style: TextStyle(fontSize: 16, color: Color(0xFF64748B)),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      ...enfermeirasDaUPA.map((e) => _buildEnfermeiraCard(e)),
-                      const SizedBox(height: 8),
-                    ],
-                  );
-                }),
-                if (grupos.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(40),
-                    child: Center(
-                      child: Text(
-                        'Nenhuma enfermeira encontrada',
-                        style: TextStyle(fontSize: 16, color: Color(0xFF64748B)),
-                      ),
+                          )
+                        else
+                          ...grupos.entries.map((entry) {
+                            final upaId = entry.key == 0 ? null : entry.key;
+                            final upaNome = _getUpaNome(upaId);
+                            final enfermeirasDaUPA = entry.value;
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.06),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE2E8F0),
+                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: _accentColor.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(Icons.local_hospital, size: isMobile ? 16 : 18, color: _accentColor),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            upaNome,
+                                            style: TextStyle(
+                                              fontSize: isMobile ? 14 : 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: _accentColor,
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: _accentColor.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: Text(
+                                            '${enfermeirasDaUPA.length}',
+                                            style: TextStyle(
+                                              fontSize: isMobile ? 12 : 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: _accentColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      children: enfermeirasDaUPA.map((e) => _buildEnfermeiraCard(e)).toList(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        const SizedBox(height: 20),
+                      ],
                     ),
                   ),
-                const SizedBox(height: 20),
-              ],
-            ),
+                  if (carregando)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ),
       ],
@@ -355,63 +421,71 @@ class _AdminEnfermeirasWidgetState extends State<AdminEnfermeirasWidget> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _accentColor.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.medical_services, color: _accentColor, size: isMobile ? 18 : 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  enfermeira['nome_completo'],
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF0F172A),
+                    fontSize: isMobile ? 13 : 14,
+                  ),
+                ),
+                Text(
+                  enfermeira['email'],
+                  style: TextStyle(
+                    fontSize: isMobile ? 10 : 11,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                Text(
+                  'CPF: ${_formatarCpf(enfermeira['cpf'] ?? '')}',
+                  style: TextStyle(
+                    fontSize: isMobile ? 9 : 10,
+                    color: Color(0xFF94A3B8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: Icon(Icons.edit, color: const Color(0xFF3B82F6), size: isMobile ? 18 : 20),
+                onPressed: () => _abrirModalEnfermeira(enfermeira: enfermeira),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete, color: _dangerColor, size: isMobile ? 18 : 20),
+                onPressed: () => _confirmarDeletarEnfermeira(enfermeira),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+            ],
           ),
         ],
-      ),
-      child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE2E8F0),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(Icons.medical_services, color: _accentColor, size: isMobile ? 18 : 24),
-        ),
-        title: Text(
-          enfermeira['nome_completo'],
-          style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF0F172A), fontSize: isMobile ? 14 : 16),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 2),
-            Text(
-              enfermeira['email'],
-              style: TextStyle(fontSize: isMobile ? 11 : 12, color: const Color(0xFF64748B)),
-            ),
-            Text(
-              'CPF: ${_formatarCpf(enfermeira['cpf'] ?? '')}',
-              style: TextStyle(fontSize: isMobile ? 10 : 11, color: const Color(0xFF94A3B8)),
-            ),
-            Text(
-              'Unidade: ${enfermeira['upa_nome'] ?? 'Não vinculada'}',
-              style: TextStyle(fontSize: isMobile ? 10 : 11, color: const Color(0xFF94A3B8)),
-            ),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: Icon(Icons.edit, color: const Color(0xFF3B82F6), size: isMobile ? 18 : 20),
-              onPressed: () => _abrirModalEnfermeira(enfermeira: enfermeira),
-            ),
-            IconButton(
-              icon: Icon(Icons.delete, color: _dangerColor, size: isMobile ? 18 : 20),
-              onPressed: () => _confirmarDeletarEnfermeira(enfermeira),
-            ),
-          ],
-        ),
       ),
     );
   }

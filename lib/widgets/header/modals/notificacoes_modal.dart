@@ -70,112 +70,119 @@ class _NotificacoesModalContentState extends State<_NotificacoesModalContent> {
     ToastService.showSuccess(context, 'Todas as notificações marcadas como lidas');
   }
 
-  void _confirmarLimparNotificacoes() {
-    final isMobile = MediaQuery.of(context).size.width < 500;
+void _confirmarLimparNotificacoes() {
+  final isMobile = MediaQuery.of(context).size.width < 600;
+  final isSmallMobile = MediaQuery.of(context).size.width < 400;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: Container(
-            width: isMobile ? MediaQuery.of(context).size.width * 0.92 : 420,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: _dangerColor.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.delete_sweep, size: 40, color: Color(0xFFC65D47)),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  isMobile ? 'Limpar Notificações' : 'Limpar Notificações',
-                  style: TextStyle(
-                    fontSize: isMobile ? 20 : 24,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0F172A),
-                    letterSpacing: -0.5,
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Tem certeza que deseja remover todas as notificações?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Color(0xFF475569), height: 1.4),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Esta ação não pode ser desfeita.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFFE2E8F0)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          minimumSize: const Size(double.infinity, 44),
-                        ),
-                        child: const Text(
-                          'Cancelar',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          Navigator.pop(context);
-                          await NotificationService.limparTodas();
-                          _carregarNotificacoes();
-                          ToastService.showSuccess(context, 'Todas as notificações foram removidas!');
-                        },
-                        icon: const Icon(Icons.check, size: 16),
-                        label: const Text('Sim, limpar'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _dangerColor,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          minimumSize: const Size(double.infinity, 44),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return Dialog(
+        insetPadding: EdgeInsets.all(isSmallMobile ? 8 : (isMobile ? 12 : 20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Container(
+          width: isMobile ? MediaQuery.of(context).size.width * 0.92 : 420,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
           ),
-        );
-      },
-    );
-  }
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: _dangerColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.delete_sweep, size: 40, color: _dangerColor),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Limpar Notificações',
+                style: TextStyle(
+                  fontSize: isMobile ? 20 : 24,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                  letterSpacing: -0.5,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Tem certeza que deseja remover todas as notificações?',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Color(0xFF475569), height: 1.4),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Esta ação não pode ser desfeita.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        minimumSize: const Size(double.infinity, 44),
+                      ),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await NotificationService.limparTodas();
+                        _carregarNotificacoes();
+                        ToastService.showSuccess(context, 'Todas as notificações foram removidas!');
+                      },
+                      icon: const Icon(Icons.check, size: 18),
+                      label: const Text(
+                        'Sim, limpar',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _dangerColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        minimumSize: const Size(double.infinity, 44),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 
   void _marcarComoLida(int id) async {
     await NotificationService.marcarComoLida(id);
@@ -240,8 +247,66 @@ class _NotificacoesModalContentState extends State<_NotificacoesModalContent> {
           child: Column(
             children: [
               _buildHeader(),
-              if (_notificacoes.isNotEmpty && widget.isMobile) _buildMobileActions(),
-              Expanded(
+if (_notificacoes.isNotEmpty && widget.isMobile)
+  Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        InkWell(
+          onTap: _marcarTodasComoLidas,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: _accentColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.done_all, color: _accentColor, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  'Ler todas',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _accentColor,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        InkWell(
+          onTap: _confirmarLimparNotificacoes,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: _dangerColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.delete_sweep, color: _dangerColor, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  'Limpar',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _dangerColor,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  ),              Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _notificacoes.isEmpty
@@ -261,77 +326,117 @@ class _NotificacoesModalContentState extends State<_NotificacoesModalContent> {
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.all(widget.isMobile ? 12 : 20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF334155),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(28),
-          topRight: Radius.circular(28),
+ Widget _buildHeader() {
+  final isMobile = MediaQuery.of(context).size.width < 600;
+  
+  return Container(
+    padding: EdgeInsets.all(isMobile ? 12 : 20),
+    decoration: const BoxDecoration(
+      color: Color(0xFF334155),
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(28),
+        topRight: Radius.circular(28),
+      ),
+    ),
+    child: Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.notifications_none, color: Colors.white, size: 20),
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.notifications_none, color: Colors.white, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Notificações',
+                style: TextStyle(
+                  fontSize: isMobile ? 14 : 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+              Text(
+                'Mantenha-se informado',
+                style: TextStyle(
+                  fontSize: isMobile ? 9 : 12,
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontFamily: 'Inter',
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.isSmallMobile ? 'Notificações' : 'Notificações',
-                  style: TextStyle(
-                    fontSize: widget.isSmallMobile ? 14 : 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontFamily: 'Poppins',
+        ),
+        if (_notificacoes.isNotEmpty && !widget.isMobile)
+          Row(
+            children: [
+              InkWell(
+                onTap: _marcarTodasComoLidas,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.done_all, color: Colors.white70, size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Ler todas',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white70,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Text(
-                  'Mantenha-se informado',
-                  style: TextStyle(
-                    fontSize: widget.isMobile ? 9 : 12,
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontFamily: 'Inter',
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: _confirmarLimparNotificacoes,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC65D47).withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_sweep, color: const Color(0xFFFCA5A5), size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Limpar',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: const Color(0xFFFCA5A5),
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          if (_notificacoes.isNotEmpty && !widget.isMobile)
-            Row(
-              children: [
-                TextButton(
-                  onPressed: _marcarTodasComoLidas,
-                  child: const Text('Marcar todas', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_sweep, color: Colors.white70, size: 18),
-                  onPressed: _confirmarLimparNotificacoes,
-                ),
-              ],
-            ),
-          if (_notificacoes.isNotEmpty && widget.isMobile)
-            IconButton(
-              icon: const Icon(Icons.delete_sweep, color: Colors.white70, size: 18),
-              onPressed: _confirmarLimparNotificacoes,
-            ),
-          IconButton(
-            icon: const Icon(Icons.close, color: Colors.white, size: 20),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
-      ),
-    );
-  }
+        IconButton(
+          icon: const Icon(Icons.close, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildMobileActions() {
     return Container(

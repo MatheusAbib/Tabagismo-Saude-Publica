@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/services/toast_service.dart';
@@ -14,6 +15,7 @@ class _AdminUsuariosWidgetState extends State<AdminUsuariosWidget> {
   final Color _accentColor = const Color(0xFF1F4E6E);
   final Color _successColor = const Color(0xFF2E8B6A);
   final Color _warningColor = const Color(0xFFD97706);
+  final Color _dangerColor = const Color(0xFFC65D47);
 
   List<Map<String, dynamic>> _usuarios = [];
   bool _carregando = true;
@@ -22,25 +24,42 @@ class _AdminUsuariosWidgetState extends State<AdminUsuariosWidget> {
   int _totalUsuarios = 0;
   String _searchQuery = '';
   TextEditingController _searchController = TextEditingController();
+  final ValueNotifier<bool> _carregandoLista = ValueNotifier(false);
 
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(_onSearchChanged);
     _carregarUsuarios();
+  }
+
+  void _onSearchChanged() {
+    if (_searchController.text != _searchQuery) {
+      _searchQuery = _searchController.text;
+      _currentPage = 1;
+      _debounceSearch();
+    }
+  }
+
+  Timer? _debounceTimer;
+  void _debounceSearch() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _carregarUsuarios(page: 1);
+    });
   }
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _debounceTimer?.cancel();
+    _carregandoLista.dispose();
     super.dispose();
   }
 
   Future<void> _carregarUsuarios({int page = 1}) async {
-    setState(() {
-      _carregando = true;
-      _currentPage = page;
-    });
-
+    _carregandoLista.value = true;
     try {
       final authService = AuthService();
       final response = await authService.getUsuariosPaginados(
@@ -53,9 +72,12 @@ class _AdminUsuariosWidgetState extends State<AdminUsuariosWidget> {
         _usuarios = List<Map<String, dynamic>>.from(response['usuarios']);
         _totalPages = response['totalPages'];
         _totalUsuarios = response['total'];
+        _currentPage = page;
         _carregando = false;
       });
+      _carregandoLista.value = false;
     } catch (e) {
+      _carregandoLista.value = false;
       setState(() => _carregando = false);
       ToastService.showError(context, 'Erro ao carregar usuários: $e');
     }
@@ -125,48 +147,99 @@ class _AdminUsuariosWidgetState extends State<AdminUsuariosWidget> {
     final isMobile = MediaQuery.of(context).size.width < 600;
     final horizontalPadding = isMobile ? 16.0 : 20.0;
 
-    if (_carregando) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     return Column(
       children: [
         Padding(
           padding: EdgeInsets.all(horizontalPadding),
-          child: TextField(
-            controller: _searchController,
-            decoration: _buildInputDecoration('Buscar por nome, email ou CPF...', Icons.search),
-            onChanged: (value) {
-              _searchQuery = value;
-              _currentPage = 1;
-              _carregarUsuarios(page: 1);
-            },
-          ),
+          child: isMobile
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: _buildInputDecoration('Buscar por nome, email ou CPF...', Icons.search),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: () {},
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _successColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          minimumSize: const Size(0, 56),
+                        ),
+                        child: const Icon(Icons.add, color: Colors.white, size: 24),
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: _buildInputDecoration('Buscar por nome, email ou CPF...', Icons.search),
+                      ),
+                    ),
+ 
+                  ],
+                ),
         ),
         Expanded(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _searchQuery.isEmpty
-                      ? 'Todos os Usuários'
-                      : 'Resultados para: "$_searchQuery"',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Total: $_totalUsuarios usuários',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                ),
-                const SizedBox(height: 16),
-                ..._usuarios.map((usuario) => _buildUsuarioCard(usuario)),
-                const SizedBox(height: 16),
-                _buildPaginacao(),
-                const SizedBox(height: 20),
-              ],
-            ),
+          child: ValueListenableBuilder(
+            valueListenable: _carregandoLista,
+            builder: (context, carregando, child) {
+              return Stack(
+                children: [
+                  SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _searchQuery.isEmpty
+                              ? 'Todos os Usuários'
+                              : 'Resultados para: "$_searchQuery"',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Total: $_totalUsuarios usuários',
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                        const SizedBox(height: 16),
+                        if (_usuarios.isEmpty && !carregando)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(40),
+                              child: Text(
+                                'Nenhum usuário encontrado',
+                                style: TextStyle(fontSize: 16, color: Color(0xFF64748B)),
+                              ),
+                            ),
+                          )
+                        else
+                          ..._usuarios.map((usuario) => _buildUsuarioCard(usuario)),
+                        const SizedBox(height: 16),
+                        _buildPaginacao(),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                  if (carregando)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ),
       ],
@@ -185,7 +258,7 @@ class _AdminUsuariosWidgetState extends State<AdminUsuariosWidget> {
             icon: const Icon(Icons.chevron_left, size: 20),
             onPressed: _currentPage > 1
                 ? () {
-                    setState(() => _currentPage--);
+                    _currentPage--;
                     _carregarUsuarios(page: _currentPage);
                   }
                 : null,
@@ -212,7 +285,7 @@ class _AdminUsuariosWidgetState extends State<AdminUsuariosWidget> {
             icon: const Icon(Icons.chevron_right, size: 20),
             onPressed: _currentPage < _totalPages
                 ? () {
-                    setState(() => _currentPage++);
+                    _currentPage++;
                     _carregarUsuarios(page: _currentPage);
                   }
                 : null,
@@ -229,10 +302,11 @@ class _AdminUsuariosWidgetState extends State<AdminUsuariosWidget> {
 
   Widget _buildUsuarioCard(Map<String, dynamic> usuario) {
     final isAdmin = usuario['is_admin'] == 1;
-    final isMobile = MediaQuery.of(context).size.width < 500;
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -244,59 +318,107 @@ class _AdminUsuariosWidgetState extends State<AdminUsuariosWidget> {
           ),
         ],
       ),
-      child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 8),
-        leading: CircleAvatar(
-          backgroundColor: isAdmin ? _accentColor : const Color(0xFF3B82F6),
-          radius: isMobile ? 18 : 20,
-          child: Text(
-            usuario['nome_completo'][0].toUpperCase(),
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: isMobile ? 14 : 16),
-          ),
-        ),
-        title: Text(
-          usuario['nome_completo'],
-          style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF0F172A), fontSize: isMobile ? 14 : 16),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 2),
-            Text(
-              usuario['email'],
-              style: TextStyle(fontSize: isMobile ? 11 : 12, color: Color(0xFF64748B)),
-            ),
-            Text(
-              'Telefone: ${_formatarTelefone(usuario['telefone'] ?? '')}',
-              style: TextStyle(fontSize: isMobile ? 10 : 11, color: Color(0xFF94A3B8)),
-            ),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isAdmin)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _accentColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Admin',
-                  style: TextStyle(fontSize: isMobile ? 8 : 10, fontWeight: FontWeight.w600, color: _accentColor),
-                ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: isAdmin ? _accentColor : const Color(0xFF3B82F6),
+            radius: isMobile ? 20 : 24,
+            child: Text(
+              usuario['nome_completo'][0].toUpperCase(),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: isMobile ? 16 : 18,
               ),
-            IconButton(
-              icon: Icon(Icons.edit, color: _warningColor, size: isMobile ? 18 : 20),
-              onPressed: () => _editarUsuario(usuario),
             ),
-            IconButton(
-              icon: Icon(Icons.visibility, color: const Color(0xFF3B82F6), size: isMobile ? 18 : 20),
-              onPressed: () => _verDetalhesUsuario(usuario),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        usuario['nome_completo'],
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F172A),
+                          fontSize: isMobile ? 14 : 15,
+                        ),
+                      ),
+                    ),
+                    if (isAdmin)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _accentColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Admin',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: _accentColor,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(Icons.email, size: 12, color: const Color(0xFF94A3B8)),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        usuario['email'],
+                        style: TextStyle(
+                          fontSize: isMobile ? 11 : 12,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Icon(Icons.phone, size: 12, color: const Color(0xFF94A3B8)),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        _formatarTelefone(usuario['telefone'] ?? ''),
+                        style: TextStyle(
+                          fontSize: isMobile ? 10 : 11,
+                          color: Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: Icon(Icons.visibility, color: const Color(0xFF3B82F6), size: isMobile ? 18 : 20),
+                onPressed: () => _verDetalhesUsuario(usuario),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+              IconButton(
+                icon: Icon(Icons.edit, color: _warningColor, size: isMobile ? 18 : 20),
+                onPressed: () => _editarUsuario(usuario),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

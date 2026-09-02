@@ -359,7 +359,7 @@ class _AuthModalState extends State<AuthModal> with SingleTickerProviderStateMix
       child: InputDecorator(
         decoration: _buildInputDecoration('Data de Nascimento', Icons.cake_outlined),
         child: Text(
-          _dataNascimento == null ? 'Selecione uma data' : _formatDate(_dataNascimento!),
+          _dataNascimento == null ? 'Data de Nascimento' : _formatDate(_dataNascimento!),
           style: TextStyle(
             fontSize: 14,
             color: _dataNascimento == null ? Colors.grey.shade600 : Colors.black87,
@@ -513,18 +513,26 @@ class _AuthModalState extends State<AuthModal> with SingleTickerProviderStateMix
             labelStyle: const TextStyle(fontWeight: FontWeight.bold),
             onTap: (_) => setState(() {}),
           ),
-          SizedBox(height: isMobile ? 8 : 16),
-          SizedBox(
-            height: _tabController.index == 0 
-                ? (isMobile ? 180 : 190) 
-                : (isMobile ? (isSmallMobile ? 520 : 560) : 480),
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildLoginForm(),
-                _buildRegisterForm(),
-              ],
-            ),
+          const SizedBox(height: 8),
+            SizedBox(
+              height: _tabController.index == 0 
+                  ? (isMobile ? 240 : 220)  
+                  : (isMobile ? 520 : 480), 
+              child: TabBarView(
+                controller: _tabController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: _buildLoginForm(),
+                  ),
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: _buildRegisterForm(),
+                  ),
+                ],
+              ),
+
           ),
         ],
       ),
@@ -621,95 +629,97 @@ class _AuthModalState extends State<AuthModal> with SingleTickerProviderStateMix
     
     return Form(
       key: _registerFormKey,
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            TextFormField(
-              controller: _nomeController,
-              onChanged: (_) => setState(() {}),
-              decoration: _buildInputDecoration('Nome Completo', Icons.person_outline),
-              validator: Validators.validateNome,
-              onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
-              textInputAction: TextInputAction.next,
+      child: Column(
+        children: [
+          TextFormField(
+            controller: _nomeController,
+            onChanged: (_) => setState(() {}),
+            decoration: _buildInputDecoration('Nome Completo', Icons.person_outline),
+            validator: Validators.validateNome,
+            onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _emailController,
+            onChanged: (_) => setState(() {}),
+            decoration: _buildInputDecoration('E-mail', Icons.email_outlined, errorText: _emailError.isEmpty ? null : _emailError),
+            validator: Validators.validateEmail,
+            onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildCpfField()),
+              const SizedBox(width: 12),
+              Expanded(child: _buildPhoneField()),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildDropdownSexo()),
+              const SizedBox(width: 12),
+              Expanded(child: _buildDatePicker()),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _senhaController,
+            obscureText: _obscureText,
+            onChanged: (_) => setState(() {}),
+            decoration: _buildInputDecoration('Senha', Icons.lock_outline).copyWith(
+              suffixIcon: isMobile
+                  ? null
+                  : IconButton(
+                      icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility, size: 18),
+                      onPressed: () => setState(() => _obscureText = !_obscureText),
+                    ),
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _emailController,
-              onChanged: (_) => setState(() {}),
-              decoration: _buildInputDecoration('E-mail', Icons.email_outlined, errorText: _emailError.isEmpty ? null : _emailError),
-              validator: Validators.validateEmail,
-              onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
-              textInputAction: TextInputAction.next,
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Digite uma senha';
+              if (value.length < 6) return 'Mínimo 6 caracteres';
+              return null;
+            },
+            onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _confirmSenhaController,
+            obscureText: _obscureConfirmText,
+            onChanged: (_) => setState(() {}),
+            decoration: _buildInputDecoration('Confirmar Senha', Icons.lock_outline).copyWith(
+              suffixIcon: isMobile
+                  ? null
+                  : IconButton(
+                      icon: Icon(_obscureConfirmText ? Icons.visibility_off : Icons.visibility, size: 18),
+                      onPressed: () => setState(() => _obscureConfirmText = !_obscureConfirmText),
+                    ),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _buildCpfField()),
-                const SizedBox(width: 12),
-                Expanded(child: _buildPhoneField()),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildDropdownSexo(),
-            const SizedBox(height: 12),
-            _buildDatePicker(),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _senhaController,
-              obscureText: _obscureText,
-              onChanged: (_) => setState(() {}),
-              decoration: _buildInputDecoration('Senha', Icons.lock_outline).copyWith(
-                suffixIcon: isMobile
-                    ? null
-                    : IconButton(
-                        icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility, size: 18),
-                        onPressed: () => setState(() => _obscureText = !_obscureText),
-                      ),
+            validator: (value) => value == null || value.isEmpty ? 'Confirme a senha' : null,
+            onFieldSubmitted: (_) => _register(),
+            textInputAction: TextInputAction.done,
+          ),
+          if (_hasStartedTyping) _buildPasswordStrengthIndicator(),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isRegisterFormValid() && !_isLoading ? _register : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _isRegisterFormValid() ? const Color(0xFF2E8B6A) : Colors.grey.shade400,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Digite uma senha';
-                if (value.length < 6) return 'Mínimo 6 caracteres';
-                return null;
-              },
-              onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
-              textInputAction: TextInputAction.next,
+              child: _isLoading
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Cadastrar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _confirmSenhaController,
-              obscureText: _obscureConfirmText,
-              onChanged: (_) => setState(() {}),
-              decoration: _buildInputDecoration('Confirmar Senha', Icons.lock_outline).copyWith(
-                suffixIcon: isMobile
-                    ? null
-                    : IconButton(
-                        icon: Icon(_obscureConfirmText ? Icons.visibility_off : Icons.visibility, size: 18),
-                        onPressed: () => setState(() => _obscureConfirmText = !_obscureConfirmText),
-                      ),
-              ),
-              validator: (value) => value == null || value.isEmpty ? 'Confirme a senha' : null,
-              onFieldSubmitted: (_) => _register(),
-              textInputAction: TextInputAction.done,
-            ),
-            if (_hasStartedTyping) _buildPasswordStrengthIndicator(),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isRegisterFormValid() && !_isLoading ? _register : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _isRegisterFormValid() ? const Color(0xFF2E8B6A) : Colors.grey.shade400,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: _isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Cadastrar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

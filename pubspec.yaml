@@ -36,9 +36,13 @@ flutter:
   assets:
     - assets/images/
     - assets/pdf/
+    - assets/fonts/
   
   fonts:
     - family: BebasNeue
       fonts:
         - asset: assets/fonts/BebasNeue-Regular.ttf
           weight: 400
+    - family: MaterialIcons
+      fonts:
+        - asset: assets/fonts/MaterialIcons-Regular.ttf

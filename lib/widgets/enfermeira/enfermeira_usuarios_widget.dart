@@ -5,12 +5,14 @@ import 'package:tabagismo_app/widgets/enfermeira/enfermeira_fichaPaciente_widget
 
 class UsuariosWidget extends StatefulWidget {
   final int upaId;
+  
 
   const UsuariosWidget({Key? key, required this.upaId}) : super(key: key);
 
   @override
   _UsuariosWidgetState createState() => _UsuariosWidgetState();
 }
+final ValueNotifier<bool> _carregandoLista = ValueNotifier(false);
 
 class _UsuariosWidgetState extends State<UsuariosWidget> {
   final Color _accentColor = const Color(0xFF1F4E6E);
@@ -31,6 +33,7 @@ class _UsuariosWidgetState extends State<UsuariosWidget> {
   String _statusFiltro = 'todos';
   TextEditingController _searchController = TextEditingController();
   int _selectedFiltroIndex = 0;
+  
 
   @override
   void initState() {
@@ -61,61 +64,61 @@ class _UsuariosWidgetState extends State<UsuariosWidget> {
     }
   }
 
-  Future<void> _carregarUsuarios({int page = 1}) async {
-    setState(() {
-      _carregando = true;
-      _currentPage = page;
-    });
+Future<void> _carregarUsuarios({int page = 1}) async {
+  _carregandoLista.value = true;
+  _currentPage = page;
 
-    String statusFilter = '';
-    if (_statusFiltro != 'todos') {
-      statusFilter = _statusFiltro;
-    }
-
-    try {
-      final response = await AuthService().getUsuariosDaUPA(
-        page: page,
-        limit: 10,
-        search: _searchQuery,
-        status: statusFilter,
-      );
-
-      List<Map<String, dynamic>> usuarios = List<Map<String, dynamic>>.from(response['usuarios']);
-
-      if (_statusFiltro == 'todos') {
-        usuarios.sort((a, b) {
-          final ordemStatus = {
-            'em_espera': 0,
-            'matriculado': 1,
-            'cancelada': 2,
-          };
-
-          final statusA = a['status'] ?? '';
-          final statusB = b['status'] ?? '';
-
-          final ordemA = ordemStatus[statusA] ?? 3;
-          final ordemB = ordemStatus[statusB] ?? 3;
-
-          if (ordemA != ordemB) {
-            return ordemA.compareTo(ordemB);
-          }
-
-          final dataA = a['created_at'] ?? '';
-          final dataB = b['created_at'] ?? '';
-          return dataB.compareTo(dataA);
-        });
-      }
-
-      setState(() {
-        _usuarios = usuarios;
-        _totalPages = response['totalPages'];
-        _carregando = false;
-      });
-    } catch (e) {
-      setState(() => _carregando = false);
-      ToastService.showError(context, 'Erro ao carregar usuários: $e');
-    }
+  String statusFilter = '';
+  if (_statusFiltro != 'todos') {
+    statusFilter = _statusFiltro;
   }
+
+  try {
+    final response = await AuthService().getUsuariosDaUPA(
+      page: page,
+      limit: 10,
+      search: _searchQuery,
+      status: statusFilter,
+    );
+
+    List<Map<String, dynamic>> usuarios = List<Map<String, dynamic>>.from(response['usuarios']);
+
+    if (_statusFiltro == 'todos') {
+      usuarios.sort((a, b) {
+        final ordemStatus = {
+          'em_espera': 0,
+          'matriculado': 1,
+          'cancelada': 2,
+        };
+
+        final statusA = a['status'] ?? '';
+        final statusB = b['status'] ?? '';
+
+        final ordemA = ordemStatus[statusA] ?? 3;
+        final ordemB = ordemStatus[statusB] ?? 3;
+
+        if (ordemA != ordemB) {
+          return ordemA.compareTo(ordemB);
+        }
+
+        final dataA = a['created_at'] ?? '';
+        final dataB = b['created_at'] ?? '';
+        return dataB.compareTo(dataA);
+      });
+    }
+
+    setState(() {
+      _usuarios = usuarios;
+      _totalPages = response['totalPages'];
+      _carregando = false;
+    });
+    _carregandoLista.value = false;
+  } catch (e) {
+    _carregandoLista.value = false;
+    setState(() => _carregando = false);
+    ToastService.showError(context, 'Erro ao carregar usuários: $e');
+  }
+}
 
   void _buscarUsuarios() {
     _searchQuery = _searchController.text;
@@ -242,44 +245,61 @@ class _UsuariosWidgetState extends State<UsuariosWidget> {
             ],
           ),
         ),
-        Expanded(
-          child: _carregando
-              ? const Center(child: CircularProgressIndicator())
-              : _usuarios.isEmpty
-                  ? _buildEmptyUsuariosWidget()
-                  : SingleChildScrollView(
-                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _searchQuery.isEmpty
-                                ? _getFiltroTitulo()
-                                : 'Resultados para: "$_searchQuery"',
-                            style: TextStyle(
-                              fontSize: isMobile ? 14 : 16,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF0F172A),
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Total: ${_usuarios.length} usuários',
-                            style: TextStyle(
-                              fontSize: isMobile ? 11 : 12,
-                              color: const Color(0xFF64748B),
-                              fontFamily: 'Inter',
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          ..._usuarios.map((usuario) => _buildUsuarioCard(usuario)),
-                          const SizedBox(height: 16),
-                          if (_totalPages > 1) _buildPaginacao(),
-                        ],
-                      ),
+       Expanded(
+  child: ValueListenableBuilder(
+    valueListenable: _carregandoLista,
+    builder: (context, carregando, child) {
+      return Stack(
+        children: [
+          if (_carregando && _usuarios.isEmpty)
+            const Center(child: CircularProgressIndicator())
+          else if (_usuarios.isEmpty)
+            _buildEmptyUsuariosWidget()
+          else
+            SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _searchQuery.isEmpty
+                        ? _getFiltroTitulo()
+                        : 'Resultados para: "$_searchQuery"',
+                    style: TextStyle(
+                      fontSize: isMobile ? 14 : 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF0F172A),
+                      fontFamily: 'Poppins',
                     ),
-        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Total: ${_usuarios.length} usuários',
+                    style: TextStyle(
+                      fontSize: isMobile ? 11 : 12,
+                      color: const Color(0xFF64748B),
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ..._usuarios.map((usuario) => _buildUsuarioCard(usuario)),
+                  const SizedBox(height: 16),
+                  if (_totalPages > 1) _buildPaginacao(),
+                ],
+              ),
+            ),
+          if (carregando && _usuarios.isNotEmpty)
+            Container(
+              color: Colors.black.withValues(alpha: 0.3),
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+        ],
+      );
+    },
+  ),
+),
       ],
     );
   }

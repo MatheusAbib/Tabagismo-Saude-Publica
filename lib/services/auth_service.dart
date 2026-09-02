@@ -133,18 +133,13 @@ Future<Map<String, dynamic>?> getSavedUser() async {
   final token = prefs.getString('token');
   final userDataString = prefs.getString('user_data');
   
-  print('Token recuperado: $token');
-  print('UserDataString recuperado: $userDataString');
-  
   if (token != null && userDataString != null) {
     _api.setToken(token);
     
     final user = json.decode(userDataString);
     final tipoUsuario = user['tipo_usuario'] ?? 'comum';
     final upaId = user['upa_id'];
-    
-    print('UserData recuperado: $user');
-    
+        
     String upaNome = '';
     if (upaId != null && tipoUsuario == 'enfermeira') {
       try {

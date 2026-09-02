@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Servidor: localhost
--- Tempo de Geração: 11/06/2026 às 15h36min
+-- Tempo de Geração: 02/09/2026 às 17h05min
 -- Versão do Servidor: 5.5.20
 -- Versão do PHP: 5.3.9
 
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `alunos_concluidos` (
   PRIMARY KEY (`id`),
   KEY `turma_concluida_id` (`turma_concluida_id`),
   KEY `usuario_id` (`usuario_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=22 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=23 ;
 
 --
 -- Extraindo dados da tabela `alunos_concluidos`
@@ -68,7 +68,8 @@ INSERT INTO `alunos_concluidos` (`id`, `turma_concluida_id`, `usuario_id`, `nome
 (18, 15, 3, 'Matheus Bilitardo Abib', 'matheus@gmail.com', '11975072002', 100.00, 1, 0, '{"historico":[{"data":"2026-04-14T03:00:00.000Z","status":"1- Está fumando"}],"total_semanas":1,"semanas_fumando":1,"semanas_sem_fumar":0,"taxa_sucesso":"0.00"}', '2026-04-14 13:26:51'),
 (19, 15, 5, 'Lucia Silva', 'luciasilva@gmail.com', '11111111111', 0.00, 0, 0, '{"historico":[],"total_semanas":0,"semanas_fumando":0,"semanas_sem_fumar":0,"taxa_sucesso":0}', '2026-04-14 13:26:51'),
 (20, 16, 5, 'Lucia Silva', 'luciasilva@gmail.com', '11111111111', 0.00, 0, 0, '{"historico":[],"total_semanas":0,"semanas_fumando":0,"semanas_sem_fumar":0,"taxa_sucesso":0}', '2026-04-14 13:34:17'),
-(21, 17, 5, 'Lucia Silva', 'luciasilva@gmail.com', '11111111111', 0.00, 0, 0, '{"historico":[],"total_semanas":0,"semanas_fumando":0,"semanas_sem_fumar":0,"taxa_sucesso":0}', '2026-04-14 13:35:38');
+(21, 17, 5, 'Lucia Silva', 'luciasilva@gmail.com', '11111111111', 0.00, 0, 0, '{"historico":[],"total_semanas":0,"semanas_fumando":0,"semanas_sem_fumar":0,"taxa_sucesso":0}', '2026-04-14 13:35:38'),
+(22, 18, 3, 'Matheus Bilitardo Abib', 'matheus@gmail.com', '11975072002', 50.00, 1, 1, '{"historico":[{"data":"2026-08-24T03:00:00.000Z","status":"1- Está fumando"},{"data":"2026-08-26T03:00:00.000Z","status":"2- Sem fumar"}],"total_semanas":2,"semanas_fumando":1,"semanas_sem_fumar":1,"taxa_sucesso":"50.00"}', '2026-08-26 16:03:00');
 
 -- --------------------------------------------------------
 
@@ -86,7 +87,7 @@ CREATE TABLE IF NOT EXISTS `cronograma` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `turma_id` (`turma_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=19 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=25 ;
 
 --
 -- Extraindo dados da tabela `cronograma`
@@ -99,11 +100,15 @@ INSERT INTO `cronograma` (`id`, `turma_id`, `numero_aula`, `data`, `horario`, `m
 (9, 101, 1, '2026-04-18', '14:00 - 16:00', 1, '2026-04-08 12:30:17'),
 (10, 113, 1, '2026-04-19', '10:00 - 12:00', 1, '2026-04-08 12:30:17'),
 (11, 5, 1, '2026-04-21', '08:00 - 10:00', 1, '2026-04-13 15:37:57'),
-(12, 5, 2, '2026-04-28', '08:00 - 10:00', 1, '2026-04-13 15:38:12'),
 (13, 5, 3, '2026-05-05', '08:00 - 10:00', 2, '2026-04-13 15:38:27'),
 (16, 17, 1, '2026-04-21', '08:00 - 10:00', 1, '2026-04-13 15:39:28'),
 (17, 17, 2, '2026-04-28', '08:00 - 10:00', 1, '2026-04-13 15:39:36'),
-(18, 17, 3, '2026-05-05', '08:00 - 10:00', 2, '2026-04-13 15:39:44');
+(19, 14, 1, '2026-08-26', '08:00 - 10:00', 1, '2026-08-25 16:33:45'),
+(20, 5, 2, '2026-08-28', '08:00 - 10:00', 1, '2026-08-26 14:23:18'),
+(21, 41, 1, '2026-08-28', '14:00 - 16:00', 1, '2026-08-26 14:24:00'),
+(22, 29, 3, '2026-08-27', '10:00 - 12:00', 1, '2026-08-26 16:07:29'),
+(23, 17, 3, '2026-08-27', '08:00 - 10:00', 1, '2026-08-26 16:08:30'),
+(24, 5, 4, '2026-08-27', '08:00 - 10:00', 1, '2026-08-26 16:15:45');
 
 -- --------------------------------------------------------
 
@@ -117,24 +122,28 @@ CREATE TABLE IF NOT EXISTS `enfermeiros` (
   `email` varchar(255) NOT NULL,
   `senha` varchar(255) NOT NULL,
   `telefone` varchar(20) DEFAULT NULL,
+  `cpf` varchar(20) DEFAULT NULL,
   `tipo_usuario` enum('admin','enfermeira','comum') DEFAULT 'enfermeira',
   `upa_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
   KEY `upa_id` (`upa_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=19 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=24 ;
 
 --
 -- Extraindo dados da tabela `enfermeiros`
 --
 
-INSERT INTO `enfermeiros` (`id`, `nome_completo`, `email`, `senha`, `telefone`, `tipo_usuario`, `upa_id`, `created_at`) VALUES
-(7, 'Lucia', 'lucia@enfermeira.com', '$2a$10$d7jyQxddp/SUm4e0Laaede47tU7lBC7xoAGJs0ngZ.3.FmbWSXuw.', '11111111111', 'enfermeira', 8, '2026-04-02 15:35:40'),
-(10, 'teste', 'teste@enfermeira.com', '$2a$10$szgFgWU/Bly9rN.iWrDgRuTGNdNbDzJvhcCGLUkXDTpaPELd7mVJ.', '44444444444', 'enfermeira', 8, '2026-04-02 16:10:51'),
-(13, 'Helena', 'helena@enfermeira.com', '$2a$10$LhDEBhpiidetQysTCNbfe.9nDBfgm9Ot6ZbW3UDb9gGVp.GHy7XSO', '33333333333', 'enfermeira', 9, '2026-04-09 12:29:50'),
-(14, 'Teste de enfermeira', 'maria@enfermvilavitoria.com', '$2a$10$7A.EBVjwdcd23Jh0Ttg4DuGNVri6t.yfXU89l2mb6naQm1bhuH3JC', '44444444444', 'enfermeira', 9, '2026-04-13 15:35:18'),
-(18, 'teste', 'grrg@gmail.com', '$2a$10$c6x/KL9tyVleO97neH895.ymf62CU17AiJcwrQlIx1j5e9UpVOrSi', '77777777777', 'enfermeira', 14, '2026-04-14 12:07:19');
+INSERT INTO `enfermeiros` (`id`, `nome_completo`, `email`, `senha`, `telefone`, `cpf`, `tipo_usuario`, `upa_id`, `created_at`) VALUES
+(7, 'Lucia', 'lucia@enfermeira.com', '$2a$10$d7jyQxddp/SUm4e0Laaede47tU7lBC7xoAGJs0ngZ.3.FmbWSXuw.', '11111111111', '62932007050', 'enfermeira', 8, '2026-04-02 15:35:40'),
+(10, 'teste', 'teste@enfermeira.com', '$2a$10$NjHwCbj3s.ulVkR4EvUA2Ozr7HuP5u.Sbdp9iiayOEUdXIPAPZ/0C', '44444444444', '21264266022', 'enfermeira', 8, '2026-04-02 16:10:51'),
+(13, 'Helena', 'helena@enfermeira.com', '$2a$10$LhDEBhpiidetQysTCNbfe.9nDBfgm9Ot6ZbW3UDb9gGVp.GHy7XSO', '33333333333', NULL, 'enfermeira', 9, '2026-04-09 12:29:50'),
+(18, 'teste', 'grrg@gmail.com', '$2a$10$c6x/KL9tyVleO97neH895.ymf62CU17AiJcwrQlIx1j5e9UpVOrSi', '77777777777', '11111111111', 'enfermeira', 14, '2026-04-14 12:07:19'),
+(19, 'Mana', 'mana@enfermeira.com', '$2a$10$SU9SUV5LI/FnVpBsIzY14eXsPrG640BlLQXNnB8bw7L4tgQz4qXF.', '11111111111', '42211384838', 'enfermeira', 5, '2026-08-25 16:32:27'),
+(20, 'AAAAA', 'aaa@gmail.com', '$2a$10$IIxV5.QY7xnr3U7hMKVqCewRpyBKyR7hPXa0bwtwnxnSGIOrNSqee', '11111111111', '44444444444', 'enfermeira', 10, '2026-08-27 11:52:26'),
+(22, 'Renata Almeida', 'renata@gmail.com', '$2a$10$MRrgY530XoSfTc.3JTlAqONc2CNng.Yrvf/OIYb8gGk0OscasKGWK', '33333333333', '32333333333', 'enfermeira', 7, '2026-08-27 16:19:46'),
+(23, 'Armenia', 'armenia@enfermeira.com', '$2a$10$mhQjhXC58TF.GJD9GCngYuyT/seb66LqBowS40rRfc6NQ7DY6Blrm', '44444444444', '66666666666', 'enfermeira', 4, '2026-08-28 14:09:10');
 
 -- --------------------------------------------------------
 
@@ -158,7 +167,7 @@ CREATE TABLE IF NOT EXISTS `matriculas` (
   PRIMARY KEY (`id`),
   KEY `usuario_id` (`usuario_id`),
   KEY `upa_id` (`upa_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=19 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=28 ;
 
 --
 -- Extraindo dados da tabela `matriculas`
@@ -171,8 +180,16 @@ INSERT INTO `matriculas` (`id`, `usuario_id`, `upa_id`, `upa_nome`, `turma_horar
 (11, 5, 8, 'Pronto Atendimento Alto Ipiranga', 'Quarta-feira - 08:00 - 10:00', 'Superior', 6, 'Goma de nicotina', '{"cancer":[],"cardiovascular":[],"metabolico":[],"psiquiatrico":[],"respiratorio":[]}', '2026-04-14 13:23:26', 'cancelada', 'Segunda-feira - 08:00 - 10:00'),
 (12, 5, 7, 'Pronto Atendimento Vila Oliveira', 'Sábado - 09:00 - 11:00', 'Pós-graduação', 6, 'Goma de nicotina', '{"cancer":[],"cardiovascular":[],"metabolico":[],"psiquiatrico":[],"respiratorio":[]}', '2026-04-14 13:25:12', 'cancelada', 'Terça-feira - 10:00 - 12:00'),
 (16, 5, 8, 'Pronto Atendimento Alto Ipiranga', 'Terça-feira - 14:00 - 16:00', 'Superior', 6, 'CUM', '{"cancer":[],"cardiovascular":[],"metabolico":[],"psiquiatrico":[],"respiratorio":[]}', '2026-04-14 13:41:19', 'cancelada', 'Terça-feira - 14:00 - 16:00'),
-(17, 5, 8, 'Pronto Atendimento Alto Ipiranga', 'Terça-feira - 08:00 - 10:00', 'Médio', 6, 'Goma de nicotina', '{"cancer":[],"cardiovascular":[],"metabolico":[],"psiquiatrico":[],"respiratorio":[]}', '2026-04-14 13:42:10', 'matriculado', 'Terça-feira - 08:00 - 10:00'),
-(18, 3, 8, 'Pronto Atendimento Alto Ipiranga', 'Terça-feira - 14:00 - 16:00', 'Pós-graduação', 5, 'Goma de nicotina', '{"cancer":[],"cardiovascular":[],"metabolico":[],"psiquiatrico":[],"respiratorio":[]}', '2026-04-14 13:59:25', 'matriculado', NULL);
+(17, 5, 8, 'Pronto Atendimento Alto Ipiranga', 'Terça-feira - 08:00 - 10:00', 'Médio', 6, 'Goma de nicotina', '{"cancer":[],"cardiovascular":[],"metabolico":[],"psiquiatrico":[],"respiratorio":[]}', '2026-04-14 13:42:10', 'cancelada', 'Terça-feira - 08:00 - 10:00'),
+(19, 5, 4, 'UPA Jundiapeba', 'Terça-feira - 08:00 - 10:00', 'Médio', 6, 'Adesivo de nicotina', '{"cancer":[{"valor":"útero","outroTexto":null}],"cardiovascular":[{"valor":"avc","outroTexto":null}],"metabolico":[],"psiquiatrico":[{"valor":"esquizofrenia","outroTexto":null}],"respiratorio":[]}', '2026-08-24 16:12:00', 'cancelada', 'Terça-feira - 08:00 - 10:00'),
+(20, 5, 8, 'Pronto Atendimento Alto Ipiranga', 'Terça-feira - 10:00 - 12:00', 'Superior', 6, 'Adesivo de nicotina', '{"cancer":[{"valor":"útero","outroTexto":null}],"cardiovascular":[{"valor":"HÁ","outroTexto":null}],"metabolico":[{"valor":"DM 2","outroTexto":null}],"psiquiatrico":[{"valor":"esquizofrenia","outroTexto":null}],"respiratorio":[{"valor":"enfisema","outroTexto":null}]}', '2026-08-25 12:30:35', 'cancelada', 'Terça-feira - 08:00 - 10:00'),
+(21, 5, 5, 'UPA Braz Cubas', 'Terça-feira - 08:00 - 10:00', 'Médio', 6, 'Adesivo de nicotina', '{"cancer":[{"valor":"útero","outroTexto":null}],"cardiovascular":[{"valor":"avc","outroTexto":null},{"valor":"angina","outroTexto":null}],"metabolico":[],"psiquiatrico":[{"valor":"esquizofrenia","outroTexto":null}],"respiratorio":[{"valor":"enfisema","outroTexto":null}]}', '2026-08-25 16:11:55', 'cancelada', 'Quarta-feira - 08:00 - 10:00'),
+(22, 5, 8, 'Pronto Atendimento Alto Ipiranga', 'Segunda-feira - 08:00 - 10:00', 'Superior', 4, 'Pastilha de nicotina', '{"cancer":[{"valor":"esôfago","outroTexto":null}],"cardiovascular":[{"valor":"trombose","outroTexto":null}],"metabolico":[{"valor":"DM 2","outroTexto":null}],"psiquiatrico":[{"valor":"bipolar","outroTexto":null}],"respiratorio":[{"valor":"infecção respiratória","outroTexto":null}]}', '2026-08-26 14:30:15', 'cancelada', NULL),
+(23, 4, 8, 'Pronto Atendimento Alto Ipiranga', 'Segunda-feira - 08:00 - 10:00', 'Superior', 8, 'Adesivo de nicotina', '{"cancer":[],"cardiovascular":[],"metabolico":[],"psiquiatrico":[],"respiratorio":[]}', '2026-08-26 15:38:27', 'cancelada', NULL),
+(24, 4, 8, 'Pronto Atendimento Alto Ipiranga', 'Terça-feira - 10:00 - 12:00', 'Superior', 8, 'Goma de nicotina', '{"cancer":[],"cardiovascular":[],"metabolico":[],"psiquiatrico":[],"respiratorio":[]}', '2026-08-26 15:40:28', 'matriculado', NULL),
+(25, 5, 4, 'UPA Jundiapeba', 'Terça-feira - 16:00 - 18:00', 'Médio', 9, 'Pastilha de nicotina', '{"cancer":[],"cardiovascular":[{"valor":"avc","outroTexto":null}],"metabolico":[],"psiquiatrico":[],"respiratorio":[]}', '2026-08-28 12:14:17', 'cancelada', 'Sábado - 09:00 - 11:00'),
+(26, 5, 8, 'Pronto Atendimento Alto Ipiranga', 'Terça-feira - 08:00 - 10:00', 'Médio', 9, 'Adesivo de nicotina', '{"cancer":[{"valor":"estomago","outroTexto":null}],"cardiovascular":[{"valor":"trombose","outroTexto":null}],"metabolico":[{"valor":"DM 2","outroTexto":null}],"psiquiatrico":[{"valor":"esquizofrenia","outroTexto":null}],"respiratorio":[{"valor":"enfisema","outroTexto":null}]}', '2026-08-28 14:43:57', 'cancelada', 'Quarta-feira - 18:00 - 20:00'),
+(27, 5, 8, 'Pronto Atendimento Alto Ipiranga', 'Terça-feira - 10:00 - 12:00', 'Superior', 9, 'Goma de nicotina', '{"cancer":[{"valor":"esôfago","outroTexto":null}],"cardiovascular":[],"metabolico":[],"psiquiatrico":[],"respiratorio":[]}', '2026-08-28 15:03:33', 'matriculado', 'Terça-feira - 14:00 - 16:00');
 
 -- --------------------------------------------------------
 
@@ -191,7 +208,7 @@ CREATE TABLE IF NOT EXISTS `notificacoes` (
   `acao_url` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `usuario_id` (`usuario_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=91 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=128 ;
 
 --
 -- Extraindo dados da tabela `notificacoes`
@@ -217,27 +234,40 @@ INSERT INTO `notificacoes` (`id`, `usuario_id`, `titulo`, `mensagem`, `tipo`, `l
 (53, 3, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Terça-feira - 10:00 - 12:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 0, '2026-04-14 11:24:49', '/my-enrollments'),
 (54, 3, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Terça-feira - 14:00 - 16:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 0, '2026-04-14 11:26:39', '/my-enrollments'),
 (55, 3, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Terça-feira - 14:00 - 16:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 0, '2026-04-14 11:26:46', '/my-enrollments'),
-(70, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Quarta-feira - 08:00 - 10:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 0, '2026-04-14 13:19:55', '/my-enrollments'),
-(71, 5, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\n\nTurma: Sábado - 09:00 - 11:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 0, '2026-04-14 13:21:22', '/my-enrollments'),
-(72, 5, 'Turma Concluída!', 'Parabéns! Você concluiu o programa com sucesso na turma Sábado - 09:00 - 11:00 da Pronto Atendimento Alto Ipiranga. Seu percentual de presença foi de 0%!', 'sucesso', 0, '2026-04-14 13:22:27', '/my-enrollments'),
-(73, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Quarta-feira - 08:00 - 10:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 0, '2026-04-14 13:23:26', '/my-enrollments'),
-(74, 5, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\n\nTurma: Quarta-feira - 08:00 - 10:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 0, '2026-04-14 13:23:33', '/my-enrollments'),
-(75, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Vila Oliveira\nTurma: Sábado - 09:00 - 11:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 0, '2026-04-14 13:25:12', '/my-enrollments'),
-(76, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Sábado - 09:00 - 11:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 0, '2026-04-14 13:26:03', '/my-enrollments'),
-(77, 5, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\n\nTurma: Terça-feira - 14:00 - 16:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 0, '2026-04-14 13:26:11', '/my-enrollments'),
 (78, 3, 'Turma Cancelada', 'Infelizmente a turma Terça-feira - 14:00 - 16:00 da Pronto Atendimento Alto Ipiranga foi cancelada. Entre em contato com a UPA para mais informações.', 'alerta', 0, '2026-04-14 13:26:51', '/my-enrollments'),
-(79, 5, 'Turma Cancelada', 'Infelizmente a turma Terça-feira - 14:00 - 16:00 da Pronto Atendimento Alto Ipiranga foi cancelada. Entre em contato com a UPA para mais informações.', 'alerta', 0, '2026-04-14 13:26:51', '/my-enrollments'),
-(80, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Terça-feira - 10:00 - 12:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 0, '2026-04-14 13:29:09', '/my-enrollments'),
-(81, 5, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\n\nTurma: Terça-feira - 10:00 - 12:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 0, '2026-04-14 13:29:15', '/my-enrollments'),
-(82, 5, 'Turma Cancelada', 'Infelizmente a turma Terça-feira - 10:00 - 12:00 da Pronto Atendimento Alto Ipiranga foi cancelada. Entre em contato com a UPA para mais informações.', 'alerta', 0, '2026-04-14 13:34:17', '/my-enrollments'),
-(83, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Terça-feira - 08:00 - 10:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 0, '2026-04-14 13:34:35', '/my-enrollments'),
-(84, 5, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\n\nTurma: Quarta-feira - 18:00 - 20:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 0, '2026-04-14 13:34:43', '/my-enrollments'),
-(85, 5, 'Turma Concluída!', 'Parabéns! Você concluiu o programa com sucesso na turma Quarta-feira - 18:00 - 20:00 da Pronto Atendimento Alto Ipiranga. Seu percentual de presença foi de 0%!', 'sucesso', 0, '2026-04-14 13:35:38', '/my-enrollments'),
-(86, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Terça-feira - 14:00 - 16:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 0, '2026-04-14 13:41:19', '/my-enrollments'),
-(87, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Terça-feira - 16:00 - 18:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 0, '2026-04-14 13:42:10', '/my-enrollments'),
-(88, 5, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\n\nTurma: Terça-feira - 08:00 - 10:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 0, '2026-04-14 13:42:20', '/my-enrollments'),
 (89, 3, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Terça-feira - 14:00 - 16:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 0, '2026-04-14 13:59:25', '/my-enrollments'),
-(90, 3, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\n\nTurma: Terça-feira - 14:00 - 16:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 0, '2026-04-14 14:00:52', '/my-enrollments');
+(90, 3, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\n\nTurma: Terça-feira - 14:00 - 16:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 0, '2026-04-14 14:00:52', '/my-enrollments'),
+(97, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 1, '2026-08-25 12:29:34', '/home?tab=grafico'),
+(98, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Terça-feira - 10:00 - 12:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 1, '2026-08-25 12:30:35', '/my-enrollments'),
+(99, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 1, '2026-08-25 12:53:22', '/home?tab=grafico'),
+(100, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 1, '2026-08-25 13:36:53', '/home?tab=grafico'),
+(101, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 1, '2026-08-25 13:41:20', '/home?tab=grafico'),
+(102, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 1, '2026-08-25 13:49:25', '/home?tab=grafico'),
+(103, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 1, '2026-08-25 13:50:13', '/home?tab=grafico'),
+(104, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 1, '2026-08-25 13:53:37', '/home?tab=grafico'),
+(105, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 1, '2026-08-25 13:56:01', '/home?tab=grafico'),
+(106, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 1, '2026-08-25 13:56:09', '/home?tab=grafico'),
+(107, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: UPA Braz Cubas\nTurma: Terça-feira - 08:00 - 10:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 1, '2026-08-25 16:11:55', '/my-enrollments'),
+(108, 5, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: UPA Braz Cubas\n\nTurma: Terça-feira - 08:00 - 10:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 1, '2026-08-25 16:33:01', '/my-enrollments'),
+(109, 5, 'Teste de Fagerström', 'Resultado do seu teste:\n\nNível de dependência: Baixa\nPontuação: 4 pontos\n\nContinue acompanhando sua evolução.', 'fagerstrom', 1, '2026-08-25 16:44:38', '/fagerstrom-test'),
+(110, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Segunda-feira - 08:00 - 10:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 1, '2026-08-26 14:30:15', '/my-enrollments'),
+(111, 5, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\n\nTurma: Segunda-feira - 08:00 - 10:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 1, '2026-08-26 14:31:36', '/my-enrollments'),
+(112, 4, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Segunda-feira - 08:00 - 10:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 0, '2026-08-26 15:38:27', '/my-enrollments'),
+(113, 4, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\n\nTurma: Segunda-feira - 08:00 - 10:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 0, '2026-08-26 15:38:47', '/my-enrollments'),
+(114, 4, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Terça-feira - 10:00 - 12:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 0, '2026-08-26 15:40:28', '/my-enrollments'),
+(115, 4, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\n\nTurma: Terça-feira - 10:00 - 12:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 0, '2026-08-26 15:41:52', '/my-enrollments'),
+(116, 3, 'Turma Concluída!', 'Parabéns! Você concluiu o programa com sucesso na turma Terça-feira - 14:00 - 16:00 da Pronto Atendimento Alto Ipiranga. Seu percentual de presença foi de 50.00%!', 'sucesso', 0, '2026-08-26 16:03:00', '/my-enrollments'),
+(117, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 1, '2026-08-27 13:55:20', '/home?tab=grafico'),
+(118, 5, 'Teste de Fagerström', 'Resultado do seu teste:\n\nNível de dependência: Muito Elevada\nPontuação: 9 pontos\n\nContinue acompanhando sua evolução.', 'fagerstrom', 1, '2026-08-27 14:33:10', '/fagerstrom-test'),
+(119, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: UPA Jundiapeba\nTurma: Terça-feira - 16:00 - 18:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 1, '2026-08-28 12:14:17', '/my-enrollments'),
+(120, 5, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: UPA Jundiapeba\n\nTurma: Terça-feira - 16:00 - 18:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 1, '2026-08-28 14:18:52', '/my-enrollments'),
+(121, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Terça-feira - 08:00 - 10:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 1, '2026-08-28 14:43:57', '/my-enrollments'),
+(122, 5, 'Matrícula Realizada', 'Sua matrícula foi realizada com sucesso! Você está na lista de espera.\n\nUPA: Pronto Atendimento Alto Ipiranga\nTurma: Terça-feira - 10:00 - 12:00\n\nAguarde contato da UPA em até 5 dias úteis para confirmação.', 'matricula', 1, '2026-08-28 15:03:33', '/my-enrollments'),
+(123, 5, 'Matrícula Confirmada', 'Parabéns! Sua matrícula foi confirmada.\n\nUPA: Pronto Atendimento Alto Ipiranga\n\nTurma: Terça-feira - 10:00 - 12:00\n\nAcesse "Minhas Matrículas" para mais detalhes.', 'matricula', 1, '2026-08-28 15:04:03', '/my-enrollments'),
+(124, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 0, '2026-09-02 12:37:08', '/home?tab=grafico'),
+(125, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 0, '2026-09-02 12:39:35', '/home?tab=grafico'),
+(126, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 0, '2026-09-02 12:40:10', '/home?tab=grafico'),
+(127, 5, 'Diário Registrado', 'Registro de hoje salvo!\n\nAcesse o gráfico para acompanhar sua evolução\nContinue assim!', 'sintoma', 0, '2026-09-02 12:40:11', '/home?tab=grafico');
 
 -- --------------------------------------------------------
 
@@ -254,14 +284,22 @@ CREATE TABLE IF NOT EXISTS `presencas` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_presenca` (`matricula_id`,`data`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=2 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=12 ;
 
 --
 -- Extraindo dados da tabela `presencas`
 --
 
 INSERT INTO `presencas` (`id`, `matricula_id`, `data`, `status`, `observacoes`, `created_at`) VALUES
-(1, 17, '2026-04-29', 'presente', '1- Está fumando', '2026-04-29 12:08:13');
+(1, 17, '2026-04-29', 'presente', '1- Está fumando', '2026-04-29 12:08:13'),
+(2, 17, '2026-08-21', 'falta', '1- Está fumando', '2026-08-21 15:34:01'),
+(4, 21, '2026-08-25', 'presente', '1- Está fumando', '2026-08-25 16:34:14'),
+(5, 22, '2026-08-26', 'presente', '1- Está fumando', '2026-08-26 14:42:05'),
+(7, 24, '2026-08-26', 'presente', '1- Está fumando', '2026-08-26 15:51:11'),
+(8, 24, '2026-08-28', 'falta', '2- Sem fumar', '2026-08-28 12:17:59'),
+(9, 27, '2026-08-28', 'falta', '1- Está fumando', '2026-08-28 15:04:25'),
+(10, 27, '2026-09-02', 'falta', '1- Está fumando', '2026-09-02 13:35:25'),
+(11, 24, '2026-09-02', 'presente', NULL, '2026-09-02 13:35:25');
 
 -- --------------------------------------------------------
 
@@ -283,20 +321,36 @@ CREATE TABLE IF NOT EXISTS `sintomas_diarios` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_dia` (`usuario_id`,`data`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=9 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=42 ;
 
 --
 -- Extraindo dados da tabela `sintomas_diarios`
 --
 
 INSERT INTO `sintomas_diarios` (`id`, `usuario_id`, `data`, `ansiedade`, `irritabilidade`, `insonia`, `fome`, `dificuldade_concentracao`, `vontade_fumar`, `observacoes`, `created_at`) VALUES
-(2, 3, '2026-03-31', 5, 4, 3, 2, 6, 7, NULL, '2026-04-01 16:41:24'),
-(3, 3, '2026-03-30', 8, 7, 5, 3, 8, 9, NULL, '2026-04-01 16:41:24'),
-(4, 3, '2026-03-25', 9, 8, 6, 4, 9, 10, NULL, '2026-04-01 16:41:24'),
-(5, 3, '2026-04-02', 5, 0, 8, 3, 0, 10, '', '2026-04-02 11:19:00'),
-(6, 3, '2026-04-08', 6, 3, 9, 2, 8, 6, '', '2026-04-08 14:28:00'),
-(7, 3, '2026-04-09', 5, 5, 4, 8, NULL, NULL, NULL, '2026-04-09 12:37:55'),
-(8, 3, '2026-04-13', 9, 2, 8, 3, NULL, NULL, 'uaajajja', '2026-04-13 15:22:53');
+(11, 5, '2026-08-25', 6, 1, 4, 1, 1, 9, NULL, '2026-08-25 13:36:53'),
+(20, 5, '2026-08-18', 8, 7, 6, 4, 8, 9, 'Dia difícil, muita vontade de fumar', '2026-08-25 13:57:53'),
+(21, 5, '2026-08-19', 7, 6, 5, 3, 7, 8, 'Um pouco melhor que ontem', '2026-08-25 13:57:53'),
+(22, 5, '2026-08-20', 6, 5, 4, 3, 6, 7, 'Progresso lento', '2026-08-25 13:57:53'),
+(23, 5, '2026-08-21', 4, 4, 3, 2, 5, 5, 'Dia bom, consegui controlar', '2026-08-25 13:57:53'),
+(24, 5, '2026-08-22', 5, 5, 4, 3, 5, 6, 'Recaída leve', '2026-08-25 13:57:53'),
+(25, 5, '2026-08-23', 3, 3, 2, 2, 4, 4, 'Melhorando', '2026-08-25 13:57:53'),
+(26, 5, '2026-08-24', 2, 2, 1, 1, 3, 3, 'Quase sem sintomas', '2026-08-25 13:57:53'),
+(27, 5, '2026-08-11', 9, 8, 7, 5, 9, 10, 'Primeira semana, muito difícil', '2026-08-25 13:59:24'),
+(28, 5, '2026-08-12', 8, 7, 6, 4, 8, 9, 'Segundo dia, ainda difícil', '2026-08-25 13:59:24'),
+(29, 5, '2026-08-13', 7, 6, 5, 4, 7, 8, 'Pequena melhora', '2026-08-25 13:59:24'),
+(30, 5, '2026-08-14', 6, 5, 4, 3, 6, 7, 'Melhorando gradualmente', '2026-08-25 13:59:24'),
+(31, 5, '2026-08-15', 9, 8, 7, 5, 8, 9, 'Fim de semana, crise forte', '2026-08-25 13:59:24'),
+(32, 5, '2026-08-03', 10, 9, 8, 6, 10, 10, 'Primeiro dia, muito difícil', '2026-08-25 13:59:55'),
+(33, 5, '2026-08-04', 9, 8, 7, 5, 9, 10, 'Segundo dia, ainda muito difícil', '2026-08-25 13:59:55'),
+(34, 5, '2026-08-05', 8, 7, 6, 5, 8, 9, 'Terceiro dia, começando a melhorar', '2026-08-25 13:59:55'),
+(35, 5, '2026-08-06', 7, 6, 5, 4, 7, 8, 'Quarto dia, melhora significativa', '2026-08-25 13:59:55'),
+(36, 5, '2026-08-07', 6, 5, 4, 3, 6, 7, 'Primeira semana, evolução boa', '2026-08-25 13:59:55'),
+(37, 5, '2026-08-08', 7, 6, 5, 4, 7, 8, 'Fim de semana, recaída leve', '2026-08-25 13:59:55'),
+(38, 5, '2026-08-09', 5, 4, 3, 3, 5, 6, 'Voltando ao foco', '2026-08-25 13:59:55'),
+(39, 5, '2026-08-10', 4, 3, 2, 2, 4, 5, 'Melhorando cada vez mais', '2026-08-25 13:59:55'),
+(40, 5, '2026-08-27', 6, 3, 2, 8, 1, 3, NULL, '2026-08-27 13:55:20'),
+(41, 5, '2026-09-02', 5, 5, 2, 2, 2, 2, NULL, '2026-09-02 12:37:08');
 
 -- --------------------------------------------------------
 
@@ -314,7 +368,7 @@ CREATE TABLE IF NOT EXISTS `turmas` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `upa_id` (`upa_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=278 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=283 ;
 
 --
 -- Extraindo dados da tabela `turmas`
@@ -337,7 +391,7 @@ INSERT INTO `turmas` (`id`, `upa_id`, `dia_semana`, `horario`, `vagas_totais`, `
 (14, 5, 'Terça-feira', '08:00 - 10:00', 4, 0, '2026-04-07 15:26:40'),
 (15, 6, 'Terça-feira', '08:00 - 10:00', 4, 0, '2026-04-07 15:26:40'),
 (16, 7, 'Terça-feira', '08:00 - 10:00', 4, 0, '2026-04-07 15:26:40'),
-(17, 8, 'Terça-feira', '08:00 - 10:00', 4, 1, '2026-04-07 15:26:40'),
+(17, 8, 'Terça-feira', '08:00 - 10:00', 4, 0, '2026-04-07 15:26:40'),
 (18, 9, 'Terça-feira', '08:00 - 10:00', 4, 0, '2026-04-07 15:26:40'),
 (19, 10, 'Terça-feira', '08:00 - 10:00', 4, 0, '2026-04-07 15:26:40'),
 (20, 11, 'Terça-feira', '08:00 - 10:00', 4, 0, '2026-04-07 15:26:40'),
@@ -349,7 +403,7 @@ INSERT INTO `turmas` (`id`, `upa_id`, `dia_semana`, `horario`, `vagas_totais`, `
 (26, 5, 'Terça-feira', '10:00 - 12:00', 4, 0, '2026-04-07 15:26:40'),
 (27, 6, 'Terça-feira', '10:00 - 12:00', 4, 0, '2026-04-07 15:26:40'),
 (28, 7, 'Terça-feira', '10:00 - 12:00', 4, 0, '2026-04-07 15:26:40'),
-(29, 8, 'Terça-feira', '10:00 - 12:00', 4, 0, '2026-04-07 15:26:40'),
+(29, 8, 'Terça-feira', '10:00 - 12:00', 4, 2, '2026-04-07 15:26:40'),
 (30, 9, 'Terça-feira', '10:00 - 12:00', 4, 0, '2026-04-07 15:26:40'),
 (31, 10, 'Terça-feira', '10:00 - 12:00', 4, 0, '2026-04-07 15:26:40'),
 (32, 11, 'Terça-feira', '10:00 - 12:00', 4, 0, '2026-04-07 15:26:40'),
@@ -361,7 +415,7 @@ INSERT INTO `turmas` (`id`, `upa_id`, `dia_semana`, `horario`, `vagas_totais`, `
 (38, 5, 'Terça-feira', '14:00 - 16:00', 4, 0, '2026-04-07 15:26:40'),
 (39, 6, 'Terça-feira', '14:00 - 16:00', 4, 0, '2026-04-07 15:26:40'),
 (40, 7, 'Terça-feira', '14:00 - 16:00', 4, 0, '2026-04-07 15:26:40'),
-(41, 8, 'Terça-feira', '14:00 - 16:00', 4, 1, '2026-04-07 15:26:40'),
+(41, 8, 'Terça-feira', '14:00 - 16:00', 4, 0, '2026-04-07 15:26:40'),
 (42, 9, 'Terça-feira', '14:00 - 16:00', 4, 0, '2026-04-07 15:26:40'),
 (43, 10, 'Terça-feira', '14:00 - 16:00', 4, 0, '2026-04-07 15:26:40'),
 (44, 11, 'Terça-feira', '14:00 - 16:00', 4, 0, '2026-04-07 15:26:40'),
@@ -464,12 +518,7 @@ INSERT INTO `turmas` (`id`, `upa_id`, `dia_semana`, `horario`, `vagas_totais`, `
 (141, 12, 'Sábado', '09:00 - 11:00', 4, 0, '2026-04-07 15:26:40'),
 (142, 13, 'Sábado', '09:00 - 11:00', 4, 0, '2026-04-07 15:26:40'),
 (143, 14, 'Sábado', '09:00 - 11:00', 4, 0, '2026-04-07 15:26:40'),
-(144, 15, 'Sábado', '09:00 - 11:00', 4, 0, '2026-04-07 15:26:40'),
-(273, 27, 'Segunda-feira', '14:00 - 16:00', 4, 0, '2026-04-14 11:35:21'),
-(274, 27, 'Terça-feira', '08:00 - 10:00', 4, 0, '2026-04-14 11:35:21'),
-(275, 27, 'Quarta-feira', '10:00 - 12:00', 4, 0, '2026-04-14 11:35:21'),
-(276, 27, 'Quinta-feira', '08:00 - 10:00', 4, 0, '2026-04-14 11:35:21'),
-(277, 27, 'Sexta-feira', '10:00 - 12:00', 4, 0, '2026-04-14 11:35:21');
+(144, 15, 'Sábado', '09:00 - 11:00', 4, 0, '2026-04-07 15:26:40');
 
 -- --------------------------------------------------------
 
@@ -491,7 +540,7 @@ CREATE TABLE IF NOT EXISTS `turmas_concluidas` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `upa_id` (`upa_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=18 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=19 ;
 
 --
 -- Extraindo dados da tabela `turmas_concluidas`
@@ -507,7 +556,8 @@ INSERT INTO `turmas_concluidas` (`id`, `upa_id`, `upa_nome`, `turma_horario`, `d
 (14, 8, 'Pronto Atendimento Alto Ipiranga', 'Sábado - 09:00 - 11:00', '2026-04-14', '2026-04-14', 1, 0, 0.00, 'concluida', '2026-04-14 13:22:27'),
 (15, 8, 'Pronto Atendimento Alto Ipiranga', 'Terça-feira - 14:00 - 16:00', '2026-04-14', '2026-04-14', 2, 1, 100.00, 'cancelada', '2026-04-14 13:26:51'),
 (16, 8, 'Pronto Atendimento Alto Ipiranga', 'Terça-feira - 10:00 - 12:00', '2026-04-14', '2026-04-14', 1, 0, 0.00, 'cancelada', '2026-04-14 13:34:17'),
-(17, 8, 'Pronto Atendimento Alto Ipiranga', 'Quarta-feira - 18:00 - 20:00', '2026-04-14', '2026-04-14', 1, 0, 0.00, 'concluida', '2026-04-14 13:35:38');
+(17, 8, 'Pronto Atendimento Alto Ipiranga', 'Quarta-feira - 18:00 - 20:00', '2026-04-14', '2026-04-14', 1, 0, 0.00, 'concluida', '2026-04-14 13:35:38'),
+(18, 8, 'Pronto Atendimento Alto Ipiranga', 'Terça-feira - 14:00 - 16:00', '2026-08-24', '2026-08-26', 1, 1, 50.00, 'concluida', '2026-08-26 16:03:00');
 
 -- --------------------------------------------------------
 
@@ -519,31 +569,31 @@ CREATE TABLE IF NOT EXISTS `upas` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(255) NOT NULL,
   `endereco` text NOT NULL,
+  `cep` varchar(10) DEFAULT NULL,
   `cidade` varchar(100) NOT NULL,
   `telefone` varchar(20) DEFAULT NULL,
   `horario` text,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=28 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=30 ;
 
 --
 -- Extraindo dados da tabela `upas`
 --
 
-INSERT INTO `upas` (`id`, `nome`, `endereco`, `cidade`, `telefone`, `horario`, `created_at`) VALUES
-(4, 'UPA Jundiapeba', 'Rua Capitão Manoel Soares de Andrade, s/n - Jundiapeba', 'Mogi das Cruzes', '(11) 4790-3400', '24 horas', '2026-03-30 15:24:15'),
-(5, 'UPA Braz Cubas', 'Rua Manoel da Cunha, 200 - Braz Cubas', 'Mogi das Cruzes', '(11) 4790-3500', '24 horas', '2026-03-30 15:24:15'),
-(6, 'Pronto Atendimento César de Souza', 'Rua Aristeu Machado, s/n - César de Souza', 'Mogi das Cruzes', '(11) 4790-3600', '24 horas', '2026-03-30 15:24:15'),
-(7, 'Pronto Atendimento Vila Oliveira', 'Rua Vereador João de Souza, s/n - Vila Oliveira', 'Mogi das Cruzes', '(11) 4790-3700', '24 horas', '2026-03-30 15:24:15'),
-(8, 'Pronto Atendimento Alto Ipiranga', 'Rua Dr. Ricardo Vilela, 700 - Alto Ipiranga', 'Mogi das Cruzes', '(11) 4790-3800', '07h às 19h', '2026-03-30 15:24:15'),
-(9, 'Pronto Atendimento Vila Vitória', 'Rua Manoel de Oliveira, 250 - Vila Vitória', 'Mogi das Cruzes', '(11) 4790-3900', '07h às 19h', '2026-03-30 15:24:15'),
-(10, 'UBS Central', 'Rua Dr. Deodato Wertheimer, 100 - Centro', 'Mogi das Cruzes', '(11) 4790-4000', 'Segunda a Sexta: 07h às 17h', '2026-03-30 15:24:15'),
-(11, 'UBS Vila São Francisco', 'Rua Professor Ismael da Silva, 500 - Vila São Francisco', 'Mogi das Cruzes', '(11) 4790-4100', 'Segunda a Sexta: 07h às 17h', '2026-03-30 15:24:15'),
-(12, 'UBS Jardim Santista', 'Rua Antônio de Barros, 350 - Jardim Santista', 'Mogi das Cruzes', '(11) 4790-4200', 'Segunda a Sexta: 07h às 17h', '2026-03-30 15:24:15'),
-(13, 'UBS Vila Lavínia', 'Rua Voluntário Fernando Pinheiro Franco, 280 - Vila Lavínia', 'Mogi das Cruzes', '(11) 4790-4300', 'Segunda a Sexta: 07h às 17h', '2026-03-30 15:24:15'),
-(14, 'UBS Jardim Armênia', 'Rua Armênia, 200 - Jardim Armênia', 'Mogi das Cruzes', '(11) 4790-4400', 'Segunda a Sexta: 07h às 17h', '2026-03-30 15:24:15'),
-(15, 'UBS Vila Industrial', 'Rua Manoel Alves Ferreira, 101 - Vila Industrial', 'Mogi das Cruzes', '(11) 4790-4500', 'Segunda a Sexta: 07h às 17h', '2026-03-30 15:24:15'),
-(27, 'Teste de Upa', 'Rua Professor Jurandyr de Oliveira, 49 - Fazenda Rodeio', 'Mogi das Cruzes', '7777777777', 'Segunda a Sábado: 08h às 17h', '2026-04-13 15:31:36');
+INSERT INTO `upas` (`id`, `nome`, `endereco`, `cep`, `cidade`, `telefone`, `horario`, `created_at`) VALUES
+(4, 'UPA Jundiapeba', 'Rua Capitão Manoel Soares de Andrade, s/n - Jundiapeba', '08730-280', 'Mogi das Cruzes', '(11) 4790-3400', '24 horas', '2026-03-30 15:24:15'),
+(5, 'UPA Braz Cubas', 'Rua Manoel da Cunha, 200 - Braz Cubas', '08780-210', 'Mogi das Cruzes', '(11) 4790-3500', '24 horas', '2026-03-30 15:24:15'),
+(6, 'Pronto Atendimento César de Souza', 'Rua Aristeu Machado, s/n - César de Souza', '08775-130', 'Mogi das Cruzes', '(11) 4790-3600', '24 horas', '2026-03-30 15:24:15'),
+(7, 'Pronto Atendimento Vila Oliveira', 'Rua Vereador João de Souza, s/n - Vila Oliveira', '08735-560', 'Mogi das Cruzes', '(11) 4790-3700', '24 horas', '2026-03-30 15:24:15'),
+(8, 'Pronto Atendimento Alto Ipiranga', 'Rua Dr. Ricardo Vilela, 700 - Alto Ipiranga', '08710-490', 'Mogi das Cruzes', '(11) 4790-3800', '07h às 19h', '2026-03-30 15:24:15'),
+(9, 'Pronto Atendimento Vila Vitória', 'Rua Manoel de Oliveira, 250 - Vila Vitória', '08740-340', 'Mogi das Cruzes', '(11) 4790-3900', '07h às 19h', '2026-03-30 15:24:15'),
+(10, 'UBS Central', 'Rua Dr. Deodato Wertheimer, 100 - Centro', '08710-150', 'Mogi das Cruzes', '(11) 4790-4000', 'Segunda a Sexta: 07h às 17h', '2026-03-30 15:24:15'),
+(11, 'UBS Vila São Francisco', 'Rua Professor Ismael da Silva, 500 - Vila São Francisco', '08720-180', 'Mogi das Cruzes', '(11) 4790-4100', 'Segunda a Sexta: 07h às 17h', '2026-03-30 15:24:15'),
+(12, 'UBS Jardim Santista', 'Rua Antônio de Barros, 350 - Jardim Santista', '08715-090', 'Mogi das Cruzes', '(11) 4790-4200', 'Segunda a Sexta: 07h às 17h', '2026-03-30 15:24:15'),
+(13, 'UBS Vila Lavínia', 'Rua Voluntário Fernando Pinheiro Franco, 280 - Vila Lavínia', '08715-270', 'Mogi das Cruzes', '(11) 4790-4300', 'Segunda a Sexta: 07h às 17h', '2026-03-30 15:24:15'),
+(14, 'UBS Jardim Armênia', 'Rua Armênia, 200 - Jardim Armênia', '08735-440', 'Mogi das Cruzes', '(11) 4790-4400', 'Segunda a Sexta: 07h às 17h', '2026-03-30 15:24:15'),
+(15, 'UBS Vila Industrial', 'Rua Manoel Alves Ferreira, 101 - Vila Industrial', '08715-290', 'Mogi das Cruzes', '(11) 4790-4500', 'Segunda a Sexta: 07h às 17h', '2026-03-30 15:24:15');
 
 -- --------------------------------------------------------
 
@@ -571,7 +621,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `tipo_usuario` enum('admin','enfermeira','comum') DEFAULT 'comum',
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=23 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=27 ;
 
 --
 -- Extraindo dados da tabela `usuarios`
@@ -580,8 +630,8 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
 INSERT INTO `usuarios` (`id`, `nome_completo`, `sexo`, `data_nascimento`, `idade`, `email`, `senha`, `created_at`, `cpf`, `telefone`, `score_fagestrom`, `stop_date`, `target_days`, `cigarros_por_dia`, `valor_carteira`, `is_admin`, `tipo_usuario`) VALUES
 (3, 'Matheus Bilitardo Abib', 'Masculino', '2008-04-24', 17, 'matheus@gmail.com', '$2a$10$nXYBvd0mmHPTwQ.9YvMJseXE5d75vgF2qcpJOZDPrNIGfIQou9.Rq', '0000-00-00 00:00:00', '42211384830', '11975072002', 5, '2026-04-01', 100, 10, 12.00, 0, 'comum'),
 (4, 'Luiz Pereira', '', '2008-04-04', 17, 'luizaa@gmail.com', '$2a$10$YADH8UOOc9GauVXsPfVXT.2ziSQHRew8BgsYUJ9G9ae2fWjADlqV2', '2026-03-31 12:22:09', '22222222222', '11111111111111131313', 8, '2026-02-04', 100, 7, 12.00, 0, 'comum'),
-(5, 'Lucia Silva', 'Feminino', '1970-04-06', 55, 'luciasilva@gmail.com', '$2a$10$Zu5tvRyVMowz8yCNWoJ6xOgGUZ6PTwPRdX/pPKSZ.Rs3qQuPk0mRy', '2026-04-02 11:21:01', '42211384838', '11111111111', 6, '2026-02-05', 230, 2, 11.00, 0, 'comum'),
-(6, 'Administrador', 'Outro', '2008-04-06', 17, 'admin@admin.com', '$2a$10$EkhF2x.9WiAj3QQXOT/XUusgYZqui8ulCC1zzn0s6PdxGREK4D9Iy', '2026-04-02 11:22:00', '42211384838', '33333333333', NULL, NULL, NULL, NULL, NULL, 1, 'admin'),
+(5, 'Lucia Silva Meneguel', 'Feminino', '1970-04-06', 55, 'luciasilva@gmail.com', '$2a$10$Q3GmtLWmpzgZk99yQpQnpeKoRyFLSK1s3TkuwSmduY/1beKFWzfwG', '2026-04-02 11:21:01', '42211384838', '11975072008', 9, '2026-02-05', 230, 2, 11.00, 0, 'comum'),
+(6, 'Administrador', 'Outro', '2008-04-06', 17, 'admin@admin.com', '$2a$10$EfE7SnlRNMfvCJuH.sAI2.jXmtpLda3xNOwOkD7qNXmM1WaJ8ALjG', '2026-04-02 11:22:00', '42211384838', '33333333333', NULL, NULL, NULL, NULL, NULL, 1, 'admin'),
 (11, 'Carlos Henrique Souza', 'Masculino', '1985-03-12', 41, 'carlos1@gmail.com', '123', '2026-04-06 14:11:00', '11111111101', '11990000001', NULL, NULL, NULL, NULL, NULL, 0, 'comum'),
 (12, 'Fernanda Lima Rocha', 'Feminino', '1990-07-22', 35, 'fernanda1@gmail.com', '123', '2026-04-06 14:11:00', '11111111102', '11990000002', NULL, NULL, NULL, NULL, NULL, 0, 'comum'),
 (13, 'Roberto Almeida Santos', 'Masculino', '1978-11-03', 47, 'roberto1@gmail.com', '123', '2026-04-06 14:11:00', '11111111103', '11990000003', NULL, NULL, NULL, NULL, NULL, 0, 'comum'),
@@ -592,7 +642,11 @@ INSERT INTO `usuarios` (`id`, `nome_completo`, `sexo`, `data_nascimento`, `idade
 (18, 'Patrícia Souza Lima', 'Feminino', '1992-12-10', 33, 'patricia1@gmail.com', '123', '2026-04-06 14:11:00', '11111111108', '11990000008', NULL, NULL, NULL, NULL, NULL, 0, 'comum'),
 (19, 'Ricardo Nunes', 'Masculino', '1987-06-08', 38, 'ricardo1@gmail.com', '123', '2026-04-06 14:11:00', '11111111109', '11990000009', NULL, NULL, NULL, NULL, NULL, 0, 'comum'),
 (20, 'Aline Barbosa', 'Feminino', '1993-04-27', 32, 'aline1@gmail.com', '123', '2026-04-06 14:11:00', '11111111110', '11990000010', NULL, NULL, NULL, NULL, NULL, 0, 'comum'),
-(22, 'Luiza Mel Lee', '', '2008-04-11', 17, 'luiza@gmail.com', '$2a$10$T2hWXAh7QwM4oLGj4Mj5ceqyu65WuGELVFeNTWBsWKyi6i9TJKFdS', '2026-04-06 16:23:45', '42211393939', '33333333333', 8, NULL, NULL, NULL, NULL, 0, 'comum');
+(22, 'Luiza Mel Lee', '', '2008-04-11', 17, 'luiza@gmail.com', '$2a$10$T2hWXAh7QwM4oLGj4Mj5ceqyu65WuGELVFeNTWBsWKyi6i9TJKFdS', '2026-04-06 16:23:45', '42211393939', '33333333333', 8, NULL, NULL, NULL, NULL, 0, 'comum'),
+(23, 'Ranço', 'Masculino', '2008-08-05', 18, 'ranco@gmail.com', '$2a$10$iv8JoYIiHWpbXvowrqXOd.UfFKcltHvL9bOCeiONX4ROLl1z2idfG', '2026-08-24 16:27:39', '42211384838', '11222222222', NULL, NULL, NULL, NULL, NULL, 0, 'comum'),
+(24, 'ranco', 'Feminino', '2008-08-13', 18, 'ranco444@gmail.com', '$2a$10$s3QEbGT0F/2/ATqzLzO/XO1u0avr0Q.VOF31y4VI966hAEhA61pXa', '2026-08-24 16:32:06', '42211384838', '11222222222', NULL, NULL, NULL, NULL, NULL, 0, 'comum'),
+(25, 'AAAAA', 'Feminino', '2008-08-05', 18, 'ranco22222@gmail.com', '$2a$10$/DuG9O6g7D1zoEVKhODsiOaTaacQ7hvfASGgYrIimMdUPnTfLCFsW', '2026-08-24 16:39:07', '42211384838', '22222222222', NULL, NULL, NULL, NULL, NULL, 0, 'comum'),
+(26, 'ranco', 'Feminino', '2008-08-20', 18, 'rancoMANO@gmail.com', '$2a$10$pKPOMxRLuC6XHsiNPTZ7I.b95ewQhy7000Im39e60RVN1iSwAEBQe', '2026-08-24 16:44:41', '42211384831', '11111111111', NULL, NULL, NULL, NULL, NULL, 0, 'comum');
 
 --
 -- Restrições para as tabelas dumpadas

@@ -6,7 +6,7 @@ import 'package:tabagismo_app/screens/sobre_screen.dart';
 
 class LogoutModal {
   static void show(BuildContext context, {VoidCallback? onLogout}) {
-    final isMobile = MediaQuery.of(context).size.width < 500;
+    final isMobile = MediaQuery.of(context).size.width < 600;
     final isSmallMobile = MediaQuery.of(context).size.width < 400;
     final Color dangerColor = const Color(0xFFC65D47);
 
@@ -15,11 +15,15 @@ class LogoutModal {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isSmallMobile ? 8 : (isMobile ? 12 : 20),
+            vertical: 24,
+          ),
           elevation: 0,
           backgroundColor: Colors.transparent,
           child: Container(
-            width: isMobile ? MediaQuery.of(context).size.width * 0.92 : 420,
-            padding: EdgeInsets.all(isSmallMobile ? 16 : 24),
+            width: isMobile ? MediaQuery.of(context).size.width * 0.96 : 420,
+            padding: EdgeInsets.all(isSmallMobile ? 20 : 24),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
@@ -35,40 +39,40 @@ class LogoutModal {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: dangerColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.logout_rounded,
-                    size: 40,
+                    size: 44,
                     color: Color(0xFFEF4444),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 Text(
-                  isMobile ? 'Sair' : 'Sair da conta',
+                  isMobile ? 'Sair da Conta' : 'Sair da Conta',
                   style: TextStyle(
-                    fontSize: isMobile ? 20 : 24,
+                    fontSize: isMobile ? 22 : 24,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF0F172A),
                     letterSpacing: -0.5,
                     fontFamily: 'Poppins',
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 const Text(
                   'Tem certeza que deseja sair?',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     color: Color(0xFF475569),
-                    height: 1.4,
+                    height: 1.5,
                     fontFamily: 'Inter',
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 Row(
                   children: [
                     Expanded(
@@ -79,13 +83,13 @@ class LogoutModal {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          minimumSize: const Size(double.infinity, 44),
+                          padding: EdgeInsets.symmetric(vertical: isMobile ? 14 : 12),
+                          minimumSize: const Size(double.infinity, 48),
                         ),
                         child: const Text(
                           'Cancelar',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF64748B),
                           ),
@@ -121,8 +125,8 @@ class LogoutModal {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          minimumSize: const Size(double.infinity, 44),
+                          padding: EdgeInsets.symmetric(vertical: isMobile ? 14 : 12),
+                          minimumSize: const Size(double.infinity, 48),
                         ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -132,7 +136,7 @@ class LogoutModal {
                             Text(
                               'Sair',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
