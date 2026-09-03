@@ -11,6 +11,7 @@ class SobreScreen extends StatefulWidget {
   State<SobreScreen> createState() => _SobreScreenState();
 }
 
+
 class _SobreScreenState extends State<SobreScreen> {
   @override
   void initState() {
@@ -186,32 +187,57 @@ slivers: [
 void _showAuthModal(BuildContext context, {int initialTab = 0}) {
   final isMobile = MediaQuery.of(context).size.width < 600;
   final isSmallMobile = MediaQuery.of(context).size.width < 400;
-  
-  showDialog(
+
+  final authModal = AuthModal(initialTab: initialTab);
+
+  // Força o ValueNotifier a ter o valor inicial
+  authModal.tabIndexNotifier.value = initialTab;
+
+  showGeneralDialog(
     context: context,
-    useRootNavigator: false,
     barrierDismissible: true,
-    builder: (context) => Dialog(
-      insetPadding: EdgeInsets.all(isSmallMobile ? 4 : (isMobile ? 8 : 20)),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Container(
-        width: isMobile ? double.infinity : 500,
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
-          minHeight: isMobile ? 300 : 400,
+    barrierLabel: '',
+    transitionDuration: const Duration(milliseconds: 200),
+    pageBuilder: (context, animation, secondaryAnimation) {
+      return Material(
+        color: Colors.transparent,
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          alignment: Alignment.center,
+          child: ValueListenableBuilder(
+            valueListenable: authModal.tabIndexNotifier,
+            builder: (context, tabIndex, child) {
+              final isCadastro = tabIndex == 1;
+              return Container(
+                width: isMobile ? double.infinity : 500,
+                height: isMobile && isCadastro ? double.infinity : null,
+                margin: isMobile 
+                    ? (isCadastro ? EdgeInsets.zero : EdgeInsets.all(isSmallMobile ? 8 : 12))
+                    : EdgeInsets.all(20),
+                constraints: BoxConstraints(
+                  maxHeight: isMobile && isCadastro 
+                      ? double.infinity 
+                      : (isMobile ? MediaQuery.of(context).size.height * 0.95 : 880),
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: isMobile 
+                      ? (isCadastro ? BorderRadius.zero : BorderRadius.circular(28))
+                      : BorderRadius.circular(28),
+                ),
+                child: Padding(
+                  padding: isMobile 
+                      ? (isCadastro ? EdgeInsets.zero : EdgeInsets.all(isSmallMobile ? 8 : 12))
+                      : EdgeInsets.all(20),
+                  child: authModal,
+                ),
+              );
+            },
+          ),
         ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(isMobile ? (isSmallMobile ? 12 : 16) : 24),
-          child: AuthModal(initialTab: initialTab),
-        ),
-      ),
-    ),
+      );
+    },
   ).then((_) {
     Navigator.pushReplacement(
       context,
@@ -219,7 +245,6 @@ void _showAuthModal(BuildContext context, {int initialTab = 0}) {
     );
   });
 }
-
   Widget _buildHeroSection(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 919;

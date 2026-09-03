@@ -1,9 +1,9 @@
 class Constants {
   // Para produção (servidor)
-  // static const String baseUrl = '/api';
+  static const String baseUrl = 'http://64.227.6.51:3000/api';
 
 //local
-  static const String baseUrl = 'http://localhost:3000/api';
+  // static const String baseUrl = 'http://localhost:3000/api';
 
     
   static const String loginEndpoint = '/auth/login';

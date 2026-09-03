@@ -1,0 +1,17 @@
+#Passo 1: Entre na pasta do projeto
+    ##cd C:\Users\97857\Desktop\projects\Projeto-Tabagismo\tabagismo_app
+
+#Passo 2: Limpe e faça o build
+    ##flutter clean
+    ##flutter pub get
+    ##flutter build web
+
+#Passo 3: Copie o vercel.json para a pasta build/web
+    ##copy vercel.json build\web\
+
+#Passo 4: Copie as imagens manualmente
+    ##xcopy assets\images build\web\assets\images /E /I /Y
+
+#Passo 5: Faça o deploy
+    ##vercel --prod
+
