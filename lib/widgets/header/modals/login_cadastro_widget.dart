@@ -478,7 +478,7 @@ Widget _buildPasswordStrengthIndicator() {
           ),
           child: Icon(
             Icons.smoke_free_outlined,
-            size: isMobile ? (isSmallMobile ? 28 : 32) : 40,
+            size: isMobile ? (isSmallMobile ? 30 : 32) : 40,
             color: _accentColor,
           ),
         ),
@@ -493,7 +493,7 @@ Widget _buildPasswordStrengthIndicator() {
                       ? 'Bem-vindo de volta' 
                       : 'Bem-vindo ao Desfumo',
                   style: TextStyle(
-                    fontSize: isMobile ? (isSmallMobile ? 14 : 16) : 18,
+                    fontSize: isMobile ? (isSmallMobile ? 16 : 16) : 18,
                     fontWeight: FontWeight.bold,
                     color: _accentColor,
                     fontFamily: 'Poppins',
@@ -504,7 +504,7 @@ Widget _buildPasswordStrengthIndicator() {
                       ? 'Acesse sua conta para continuar' 
                       : 'Crie sua conta e comece sua jornada',
                   style: TextStyle(
-                    fontSize: isMobile ? (isSmallMobile ? 10 : 11) : 12,
+                    fontSize: isMobile ? (isSmallMobile ? 11 : 11) : 12,
                     color: Colors.grey.shade600,
                     fontFamily: 'Inter',
                   ),
@@ -516,47 +516,68 @@ Widget _buildPasswordStrengthIndicator() {
       ],
     ),
   ),
-          TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: 'Entrar'),
-              Tab(text: 'Cadastrar'),
-            ],
-            labelColor: _accentColor,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: _accentColor,
-            labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-            onTap: (_) => setState(() {}),
-          ),
+TabBar(
+  controller: _tabController,
+  tabs: const [
+    Tab(text: 'Entrar'),
+    Tab(text: 'Cadastrar'),
+  ],
+  labelColor: _accentColor,
+  unselectedLabelColor: Colors.grey,
+  indicatorColor: _accentColor,
+  labelStyle: TextStyle(
+    fontWeight: FontWeight.bold,
+    fontSize: isMobile ? 12 : 14,
+  ),
+  unselectedLabelStyle: TextStyle(
+    fontSize: isMobile ? 10 : 12,
+  ),
+  onTap: (_) => setState(() {}),
+),
           const SizedBox(height: 8),
-            AnimatedBuilder(
-              animation: _tabController,
-              builder: (context, child) {
-                final isCadastro = _tabController.index == 1;
-                return SizedBox(
-                  height: isCadastro ? (isMobile ? 560 : 580) : (isMobile ? 220 : 180),
-                  child: IndexedStack(
-                    index: _tabController.index,
-                    children: [
-                      SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: _buildLoginForm(),
-                      ),
-Scrollbar(
-  thumbVisibility: true,
-  trackVisibility: true,
-  thickness: 4,
-  radius: const Radius.circular(10),
-  child: SingleChildScrollView(
-    physics: const AlwaysScrollableScrollPhysics(),
-    child: _buildRegisterForm(),
+AnimatedBuilder(
+  animation: _tabController,
+  builder: (context, child) {
+    final isCadastro = _tabController.index == 1;
+    final screenHeight = MediaQuery.of(context).size.height;
+    
+    return SizedBox(
+      height: isCadastro 
+          ? (isMobile ? screenHeight * 0.65 : 520)
+          : (isMobile ? 220 : 180),
+      child: IndexedStack(
+        index: _tabController.index,
+        children: [
+          SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: _buildLoginForm(),
+          ),
+Container(
+  height: isCadastro 
+      ? (isMobile ? screenHeight * 0.65 : 520)
+      : (isMobile ? 220 : 180),
+  child: Theme(
+    data: Theme.of(context).copyWith(
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStateProperty.all(const Color(0xFF1F4E6E)),
+        trackColor: WidgetStateProperty.all(Colors.grey.shade200),
+        thickness: WidgetStateProperty.all(3),
+        radius: const Radius.circular(8),
+      ),
+    ),
+    child: Scrollbar(
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: _buildRegisterForm(),
+      ),
+    ),
   ),
 ),
-                    ],
-                  ),
-                );
-              },
-            ),
+        ],
+      ),
+    );
+  },
+),
         ],
       ),
     );
