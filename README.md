@@ -55,13 +55,6 @@ Este projeto está alinhado ao **ODS 3 – Saúde e Bem-Estar**, contribuindo pa
 
 ---
 
-## 🌐 Demonstração
-
-- **Frontend (Vercel):** [https://desfumo.vercel.app](https://desfumo.vercel.app)
-- **Backend (DigitalOcean):** `http://64.227.6.51:3000`
-
----
-
 ## 👥 Perfis de Usuário
 
 ### 👤 Usuário Comum (Paciente)
