@@ -42,6 +42,7 @@ class HeaderWidget extends StatefulWidget {
 
 class _HeaderWidgetState extends State<HeaderWidget> {
   int _naoLidas = 0;
+  bool _hoveringLogo = false;
 
   @override
   void initState() {
@@ -173,82 +174,129 @@ class _HeaderWidgetState extends State<HeaderWidget> {
     );
   }
 
-  Widget _buildHomeHeader(bool isMobile, double horizontalPadding) {
-    return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 12,
-        left: horizontalPadding,
-        right: horizontalPadding,
-        bottom: 12,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFF334155),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              if (widget.showBackButton)
-                Container(
-                  margin: EdgeInsets.only(right: 5),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                    onPressed: widget.onBackPressed ?? () => Navigator.pop(context),
-                    padding: const EdgeInsets.all(10),
-                    constraints: const BoxConstraints(),
-                  ),
-                ),
+Widget _buildHomeHeader(bool isMobile, double horizontalPadding) {
+  return Container(
+    padding: EdgeInsets.only(
+      top: MediaQuery.of(context).padding.top + 12,
+      left: horizontalPadding,
+      right: horizontalPadding,
+      bottom: 12,
+    ),
+    decoration: BoxDecoration(
+      color: const Color(0xFF334155),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.08),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            if (widget.showBackButton)
               Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(35),
+                margin: EdgeInsets.only(right: 5),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                  onPressed: widget.onBackPressed ?? () => Navigator.pop(context),
+                  padding: const EdgeInsets.all(10),
+                  constraints: const BoxConstraints(),
                 ),
-                child: Icon(widget.icon, color: widget.iconColor, size: 32),
               ),
-              const SizedBox(width: 12),
-              const Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'DESFUMO',
-                    style: TextStyle(
-                      fontFamily: 'BebasNeue',
-                      fontSize: 28,
-                      fontWeight: FontWeight.w400,
-                      letterSpacing: 1,
-                      color: Colors.white,
-                      height: 0.9,
+            MouseRegion(
+              cursor: widget.isHome
+                  ? SystemMouseCursors.click
+                  : SystemMouseCursors.basic,
+              onEnter: (_) {
+                if (widget.isHome) setState(() => _hoveringLogo = true);
+              },
+              onExit: (_) {
+                if (widget.isHome) setState(() => _hoveringLogo = false);
+              },
+              child: GestureDetector(
+                onTap: widget.isHome
+                    ? () {
+                        Navigator.of(context)
+                            .popUntil((route) => route.isFirst);
+                      }
+                    : null,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _hoveringLogo
+                        ? Colors.white.withOpacity(0.10)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(40),
+                    border: Border.all(
+                      color: _hoveringLogo
+                          ? Colors.white.withOpacity(0.18)
+                          : Colors.transparent,
+                      width: 1,
                     ),
                   ),
-                  Text(
-                    'Apoio ao Tabagismo',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      height: 0.9,
-                      letterSpacing: 2,
-                    ),
+                  child: Row(
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(
+                            _hoveringLogo ? 0.22 : 0.15,
+                          ),
+                          borderRadius: BorderRadius.circular(35),
+                        ),
+                        child: Icon(widget.icon, color: widget.iconColor, size: 32),
+                      ),
+                      const SizedBox(width: 12),
+                      const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'DESFUMO',
+                            style: TextStyle(
+                              fontFamily: 'BebasNeue',
+                              fontSize: 28,
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: 1,
+                              color: Colors.white,
+                              height: 0.9,
+                            ),
+                          ),
+                          Text(
+                            'Apoio ao Tabagismo',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                              height: 0.9,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ],
-          ),
-          isMobile ? _buildHomeMobileMenu() : _buildHomeDesktopMenu(),
-        ],
-      ),
-    );
-  }
+            ),
+          ],
+        ),
+        isMobile ? _buildHomeMobileMenu() : _buildHomeDesktopMenu(),
+      ],
+    ),
+  );
+}
 
   Widget _buildHomeMobileMenu() {
     return Row(

@@ -9,17 +9,18 @@ class HomeMateriaisWidget extends StatelessWidget {
 
   final List<Map<String, dynamic>> _materiais = const [
     {
-      'title': 'Guia Completo para Parar de Fumar',
-      'subtitle': "Por: Ronaldo Laranjeira",
+      'title': 'Como parar de fumar: um guia completo',
+      'subtitle': "Por: Dr. Lee Chuen Peng - Médico Pneumologista",
       'icon': Icons.auto_awesome,
       'color': Color(0xFFC65D47),
       'image': 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=400',
       'tag': 'Guia',
       'tagIcon': Icons.menu_book,
+      'url': 'https://www-mountelizabeth-com-sg.translate.goog/health-plus/article/how-to-quit-smoking?_x_tr_sl=en&_x_tr_tl=pt&_x_tr_hl=pt&_x_tr_pto=tc',
     },
     {
       'title': 'Alimentação que ajuda a parar',
-      'subtitle': "Por: Nutricionista Dra. Mariana Silva",
+      'subtitle': "Por: Dra. Mariana Silva - Nutricionista",
       'icon': Icons.restaurant,
       'color': Color(0xFFC65D47),
       'image': 'https://media.todojujuy.com/p/5f84a771b8171b18024059aae54d9e83/adjuntos/227/imagenes/003/260/0003260714/970x546/smart/salud.jpg',
@@ -68,10 +69,6 @@ class HomeMateriaisWidget extends StatelessWidget {
       'url': 'https://www.minhavida.com.br/materias/materia-9311',
     },
   ];
-
-  void _openPDF(String pdfFileName) {
-    html.window.open('/assets/pdf/$pdfFileName', '_blank');
-  }
 
   void _openYouTubeVideo(String videoId) {
     html.window.open('https://www.youtube.com/watch?v=$videoId', '_blank');
@@ -391,9 +388,7 @@ class HomeMateriaisWidget extends StatelessWidget {
                       return;
                     }
 
-                    if (material['title'] == 'Guia Completo para Parar de Fumar') {
-                      _openPDF('GuiaPratico.pdf');
-                    } else if (material.containsKey('videoId')) {
+                    if (material.containsKey('videoId')) {
                       _openYouTubeVideo(material['videoId']);
                     } else if (material.containsKey('url')) {
                       _openWebsite(material['url']);
