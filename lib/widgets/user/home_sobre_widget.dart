@@ -58,11 +58,6 @@ class _HomeSobreWidgetState extends State<HomeSobreWidget> {
       child: Column(
         children: [
           InkWell(
-            onTap: () {
-              setState(() {
-                _isGuiaCardExpanded = !_isGuiaCardExpanded;
-              });
-            },
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(24),
               topRight: Radius.circular(24),
@@ -90,11 +85,6 @@ class _HomeSobreWidgetState extends State<HomeSobreWidget> {
                         letterSpacing: -0.3,
                       ),
                     ),
-                  ),
-                  Icon(
-                    _isGuiaCardExpanded ? Icons.expand_less : Icons.expand_more,
-                    size: isMobile ? 22 : 28,
-                    color: const Color(0xFF1F4E6E),
                   ),
                 ],
               ),
