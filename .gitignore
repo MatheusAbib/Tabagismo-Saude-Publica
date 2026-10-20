@@ -26,6 +26,7 @@ ios/Flutter/Generated.xcconfig
 *.iml
 *.ipr
 *.iws
+Compilar-e-Subir
 
 # ================== OS ==================
 .DS_Store
