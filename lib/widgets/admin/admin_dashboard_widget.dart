@@ -1,27 +1,41 @@
+
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/services/pdf_service.dart';
 import 'package:tabagismo_app/services/toast_service.dart';
 
 class AdminDashboardWidget extends StatefulWidget {
-  const AdminDashboardWidget({Key? key}) : super(key: key);
+  const AdminDashboardWidget({super.key});
 
   @override
-  _AdminDashboardWidgetState createState() => _AdminDashboardWidgetState();
+  State<AdminDashboardWidget> createState() => _AdminDashboardWidgetState();
 }
 
 class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
-  final Color _accentColor = const Color(0xFF1F4E6E);
-  final Color _successColor = const Color(0xFF2E8B6A);
-  final Color _warningColor = const Color(0xFFD97706);
-  final Color _dangerColor = const Color(0xFFC65D47);
+  static const Color _background = Color(0xFFFFFDF9);
+  static const Color _surface = Colors.white;
+  static const Color _border = Color(0xFFE6E5DF);
+  static const Color _primary = Color(0xFF30383E);
+  static const Color _secondary = Color(0xFF758087);
+  static const Color _accent = Color(0xFF426E8C);
+  static const Color _accentSoft = Color(0xFFEAF2F7);
+  static const Color _success = Color(0xFF397C69);
+  static const Color _successSoft = Color(0xFFEAF4EF);
+  static const Color _warning = Color(0xFFB57B42);
+  static const Color _warningSoft = Color(0xFFFAF1E5);
+  static const Color _danger = Color(0xFFC65D47);
+  static const Color _dangerSoft = Color(0xFFFBEDE9);
 
   Map<String, dynamic> _stats = {};
   Map<String, dynamic> _evolucao = {};
+
   bool _carregando = true;
+  bool _exportando = false;
 
   int _alunosPage = 0;
-  int _alunosPerPage = 5;
+  final int _alunosPerPage = 5;
 
   @override
   void initState() {
@@ -29,209 +43,291 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
     _carregarDados();
   }
 
-  Future<void> _carregarDados() async {
-    setState(() => _carregando = true);
+  Future<void> _carregarDados({bool mostrarLoading = true}) async {
+    if (mostrarLoading && mounted) {
+      setState(() {
+        _carregando = true;
+      });
+    }
+
     try {
       final stats = await AuthService().getAdminDashboardStats();
       final evolucao = await AuthService().getAdminEvolucaoGeral();
+
+      if (!mounted) return;
+
       setState(() {
-        _stats = stats;
-        _evolucao = evolucao;
+        _stats = Map<String, dynamic>.from(stats);
+        _evolucao = Map<String, dynamic>.from(evolucao);
         _carregando = false;
+        _alunosPage = 0;
       });
     } catch (e) {
-      setState(() => _carregando = false);
-      ToastService.showError(context, 'Erro ao carregar dados: $e');
+      if (!mounted) return;
+
+      setState(() {
+        _carregando = false;
+      });
+
+      ToastService.showError(
+        context,
+        'Erro ao carregar dados: $e',
+      );
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 768;
-    final isSmallMobile = MediaQuery.of(context).size.width < 400;
-    final padding = isSmallMobile ? 8.0 : (isMobile ? 16.0 : 20.0);
+  Future<void> _exportarPDF() async {
+    if (_exportando) return;
 
-    if (_carregando) {
-      return const Center(child: CircularProgressIndicator());
+    setState(() {
+      _exportando = true;
+    });
+
+    try {
+      await PdfService.gerarRelatorioAdminDashboardCompleto(
+        _stats,
+        _evolucao,
+        'Admin',
+      );
+
+      if (!mounted) return;
+
+      ToastService.showSuccess(
+        context,
+        'PDF gerado com sucesso!',
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ToastService.showError(
+        context,
+        'Erro ao gerar PDF: $e',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _exportando = false;
+        });
+      }
+    }
+  }
+
+  int _parseToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString()) ??
+        double.tryParse(value.toString())?.toInt() ??
+        0;
+  }
+
+  double _parseToDouble(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString().replaceAll(',', '.')) ?? 0;
+  }
+
+  Map<String, dynamic> _asMap(dynamic value) {
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return {};
+  }
+
+  List<Map<String, dynamic>> _asList(dynamic value) {
+    if (value is! List) return [];
+
+    return value
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  String _formatMes(dynamic value) {
+    final texto = value?.toString() ?? '';
+
+    if (texto.isEmpty) return '-';
+
+    final partes = texto.split('-');
+
+    if (partes.length >= 2) {
+      final numero = int.tryParse(partes[1]);
+
+      const meses = [
+        'Jan',
+        'Fev',
+        'Mar',
+        'Abr',
+        'Mai',
+        'Jun',
+        'Jul',
+        'Ago',
+        'Set',
+        'Out',
+        'Nov',
+        'Dez',
+      ];
+
+      if (numero != null && numero >= 1 && numero <= 12) {
+        return meses[numero - 1];
+      }
     }
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(padding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+    return texto;
+  }
+
+  BoxDecoration _cardDecoration() {
+    return BoxDecoration(
+      color: _surface,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: _border),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    Color color = _accent,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.09),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Icon(
+            icon,
+            color: color,
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ElevatedButton.icon(
-                onPressed: () => _exportarPDF(),
-                icon: const Icon(Icons.picture_as_pdf, size: 18),
-                label: isMobile ? const Text('Exportar PDF') : const Text('Exportar PDF'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _dangerColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: _primary,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  color: _secondary,
+                  height: 1.5,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          _buildStatsRow(),
-          const SizedBox(height: 24),
-          _buildDemographicSection(),
-          const SizedBox(height: 24),
-          _buildHealthSection(),
-          const SizedBox(height: 24),
-          _buildEvolucaoSection(),
-          const SizedBox(height: 24),
-          _buildChartSection(),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _exportarPDF() async {
-    try {
-      await PdfService.gerarRelatorioAdminDashboardCompleto(_stats, _evolucao, 'Admin');
-      ToastService.showSuccess(context, 'PDF gerado com sucesso!');
-    } catch (e) {
-      ToastService.showError(context, 'Erro ao gerar PDF: $e');
-    }
-  }
-
-  Widget _buildStatsRow() {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
-    if (isMobile) {
-      return Column(
-        children: [
-          Row(
-            children: [
-              Expanded(child: _buildStatCard('Total Usuários', _parseToInt(_stats['totalUsuarios']), Icons.people, const Color(0xFF3B82F6))),
-              const SizedBox(width: 12),
-              Expanded(child: _buildStatCard('Enfermeiras', _parseToInt(_stats['totalEnfermeiras']), Icons.medical_services, _accentColor)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _buildStatCard('Matrículas', _parseToInt(_stats['totalMatriculas']), Icons.school, _successColor)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildStatCard('Unidades', _parseToInt(_stats['totalUPAs']), Icons.local_hospital, _warningColor)),
-            ],
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        Flexible(child: _buildStatCard('Total Usuários', _parseToInt(_stats['totalUsuarios']), Icons.people, const Color(0xFF3B82F6))),
-        const SizedBox(width: 16),
-        Flexible(child: _buildStatCard('Enfermeiras', _parseToInt(_stats['totalEnfermeiras']), Icons.medical_services, _accentColor)),
-        const SizedBox(width: 16),
-        Flexible(child: _buildStatCard('Matrículas', _parseToInt(_stats['totalMatriculas']), Icons.school, _successColor)),
-        const SizedBox(width: 16),
-        Flexible(child: _buildStatCard('Unidades', _parseToInt(_stats['totalUPAs']), Icons.local_hospital, _warningColor)),
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard(String titulo, int valor, IconData icon, Color cor) {
-    final isMobile = MediaQuery.of(context).size.width < 400;
-
+  Widget _buildSection({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Widget child,
+    Color color = _accent,
+  }) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isMobile ? 12 : 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.all(20),
+      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.all(isMobile ? 8 : 10),
-            decoration: BoxDecoration(
-              color: cor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: isMobile ? 20 : 24, color: cor),
+          _buildSectionHeader(
+            title: title,
+            subtitle: subtitle,
+            icon: icon,
+            color: color,
           ),
-          const SizedBox(height: 16),
-          Text(
-            titulo,
-            style: TextStyle(
-              fontSize: isMobile ? 12 : 14,
-              color: const Color(0xFF64748B),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            valor.toString(),
-            style: TextStyle(
-              fontSize: isMobile ? 24 : 32,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
+          const SizedBox(height: 22),
+          child,
         ],
       ),
     );
   }
 
-  Widget _buildDemographicSection() {
+  Widget _buildStatCard({
+    required String title,
+    required int value,
+    required IconData icon,
+    required Color color,
+    required String description,
+  }) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.all(18),
+      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.people_outline, size: 20, color: Color(0xFF1F4E6E)),
-                SizedBox(width: 8),
-                Text('Demografia', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: _buildInfoItem('Maiores de 18', '${_stats['maiores18']} usuários', Icons.person, const Color(0xFF3B82F6))),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildInfoItem('Menores de 18', '${_stats['menores18']} usuários', Icons.child_care, _successColor)),
-                  ],
+          Row(
+            children: [
+              Container(
+                width: 39,
+                height: 39,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.09),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(height: 16),
-                _buildSexoDistribution(_stats['distribuicaoSexo']),
-              ],
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: color,
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                Icons.north_east_rounded,
+                color: _border,
+                size: 17,
+              ),
+            ],
+          ),
+          const SizedBox(height: 19),
+          Text(
+            value.toString(),
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 30,
+              fontWeight: FontWeight.w700,
+              color: _primary,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            title,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: _primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 11,
+              color: _secondary,
             ),
           ),
         ],
@@ -239,32 +335,116 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
     );
   }
 
-  Widget _buildInfoItem(String title, String value, IconData icon, Color color) {
-    final isMobile = MediaQuery.of(context).size.width < 500;
+  Widget _buildStatsRow() {
+    final items = [
+      _buildStatCard(
+        title: 'Total de usuários',
+        value: _parseToInt(_stats['totalUsuarios']),
+        icon: Icons.people_outline_rounded,
+        color: _accent,
+        description: 'Pessoas cadastradas',
+      ),
+      _buildStatCard(
+        title: 'Enfermeiras',
+        value: _parseToInt(_stats['totalEnfermeiras']),
+        icon: Icons.medical_services_outlined,
+        color: _success,
+        description: 'Profissionais cadastradas',
+      ),
+      _buildStatCard(
+        title: 'Matrículas',
+        value: _parseToInt(_stats['totalMatriculas']),
+        icon: Icons.school_outlined,
+        color: _warning,
+        description: 'Registros de matrícula',
+      ),
+      _buildStatCard(
+        title: 'Unidades',
+        value: _parseToInt(_stats['totalUPAs']),
+        icon: Icons.local_hospital_outlined,
+        color: _danger,
+        description: 'Unidades cadastradas',
+      ),
+    ];
 
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 1050
+            ? 4
+            : constraints.maxWidth >= 520
+                ? 2
+                : 1;
+
+        const gap = 14.0;
+        final width =
+            (constraints.maxWidth - gap * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: items
+              .map(
+                (item) => SizedBox(
+                  width: width,
+                  child: item,
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoTile({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 8 : 12),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: _background,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              color: color.withOpacity(0.09),
+              borderRadius: BorderRadius.circular(9),
             ),
-            child: Icon(icon, size: 16, color: color),
+            child: Icon(
+              icon,
+              color: color,
+              size: 18,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(value, style: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
-                Text(title, style: TextStyle(fontSize: isMobile ? 9 : 11, color: const Color(0xFF64748B))),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: _primary,
+                  ),
+                ),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: _secondary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -273,741 +453,1115 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
     );
   }
 
-  Widget _buildSexoDistribution(List<dynamic> sexoData) {
+  Widget _buildSexoDistribution(dynamic data) {
     int masculino = 0;
     int feminino = 0;
     int outro = 0;
 
-    for (var item in sexoData) {
+    for (final item in _asList(data)) {
       final total = _parseToInt(item['total']);
-      if (item['sexo'] == 'Masculino') masculino = total;
-      else if (item['sexo'] == 'Feminino') feminino = total;
-      else outro = total;
+
+      switch (item['sexo']?.toString().toLowerCase()) {
+        case 'masculino':
+          masculino += total;
+          break;
+        case 'feminino':
+          feminino += total;
+          break;
+        default:
+          outro += total;
+      }
     }
+
+    final total = masculino + feminino + outro;
+
+    final grupos = [
+      _SexoItem('Masculino', masculino, _accent),
+      _SexoItem('Feminino', feminino, _danger),
+      _SexoItem('Outro', outro, _warning),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Distribuição por Sexo', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildSexoBar('Masculino', masculino, const Color(0xFF3B82F6))),
-            const SizedBox(width: 12),
-            Expanded(child: _buildSexoBar('Feminino', feminino, const Color(0xFFEC4899))),
-            const SizedBox(width: 12),
-            Expanded(child: _buildSexoBar('Outro', outro, _accentColor)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSexoBar(String label, int total, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Text(total.toString(), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: color)),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHealthSection() {
-  final usuariosComCancer = _stats['usuariosComCancer'] ?? 0;
-  final usuariosComCardiovascular = _stats['usuariosComCardiovascular'] ?? 0;
-  final mediaScore = _stats['mediaScoreFagestrom'] ?? 0;
-  final isMobile = MediaQuery.of(context).size.width < 600;
-
-  double mediaScoreDouble = 0.0;
-  if (mediaScore is String) {
-    mediaScoreDouble = double.tryParse(mediaScore) ?? 0.0;
-  } else if (mediaScore is int) {
-    mediaScoreDouble = mediaScore.toDouble();
-  } else if (mediaScore is double) {
-    mediaScoreDouble = mediaScore;
-  }
-
-  return Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.06),
-          blurRadius: 12,
-          offset: const Offset(0, 3),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE2E8F0),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.health_and_safety, size: 20, color: Color(0xFFEF4444)),
-              SizedBox(width: 8),
-              Text('Saúde', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
-            ],
+        const Text(
+          'Distribuição por sexo',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: _primary,
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: isMobile
-              ? Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(child: _buildHealthItem('Câncer', '$usuariosComCancer', Icons.health_and_safety, _dangerColor)),
-                        const SizedBox(width: 12),
-                        Expanded(child: _buildHealthItem('Cardiovascular', '$usuariosComCardiovascular', Icons.favorite, const Color(0xFFEC4899))),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildHealthItem('Score Fagerström', '${mediaScoreDouble.toStringAsFixed(1)}', Icons.assessment, _accentColor)),
-                        const SizedBox(width: 12),
-                        Expanded(child: Container()),
-                      ],
-                    ),
-                  ],
-                )
-              : Row(
-                  children: [
-                    Expanded(child: _buildHealthItem('Câncer', '$usuariosComCancer', Icons.health_and_safety, _dangerColor)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildHealthItem('Cardiovascular', '$usuariosComCardiovascular', Icons.favorite, const Color(0xFFEC4899))),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildHealthItem('Score Fagerström', '${mediaScoreDouble.toStringAsFixed(1)}', Icons.assessment, _accentColor)),
-                  ],
+        const SizedBox(height: 15),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Row(
+            children: grupos.map((grupo) {
+              return Expanded(
+                flex: total > 0 ? math.max(1, grupo.value) : 1,
+                child: Container(
+                  height: 9,
+                  color: grupo.color,
                 ),
-        ),
-      ],
-    ),
-  );
-}
-
-  Widget _buildHealthItem(String title, String value, IconData icon, Color color) {
-    final isMobile = MediaQuery.of(context).size.width < 500;
-
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 8 : 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 16, color: color),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: isMobile ? 14 : 16,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: isMobile ? 9 : 10,
-              color: const Color(0xFF64748B),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-Widget _buildEvolucaoSection() {
-  final alunosAtivos = _evolucao['alunos_ativos'] ?? {};
-  final alunosConcluidos = _evolucao['alunos_concluidos'] ?? {};
-  final isMobile = MediaQuery.of(context).size.width < 600;
-
-  return Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.06),
-          blurRadius: 12,
-          offset: const Offset(0, 3),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE2E8F0),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.trending_up, size: 20, color: Color(0xFF1F4E6E)),
-              SizedBox(width: 8),
-              Text('Evolução dos Alunos', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
-            ],
+              );
+            }).toList(),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              isMobile
-                  ? Column(
-                      children: [
-                        _buildEvolucaoCard('Alunos Ativos', alunosAtivos, const Color(0xFF3B82F6)),
-                        const SizedBox(height: 12),
-                        _buildEvolucaoCard('Alunos Concluídos', alunosConcluidos, _successColor),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        Expanded(child: _buildEvolucaoCard('Alunos Ativos', alunosAtivos, const Color(0xFF3B82F6))),
-                        const SizedBox(width: 16),
-                        Expanded(child: _buildEvolucaoCard('Alunos Concluídos', alunosConcluidos, _successColor)),
-                      ],
-                    ),
-              const SizedBox(height: 24),
-              _buildEvolucaoChart(),
-              const SizedBox(height: 24),
-              _buildAlunosDetalhados(),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-  Widget _buildEvolucaoCard(String titulo, Map<String, dynamic> dados, Color cor) {
-    final total = _parseToInt(dados['total']);
-    final fumando = _parseToInt(dados['fumando']);
-    final semFumar = _parseToInt(dados['sem_fumar']);
-    final taxaSucesso = _parseToDouble(dados['taxa_sucesso']);
-    final isMobile = MediaQuery.of(context).size.width < 500;
+        const SizedBox(height: 18),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth < 450 ? 1 : 3;
+            const gap = 10.0;
+            final width =
+                (constraints.maxWidth - gap * (columns - 1)) / columns;
 
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
-      decoration: BoxDecoration(
-        color: cor.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cor.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(titulo, style: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.w600, color: cor)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    Text(total.toString(), style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
-                    const Text('Total', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(width: 8, height: 8, decoration: BoxDecoration(color: _warningColor, shape: BoxShape.circle)),
-                        const SizedBox(width: 4),
-                        Text(fumando.toString(), style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w600, color: _warningColor)),
-                      ],
-                    ),
-                    const Text('Fumando', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(width: 8, height: 8, decoration: BoxDecoration(color: const Color(0xFF3B82F6), shape: BoxShape.circle)),
-                        const SizedBox(width: 4),
-                        Text(semFumar.toString(), style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w600, color: const Color(0xFF3B82F6))),
-                      ],
-                    ),
-                    const Text('Sem fumar', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: total > 0 ? semFumar / total : 0,
-            backgroundColor: _warningColor.withValues(alpha: 0.2),
-            color: const Color(0xFF3B82F6),
-            borderRadius: BorderRadius.circular(10),
-            minHeight: 8,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Taxa de sucesso: ${taxaSucesso.toStringAsFixed(1)}%',
-            style: TextStyle(fontSize: isMobile ? 11 : 12, fontWeight: FontWeight.w600, color: taxaSucesso >= 50 ? _successColor : _warningColor),
-          ),
-        ],
-      ),
-    );
-  }
+            return Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: grupos.map((grupo) {
+                final percentual =
+                    total > 0 ? grupo.value / total * 100 : 0.0;
 
-  int _parseToInt(dynamic value) {
-    if (value == null) return 0;
-    if (value is int) return value;
-    if (value is double) return value.toInt();
-    if (value is String) {
-      final parsed = int.tryParse(value);
-      if (parsed != null) return parsed;
-      return 0;
-    }
-    return 0;
-  }
-
-  double _parseToDouble(dynamic value) {
-    if (value == null) return 0.0;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) {
-      final parsed = double.tryParse(value);
-      if (parsed != null) return parsed;
-      return 0.0;
-    }
-    return 0.0;
-  }
-
-  Widget _buildEvolucaoChart() {
-    final evolucaoAtivos = List<Map<String, dynamic>>.from(_evolucao['evolucao_mensal_ativos'] ?? []);
-
-    if (evolucaoAtivos.isEmpty) {
-      return const Center(child: Text('Sem dados para exibir', style: TextStyle(color: Color(0xFF64748B))));
-    }
-
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text('Evolução Mensal', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
-        const SizedBox(height: 12),
-        _buildMensalChart(evolucaoAtivos, 'Alunos Ativos', isMobile),
-      ],
-    );
-  }
-
-  Widget _buildMensalChart(List<Map<String, dynamic>> dados, String titulo, bool isMobile) {
-    final maxValor = dados.fold<int>(0, (max, item) {
-      final fumando = _parseToInt(item['fumando']);
-      final semFumar = _parseToInt(item['sem_fumar']);
-      final total = fumando + semFumar;
-      return total > max ? total : max;
-    });
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(titulo, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF64748B))),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 180,
-          width: isMobile ? double.infinity : null,
-          child: SingleChildScrollView(
-            scrollDirection: isMobile ? Axis.horizontal : Axis.vertical,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: dados.map((item) {
-                final mes = item['mes'] as String;
-                final fumando = _parseToInt(item['fumando']).toDouble();
-                final semFumar = _parseToInt(item['sem_fumar']).toDouble();
-                final total = fumando + semFumar;
-                final altura = maxValor > 0 ? (total / maxValor) * 120 : 0;
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                return SizedBox(
+                  width: width,
+                  child: Row(
                     children: [
-                      Text(total.toInt().toString(), style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                      const SizedBox(height: 4),
-                      Stack(
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          Container(
-                            width: isMobile ? 30 : 35,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE2E8F0),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                          if (altura > 0)
-                            Column(
-                              children: [
-                                if (semFumar > 0)
-                                  Container(
-                                    width: isMobile ? 30 : 35,
-                                    height: (semFumar / total) * altura,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF3B82F6),
-                                      borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
-                                    ),
-                                  ),
-                                if (fumando > 0)
-                                  Container(
-                                    width: isMobile ? 30 : 35,
-                                    height: (fumando / total) * altura,
-                                    decoration: BoxDecoration(
-                                      color: _warningColor,
-                                      borderRadius: BorderRadius.vertical(
-                                        top: semFumar > 0 ? Radius.zero : Radius.circular(6),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                        ],
+                      Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: grupo.color,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                      const SizedBox(height: 4),
-                      SizedBox(
-                        width: isMobile ? 35 : 45,
+                      const SizedBox(width: 7),
+                      Expanded(
                         child: Text(
-                          mes.substring(5),
-                          style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
-                          textAlign: TextAlign.center,
+                          grupo.label,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            color: _secondary,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${grupo.value} (${percentual.toStringAsFixed(0)}%)',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _primary,
                         ),
                       ),
                     ],
                   ),
                 );
               }).toList(),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildLegendaItem(_warningColor, 'Fumando'),
-            const SizedBox(width: 16),
-            _buildLegendaItem(const Color(0xFF3B82F6), 'Sem fumar'),
-          ],
+            );
+          },
         ),
       ],
     );
   }
 
-  Widget _buildLegendaItem(Color cor, String texto) {
+  Widget _buildDemographicSection() {
+    return _buildSection(
+      title: 'Demografia',
+      subtitle: 'Perfil dos usuários cadastrados na plataforma.',
+      icon: Icons.groups_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 450;
+
+              final items = [
+                _buildInfoTile(
+                  title: 'Maiores de 18 anos',
+                  value: '${_parseToInt(_stats['maiores18'])} usuários',
+                  icon: Icons.person_outline_rounded,
+                  color: _accent,
+                ),
+                _buildInfoTile(
+                  title: 'Menores de 18 anos',
+                  value: '${_parseToInt(_stats['menores18'])} usuários',
+                  icon: Icons.child_care_outlined,
+                  color: _success,
+                ),
+              ];
+
+              if (isNarrow) {
+                return Column(
+                  children: [
+                    items[0],
+                    const SizedBox(height: 10),
+                    items[1],
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: items[0]),
+                  const SizedBox(width: 12),
+                  Expanded(child: items[1]),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          _buildSexoDistribution(_stats['distribuicaoSexo']),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHealthItem({
+    required String title,
+    required String value,
+    required String description,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: _background,
+        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 21,
+            color: color,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            value,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: _primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _primary,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            description,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 11,
+              color: _secondary,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHealthSection() {
+    final media = _parseToDouble(_stats['mediaScoreFagestrom']);
+
+    final items = [
+      _buildHealthItem(
+        title: 'Câncer',
+        value: '${_parseToInt(_stats['usuariosComCancer'])}',
+        description: 'Usuários com registro',
+        icon: Icons.health_and_safety_outlined,
+        color: _danger,
+      ),
+      _buildHealthItem(
+        title: 'Cardiovascular',
+        value: '${_parseToInt(_stats['usuariosComCardiovascular'])}',
+        description: 'Usuários com registro',
+        icon: Icons.favorite_border_rounded,
+        color: _warning,
+      ),
+      _buildHealthItem(
+        title: 'Score Fagerström',
+        value: media.toStringAsFixed(1),
+        description: 'Média de dependência',
+        icon: Icons.monitor_heart_outlined,
+        color: _accent,
+      ),
+    ];
+
+    return _buildSection(
+      title: 'Indicadores de saúde',
+      subtitle: 'Informações clínicas consolidadas dos usuários.',
+      icon: Icons.monitor_heart_outlined,
+      color: _danger,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 680
+              ? 3
+              : constraints.maxWidth >= 430
+                  ? 2
+                  : 1;
+
+          const gap = 12.0;
+          final width =
+              (constraints.maxWidth - gap * (columns - 1)) / columns;
+
+          return Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            children: items
+                .map(
+                  (item) => SizedBox(
+                    width: width,
+                    child: item,
+                  ),
+                )
+                .toList(),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEvolucaoCard({
+    required String title,
+    required Map<String, dynamic> dados,
+    required Color color,
+    required IconData icon,
+  }) {
+    final total = _parseToInt(dados['total']);
+    final fumando = _parseToInt(dados['fumando']);
+    final semFumar = _parseToInt(dados['sem_fumar']);
+    final taxa = _parseToDouble(dados['taxa_sucesso']);
+    final progresso =
+        total > 0 ? (semFumar / total).clamp(0.0, 1.0).toDouble() : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 19,
+                color: color,
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _primary,
+                  ),
+                ),
+              ),
+              Text(
+                '$total',
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: _primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMiniMetric(
+                  label: 'Fumando',
+                  value: fumando,
+                  color: _warning,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildMiniMetric(
+                  label: 'Sem fumar',
+                  value: semFumar,
+                  color: _success,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 19),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: LinearProgressIndicator(
+              value: progresso,
+              minHeight: 8,
+              backgroundColor: _warningSoft,
+              valueColor: const AlwaysStoppedAnimation<Color>(_success),
+            ),
+          ),
+          const SizedBox(height: 11),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Taxa de sucesso',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: _secondary,
+                  ),
+                ),
+              ),
+              Text(
+                '${taxa.toStringAsFixed(1)}%',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: taxa >= 50 ? _success : _warning,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniMetric({
+    required String label,
+    required int value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 11,
+      ),
+      decoration: BoxDecoration(
+        color: _background,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$value',
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: _primary,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10,
+                    color: _secondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendaItem(Color color, String text) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 16,
-          height: 16,
+          width: 9,
+          height: 9,
           decoration: BoxDecoration(
-            color: cor,
-            borderRadius: BorderRadius.circular(4),
+            color: color,
+            borderRadius: BorderRadius.circular(3),
           ),
         ),
         const SizedBox(width: 6),
         Text(
-          texto,
-          style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+          text,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 11,
+            color: _secondary,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildAlunosDetalhados() {
-  final alunos = List<Map<String, dynamic>>.from(_evolucao['alunos_detalhados'] ?? []);
+  Widget _buildMensalChart(List<Map<String, dynamic>> dados) {
+    if (dados.isEmpty) {
+      return _buildEmptyState(
+        'Nenhum dado mensal disponível.',
+      );
+    }
 
-  if (alunos.isEmpty) {
-    return const SizedBox.shrink();
-  }
+    final maxValor = dados.fold<int>(0, (maximo, item) {
+      final total = _parseToInt(item['fumando']) +
+          _parseToInt(item['sem_fumar']);
 
-  final isMobile = MediaQuery.of(context).size.width < 600;
-  final isSmallMobile = MediaQuery.of(context).size.width < 400;
-  final totalPages = (alunos.length / _alunosPerPage).ceil();
-  final startIndex = _alunosPage * _alunosPerPage;
-  final endIndex = (startIndex + _alunosPerPage) > alunos.length ? alunos.length : (startIndex + _alunosPerPage);
-  final alunosPaginados = alunos.sublist(startIndex, endIndex);
+      return math.max(maximo, total);
+    });
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text('Situação Atual dos Alunos', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
-      const SizedBox(height: 12),
-      Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final barWidth = constraints.maxWidth < 500 ? 34.0 : 42.0;
+        final itemWidth = constraints.maxWidth < 500 ? 59.0 : 74.0;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE2E8F0),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            const Text(
+              'Evolução mensal',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _primary,
               ),
-              child: isSmallMobile
-                  ? Column(
-                      children: [
-                        Row(
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              height: 205,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: constraints.maxWidth,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: dados.map((item) {
+                      final fumando = _parseToInt(item['fumando']);
+                      final semFumar = _parseToInt(item['sem_fumar']);
+                      final total = fumando + semFumar;
+
+                      final altura = maxValor > 0
+                          ? total / maxValor * 140
+                          : 0.0;
+
+                      final alturaFumando = total > 0
+                          ? fumando / total * altura
+                          : 0.0;
+
+                      final alturaSemFumar = total > 0
+                          ? semFumar / total * altura
+                          : 0.0;
+
+                      return SizedBox(
+                        width: itemWidth,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            const Expanded(child: Text('Aluno', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11))),
-                            SizedBox(width: 50, child: Text('Turma', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 10), textAlign: TextAlign.center)),
-                            SizedBox(width: 50, child: Text('Situação', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 10), textAlign: TextAlign.center)),
+                            Text(
+                              '$total',
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: _primary,
+                              ),
+                            ),
+                            const SizedBox(height: 7),
+                            Container(
+                              width: barWidth,
+                              height: 140,
+                              alignment: Alignment.bottomCenter,
+                              decoration: BoxDecoration(
+                                color: _background,
+                                borderRadius: BorderRadius.circular(7),
+                                border: Border.all(color: _border),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    if (alturaFumando > 0)
+                                      Container(
+                                        width: barWidth,
+                                        height: alturaFumando,
+                                        color: _warning,
+                                      ),
+                                    if (alturaSemFumar > 0)
+                                      Container(
+                                        width: barWidth,
+                                        height: alturaSemFumar,
+                                        color: _success,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 9),
+                            Text(
+                              _formatMes(item['mes']),
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 10,
+                                color: _secondary,
+                              ),
+                            ),
                           ],
                         ),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        const Expanded(child: Text('Aluno', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
-                        SizedBox(width: isMobile ? 60 : 80, child: Text('Turma', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
-                        SizedBox(width: isMobile ? 60 : 80, child: Text('Situação', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12), textAlign: TextAlign.center)),
-                      ],
-                    ),
-            ),
-            ...alunosPaginados.map((aluno) {
-              final ultimaObservacao = aluno['ultima_observacao'];
-              final semanasFumando = _parseToInt(aluno['semanas_fumando']);
-              final semanasSemFumar = _parseToInt(aluno['semanas_sem_fumar']);
-
-              String situacao;
-              Color situacaoCor;
-
-              if (ultimaObservacao == '2- Sem fumar') {
-                situacao = 'Sem fumar';
-                situacaoCor = const Color(0xFF3B82F6);
-              } else if (ultimaObservacao == '1- Está fumando') {
-                situacao = 'Fumando';
-                situacaoCor = _warningColor;
-              } else {
-                situacao = 'Sem registro';
-                situacaoCor = const Color(0xFF94A3B8);
-              }
-
-              return Container(
-                padding: EdgeInsets.all(isSmallMobile ? 8 : 12),
-                decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(color: const Color(0xFFE2E8F0))),
+                      );
+                    }).toList(),
+                  ),
                 ),
-                child: isSmallMobile
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(aluno['nome_completo'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: situacaoCor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  situacao,
-                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: situacaoCor),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text(
-                                'Turma: ${aluno['turma_horario']?.split(' - ')[0] ?? '-'}',
-                                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'F: $semanasFumando • SF: $semanasSemFumar',
-                                style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
-                              ),
-                            ],
-                          ),
-                        ],
-                      )
-                    : Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(aluno['nome_completo'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                                Text(
-                                  'F: $semanasFumando • SF: $semanasSemFumar',
-                                  style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(
-                            width: isMobile ? 60 : 80,
-                            child: Text(
-                              aluno['turma_horario']?.split(' - ')[0] ?? '-',
-                              style: const TextStyle(fontSize: 11),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          SizedBox(
-                            width: isMobile ? 60 : 80,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: situacaoCor.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                situacao,
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: situacaoCor),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-              );
-            }).toList(),
-            if (totalPages > 1)
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 18,
+              runSpacing: 8,
+              children: [
+                _buildLegendaItem(_warning, 'Fumando'),
+                _buildLegendaItem(_success, 'Sem fumar'),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStatusBadge(String status, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.09),
+        borderRadius: BorderRadius.circular(7),
+      ),
+      child: Text(
+        status,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAlunosDetalhados() {
+    final alunos = _asList(_evolucao['alunos_detalhados']);
+
+    if (alunos.isEmpty) {
+      return _buildEmptyState(
+        'Nenhum aluno disponível para consulta.',
+      );
+    }
+
+    final totalPages = (alunos.length / _alunosPerPage).ceil();
+    final paginaAtual = _alunosPage.clamp(0, totalPages - 1).toInt();
+    final startIndex = paginaAtual * _alunosPerPage;
+    final endIndex = math.min(
+      startIndex + _alunosPerPage,
+      alunos.length,
+    );
+
+    final alunosPaginados = alunos.sublist(startIndex, endIndex);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Situação atual dos alunos',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: _primary,
+                ),
+              ),
+            ),
+            Text(
+              '${alunos.length} registros',
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                color: _secondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: _border),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              for (int index = 0;
+                  index < alunosPaginados.length;
+                  index++) ...[
+                _buildAlunoRow(alunosPaginados[index]),
+                if (index < alunosPaginados.length - 1)
+                  const Divider(
+                    height: 1,
+                    color: _border,
+                  ),
+              ],
+            ],
+          ),
+        ),
+        if (totalPages > 1) ...[
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildPaginationButton(
+                Icons.chevron_left_rounded,
+                paginaAtual > 0
+                    ? () {
+                        setState(() {
+                          _alunosPage = paginaAtual - 1;
+                        });
+                      }
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '${paginaAtual + 1} de $totalPages',
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _secondary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              _buildPaginationButton(
+                Icons.chevron_right_rounded,
+                paginaAtual < totalPages - 1
+                    ? () {
+                        setState(() {
+                          _alunosPage = paginaAtual + 1;
+                        });
+                      }
+                    : null,
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildAlunoRow(Map<String, dynamic> aluno) {
+    final nome = aluno['nome_completo']?.toString() ?? '-';
+    final turmaCompleta = aluno['turma_horario']?.toString() ?? '-';
+    final turma = turmaCompleta.split(' - ').first;
+
+    final semanasFumando = _parseToInt(aluno['semanas_fumando']);
+    final semanasSemFumar = _parseToInt(aluno['semanas_sem_fumar']);
+
+    final ultimaObservacao = aluno['ultima_observacao'];
+
+    String situacao;
+    Color situacaoCor;
+
+    if (ultimaObservacao == '2- Sem fumar') {
+      situacao = 'Sem fumar';
+      situacaoCor = _success;
+    } else if (ultimaObservacao == '1- Está fumando') {
+      situacao = 'Fumando';
+      situacaoCor = _warning;
+    } else {
+      situacao = 'Sem registro';
+      situacaoCor = _secondary;
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 560;
+
+        if (isMobile) {
+          return Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left, size: 20),
-                      onPressed: _alunosPage > 0
-                          ? () {
-                              setState(() => _alunosPage--);
-                            }
-                          : null,
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE2E8F0),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                    Expanded(
                       child: Text(
-                        '${_alunosPage + 1} de $totalPages',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: _accentColor),
+                        nome,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _primary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right, size: 20),
-                      onPressed: _alunosPage < totalPages - 1
-                          ? () {
-                              setState(() => _alunosPage++);
-                            }
-                          : null,
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    _buildStatusBadge(situacao, situacaoCor),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 7,
+                  children: [
+                    _buildAlunoDetail(
+                      Icons.groups_outlined,
+                      turma,
+                    ),
+                    _buildAlunoDetail(
+                      Icons.smoking_rooms_outlined,
+                      '$semanasFumando sem. fumando',
+                    ),
+                    _buildAlunoDetail(
+                      Icons.smoke_free_outlined,
+                      '$semanasSemFumar sem. sem fumar',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 15,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nome,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _primary,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      'Fumando: $semanasFumando sem.  •  Sem fumar: $semanasSemFumar sem.',
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 10,
+                        color: _secondary,
                       ),
                     ),
                   ],
                 ),
               ),
-          ],
+              Expanded(
+                flex: 2,
+                child: Text(
+                  turma,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: _secondary,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildStatusBadge(
+                    situacao,
+                    situacaoCor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAlunoDetail(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 13,
+          color: _secondary,
+        ),
+        const SizedBox(width: 5),
+        Text(
+          text,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 10,
+            color: _secondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaginationButton(
+    IconData icon,
+    VoidCallback? onPressed,
+  ) {
+    return IconButton(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 19),
+      color: _accent,
+      disabledColor: _border,
+      style: IconButton.styleFrom(
+        backgroundColor: _surface,
+        side: const BorderSide(color: _border),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(9),
         ),
       ),
-    ],
-  );
-}
+    );
+  }
 
-  Widget _buildChartSection() {
-    final usuariosPorMes = _stats['usuariosPorMes'] as List? ?? [];
+  Widget _buildEvolucaoSection() {
+    final ativos = _asMap(_evolucao['alunos_ativos']);
+    final concluidos = _asMap(_evolucao['alunos_concluidos']);
+    final evolucaoMensal =
+        _asList(_evolucao['evolucao_mensal_ativos']);
 
-    if (usuariosPorMes.isEmpty) {
-      return Container();
-    }
-
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
+    return _buildSection(
+      title: 'Evolução dos alunos',
+      subtitle: 'Acompanhamento do progresso no tratamento.',
+      icon: Icons.trending_up_rounded,
+      color: _success,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.show_chart, size: 20, color: Color(0xFF1F4E6E)),
-                SizedBox(width: 8),
-                Text('Matrículas por Mês', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
-              ],
-            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final ativo = _buildEvolucaoCard(
+                title: 'Alunos ativos',
+                dados: ativos,
+                color: _accent,
+                icon: Icons.person_outline_rounded,
+              );
+
+              final concluido = _buildEvolucaoCard(
+                title: 'Alunos concluídos',
+                dados: concluidos,
+                color: _success,
+                icon: Icons.verified_outlined,
+              );
+
+              if (constraints.maxWidth < 720) {
+                return Column(
+                  children: [
+                    ativo,
+                    const SizedBox(height: 12),
+                    concluido,
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: ativo),
+                  const SizedBox(width: 14),
+                  Expanded(child: concluido),
+                ],
+              );
+            },
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              height: 200,
-              child: usuariosPorMes.reversed.isEmpty
-                  ? const Center(child: Text('Sem dados'))
-                  : _buildBarChart(usuariosPorMes.reversed.toList(), isMobile),
+          const SizedBox(height: 28),
+          _buildMensalChart(evolucaoMensal),
+          const SizedBox(height: 28),
+          const Divider(color: _border, height: 1),
+          const SizedBox(height: 25),
+          _buildAlunosDetalhados(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMatriculasChart() {
+    final dados = _asList(_stats['usuariosPorMes']).reversed.toList();
+
+    if (dados.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final maxValor = dados.fold<double>(
+      0,
+      (maximo, item) => math.max(
+        maximo,
+        _parseToDouble(item['total']),
+      ),
+    );
+
+    return _buildSection(
+      title: 'Matrículas por mês',
+      subtitle: 'Volume de matrículas registradas ao longo do tempo.',
+      icon: Icons.bar_chart_rounded,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final itemWidth = constraints.maxWidth < 500 ? 58.0 : 74.0;
+          final barWidth = constraints.maxWidth < 500 ? 32.0 : 42.0;
+
+          return SizedBox(
+            height: 215,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: constraints.maxWidth,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: dados.map((item) {
+                    final valor = _parseToDouble(item['total']);
+                    final altura =
+                        maxValor > 0 ? valor / maxValor * 145 : 0.0;
+
+                    return SizedBox(
+                      width: itemWidth,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${valor.toInt()}',
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _primary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: barWidth,
+                            height: 145,
+                            alignment: Alignment.bottomCenter,
+                            decoration: BoxDecoration(
+                              color: _background,
+                              borderRadius: BorderRadius.circular(7),
+                              border: Border.all(color: _border),
+                            ),
+                            child: Container(
+                              width: barWidth,
+                              height: altura,
+                              decoration: const BoxDecoration(
+                                color: _accent,
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(6),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 9),
+                          Text(
+                            _formatMes(item['mes']),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 10,
+                              color: _secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 18,
+        vertical: 25,
+      ),
+      decoration: BoxDecoration(
+        color: _background,
+        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.insert_chart_outlined_rounded,
+            size: 27,
+            color: _secondary,
+          ),
+          const SizedBox(height: 9),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              color: _secondary,
             ),
           ),
         ],
@@ -1015,58 +1569,215 @@ Widget _buildEvolucaoSection() {
     );
   }
 
-  Widget _buildBarChart(List<dynamic> dados, bool isMobile) {
-    List<String> meses = [];
-    List<double> valores = [];
+  Widget _buildPageHeader(bool isMobile) {
+    final heading = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Visão geral',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 25,
+            fontWeight: FontWeight.w600,
+            color: _primary,
+          ),
+        ),
+        const SizedBox(height: 5),
+        const Text(
+          'Indicadores e acompanhamento geral da plataforma.',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 12,
+            color: _secondary,
+          ),
+        ),
+      ],
+    );
 
-    for (var item in dados) {
-      meses.add(item['mes']);
-      double valor = _parseToDouble(item['total']);
-      valores.add(valor);
-    }
-
-    if (valores.isEmpty) {
-      return const Center(child: Text('Sem dados', style: TextStyle(color: Color(0xFF64748B))));
-    }
-
-    final maxValor = valores.reduce((a, b) => a > b ? a : b);
-
-    return SingleChildScrollView(
-      scrollDirection: isMobile ? Axis.horizontal : Axis.vertical,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(dados.length, (index) {
-          double altura = 0;
-          if (maxValor > 0) {
-            altura = (valores[index] / maxValor) * 150;
-          }
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(valores[index].toInt().toString(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
-                const SizedBox(height: 4),
-                Container(
-                  width: isMobile ? 30 : 40,
-                  height: altura,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF6B21A8), Color(0xFF4C1D95)],
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(meses[index].toString().substring(5), style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-              ],
+    final actions = Wrap(
+      spacing: 9,
+      runSpacing: 9,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () => _carregarDados(
+            mostrarLoading: false,
+          ),
+          icon: const Icon(
+            Icons.refresh_rounded,
+            size: 17,
+          ),
+          label: const Text('Atualizar'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _accent,
+            side: const BorderSide(color: _border),
+            backgroundColor: _surface,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 15,
+              vertical: 14,
             ),
-          );
-        }),
-      ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            textStyle: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        ElevatedButton.icon(
+          onPressed: _exportando ? null : _exportarPDF,
+          icon: _exportando
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(
+                  Icons.picture_as_pdf_outlined,
+                  size: 17,
+                ),
+          label: Text(
+            _exportando ? 'Gerando...' : 'Exportar PDF',
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _accent,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: _accent.withOpacity(0.6),
+            disabledForegroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 17,
+              vertical: 14,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            textStyle: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          heading,
+          const SizedBox(height: 17),
+          actions,
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(child: heading),
+        const SizedBox(width: 16),
+        actions,
+      ],
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_carregando) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: _accent,
+          strokeWidth: 2.5,
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 768;
+        final padding = constraints.maxWidth < 400 ? 14.0 : 24.0;
+
+        return RefreshIndicator(
+          color: _accent,
+          onRefresh: () => _carregarDados(
+            mostrarLoading: false,
+          ),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? padding : 30,
+              vertical: isMobile ? 22 : 30,
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 1360,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildPageHeader(isMobile),
+                    const SizedBox(height: 25),
+                    _buildStatsRow(),
+                    const SizedBox(height: 20),
+                    LayoutBuilder(
+                      builder: (context, innerConstraints) {
+                        if (innerConstraints.maxWidth < 1000) {
+                          return Column(
+                            children: [
+                              _buildDemographicSection(),
+                              const SizedBox(height: 20),
+                              _buildHealthSection(),
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _buildDemographicSection(),
+                            ),
+                            const SizedBox(width: 20),
+                            Expanded(
+                              child: _buildHealthSection(),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    _buildEvolucaoSection(),
+                    if (_asList(_stats['usuariosPorMes']).isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      _buildMatriculasChart(),
+                    ],
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SexoItem {
+  final String label;
+  final int value;
+  final Color color;
+
+  const _SexoItem(
+    this.label,
+    this.value,
+    this.color,
+  );
 }

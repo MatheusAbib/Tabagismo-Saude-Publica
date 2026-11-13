@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tabagismo_app/services/notification_service.dart';
 import 'package:tabagismo_app/services/toast_service.dart';
 import 'package:tabagismo_app/services/polling_service.dart';
 import 'package:tabagismo_app/widgets/header/header_actions_widget.dart';
@@ -37,83 +36,27 @@ class HeaderWidget extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _HeaderWidgetState createState() => _HeaderWidgetState();
+  State<HeaderWidget> createState() => _HeaderWidgetState();
 }
 
 class _HeaderWidgetState extends State<HeaderWidget> {
+  static const Color _background = Color(0xFFFFFDF9);
+  static const Color _foreground = Color(0xFF333333);
+  static const Color _secondary = Color(0xFF667078);
+  static const Color _primary = Color(0xFF426E8C);
+  static const Color _softBlue = Color(0xFFE1EDF6);
+  static const Color _border = Color(0xFFDEDCD5);
+  static const Color _divider = Color(0xFFE6E5DF);
+
   int _naoLidas = 0;
-  bool _hoveringLogo = false;
 
-  @override
-  void initState() {
-    super.initState();
+  String get _firstName {
+    final name = widget.userData['nomeCompleto']?.toString().trim() ?? '';
+    if (name.isEmpty) return 'Usuário';
+    return name.split(RegExp(r'\s+')).first;
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  Widget _buildNotificationBell() {
-    return Container(
-      height: 40,
-      margin: const EdgeInsets.only(left: 10),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _showNotificationsDialog,
-          borderRadius: BorderRadius.circular(30),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                const Icon(Icons.notifications_none, color: Colors.white, size: 18),
-                if (_naoLidas > 0)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Transform.translate(
-                      offset: const Offset(8, -8),
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          _naoLidas > 9 ? '9+' : '$_naoLidas',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showNotificationsDialog() async {
+  void _showNotificationsDialog() {
     NotificacoesModal.show(context);
   }
 
@@ -142,284 +85,267 @@ class _HeaderWidgetState extends State<HeaderWidget> {
   }
 
   void _openFagerstromTest() {
-    FagerstromTestModal.show(context, onScoreUpdated: (score) {
-      ToastService.showSuccess(context, 'Teste de Fagerström finalizado! Score: $score');
-    });
+    FagerstromTestModal.show(
+      context,
+      onScoreUpdated: (score) {
+        ToastService.showSuccess(
+          context,
+          'Teste de Fagerström finalizado! Score: $score',
+        );
+      },
+    );
   }
 
   void _showSintomasModal() {
     SintomasModalWidget.show(context);
   }
 
+  void _handleMenuSelection(String value) {
+    switch (value) {
+      case 'turmas_apoio':
+        _openUPAScreen();
+        break;
+      case 'sintomas':
+        _showSintomasModal();
+        break;
+      case 'teste_fagerstrom':
+        _openFagerstromTest();
+        break;
+      case 'minhas_matriculas':
+        _openMyEnrollments();
+        break;
+      case 'editar_dados':
+        MeusDadosModal.show(context);
+        break;
+      case 'sair':
+        LogoutModal.show(context);
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 768;
-    final isTablet = MediaQuery.of(context).size.width >= 768 && MediaQuery.of(context).size.width < 1200;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    final isTablet = screenWidth >= 768 && screenWidth < 1200;
     final horizontalPadding = isMobile ? 16.0 : (isTablet ? 24.0 : 50.0);
-
-    if (widget.isHome) {
-      return Consumer<PollingService>(
-        builder: (context, pollingService, child) {
-          _naoLidas = pollingService.notificacoesNaoLidas;
-          return _buildHomeHeader(isMobile, horizontalPadding);
-        },
-      );
-    }
 
     return Consumer<PollingService>(
       builder: (context, pollingService, child) {
         _naoLidas = pollingService.notificacoesNaoLidas;
-        return _buildAdminEnfermeiraHeader(isMobile, horizontalPadding);
+
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 12,
+            left: horizontalPadding,
+            right: horizontalPadding,
+            bottom: 12,
+          ),
+          decoration: const BoxDecoration(
+            color: _background,
+            border: Border(
+              bottom: BorderSide(
+                color: _border,
+                width: 1,
+              ),
+            ),
+          ),
+          child: widget.isHome
+              ? _buildHomeHeader(isMobile)
+              : _buildAdminEnfermeiraHeader(isMobile),
+        );
       },
     );
   }
 
-Widget _buildHomeHeader(bool isMobile, double horizontalPadding) {
-  return Container(
-    padding: EdgeInsets.only(
-      top: MediaQuery.of(context).padding.top + 12,
-      left: horizontalPadding,
-      right: horizontalPadding,
-      bottom: 12,
-    ),
-    decoration: BoxDecoration(
-      color: const Color(0xFF334155),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.08),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            if (widget.showBackButton)
-              Container(
-                margin: EdgeInsets.only(right: 5),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                  onPressed: widget.onBackPressed ?? () => Navigator.pop(context),
-                  padding: const EdgeInsets.all(10),
-                  constraints: const BoxConstraints(),
-                ),
-              ),
-            MouseRegion(
-              cursor: widget.isHome
-                  ? SystemMouseCursors.click
-                  : SystemMouseCursors.basic,
-              onEnter: (_) {
-                if (widget.isHome) setState(() => _hoveringLogo = true);
-              },
-              onExit: (_) {
-                if (widget.isHome) setState(() => _hoveringLogo = false);
-              },
-              child: GestureDetector(
-                onTap: widget.isHome
-                    ? () {
-                        Navigator.of(context)
-                            .popUntil((route) => route.isFirst);
-                      }
-                    : null,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _hoveringLogo
-                        ? Colors.white.withOpacity(0.10)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(40),
-                    border: Border.all(
-                      color: _hoveringLogo
-                          ? Colors.white.withOpacity(0.18)
-                          : Colors.transparent,
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeOut,
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(
-                            _hoveringLogo ? 0.22 : 0.15,
-                          ),
-                          borderRadius: BorderRadius.circular(35),
-                        ),
-                        child: Icon(widget.icon, color: widget.iconColor, size: 32),
-                      ),
-                      const SizedBox(width: 12),
-                      const Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'DESFUMO',
-                            style: TextStyle(
-                              fontFamily: 'BebasNeue',
-                              fontSize: 28,
-                              fontWeight: FontWeight.w400,
-                              letterSpacing: 1,
-                              color: Colors.white,
-                              height: 0.9,
-                            ),
-                          ),
-                          Text(
-                            'Apoio ao Tabagismo',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
-                              height: 0.9,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        isMobile ? _buildHomeMobileMenu() : _buildHomeDesktopMenu(),
-      ],
-    ),
-  );
-}
-
-  Widget _buildHomeMobileMenu() {
+  Widget _buildHomeHeader(bool isMobile) {
     return Row(
       children: [
-        _buildNotificationBell(),
-        const SizedBox(width: 8),
-        Container(
-          height: 42,
-          width: 42,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.white.withOpacity(0.15),
-                Colors.white.withOpacity(0.08),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.25),
-              width: 1,
-            ),
+        if (widget.showBackButton) ...[
+          _buildBackButton(),
+          const SizedBox(width: 10),
+        ],
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: _buildLogo(),
           ),
-          child: PopupMenuButton<String>(
-            offset: const Offset(0, 50),
-            elevation: 8,
-            shadowColor: Colors.black.withOpacity(0.15),
-            color: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Icon(Icons.menu, color: Colors.white, size: 24),
-            onSelected: (String value) {
-              switch (value) {
-                case 'turmas_apoio':
-                  _openUPAScreen();
-                  break;
-                case 'sintomas':
-                  _showSintomasModal();
-                  break;
-                case 'teste_fagerstrom':
-                  _openFagerstromTest();
-                  break;
-                case 'minhas_matriculas':
-                  _openMyEnrollments();
-                  break;
-                case 'editar_dados':
-                  MeusDadosModal.show(context);
-                  break;
-                case 'sair':
-                  LogoutModal.show(context);
-                  break;
+        ),
+        const SizedBox(width: 12),
+        if (isMobile)
+          _buildHomeMobileMenu()
+        else
+          _buildHomeDesktopMenu(),
+      ],
+    );
+  }
+
+  Widget _buildLogo() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: widget.isHome
+            ? () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
               }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'turmas_apoio',
-                child: Row(
-                  children: [
-                    Icon(Icons.location_on_outlined, size: 20, color: Color(0xFF1F4E6E)),
-                    SizedBox(width: 12),
-                    Text('Turmas de Apoio', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
-                  ],
+            : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: _softBlue,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  widget.icon,
+                  color: _primary,
+                  size: 29,
                 ),
               ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'sintomas',
-                child: Row(
+              const SizedBox(width: 12),
+              const Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.monitor_heart_outlined, size: 20, color: Color(0xFF1F4E6E)),
-                    SizedBox(width: 12),
-                    Text('Sintomas Diários', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'teste_fagerstrom',
-                child: Row(
-                  children: [
-                    Icon(Icons.assessment_outlined, size: 20, color: Color(0xFFD97706)),
-                    SizedBox(width: 12),
-                    Text('Teste de Fagerström', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'minhas_matriculas',
-                child: Row(
-                  children: [
-                    Icon(Icons.list_alt_outlined, size: 20, color: Color(0xFF6B21A8)),
-                    SizedBox(width: 12),
-                    Text('Minhas Matrículas', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'editar_dados',
-                child: Row(
-                  children: [
-                    Icon(Icons.person, size: 20, color: Color(0xFF64748B)),
-                    SizedBox(width: 12),
-                    Text('Meus Dados', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              PopupMenuItem<String>(
-                value: 'sair',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout_outlined, size: 20, color: Colors.red.shade400),
-                    const SizedBox(width: 12),
-                    Text('Sair', style: TextStyle(fontSize: 14, color: Colors.red.shade400, fontFamily: 'Inter')),
+                    Text(
+                      'DESFUMO',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'BebasNeue',
+                        fontSize: 28,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: 1,
+                        color: _foreground,
+                        height: 0.95,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Apoio ao Tabagismo',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: _secondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
+                        fontFamily: 'Inter',
+                        letterSpacing: 1.2,
+                        height: 1.1,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: widget.onBackPressed ?? () => Navigator.pop(context),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            border: Border.all(color: _border),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(
+            Icons.arrow_back,
+            color: _foreground,
+            size: 19,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationBell() {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _showNotificationsDialog,
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                border: Border.all(color: _border),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.notifications_none_outlined,
+                color: _primary,
+                size: 21,
+              ),
+            ),
+          ),
+        ),
+        if (_naoLidas > 0)
+          Positioned(
+            right: -5,
+            top: -5,
+            child: Container(
+              constraints: const BoxConstraints(
+                minWidth: 17,
+                minHeight: 17,
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 4,
+                vertical: 2,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFC76D60),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _background,
+                  width: 2,
+                ),
+              ),
+              child: Text(
+                _naoLidas > 9 ? '9+' : '$_naoLidas',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildHomeMobileMenu() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildNotificationBell(),
+        const SizedBox(width: 10),
+        _buildPopupMenu(
+          isMobile: true,
+          includeSupportGroups: true,
         ),
       ],
     );
@@ -427,270 +353,264 @@ Widget _buildHomeHeader(bool isMobile, double horizontalPadding) {
 
   Widget _buildHomeDesktopMenu() {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          height: 42,
-          margin: const EdgeInsets.only(right: 12),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _openUPAScreen,
-              borderRadius: BorderRadius.circular(30),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 0),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.white.withOpacity(0.15),
-                      Colors.white.withOpacity(0.08),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.25),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.location_on_outlined, color: Colors.white, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Turmas de Apoio',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+        _buildSupportGroupsButton(),
+        const SizedBox(width: 10),
+        _buildPopupMenu(
+          isMobile: false,
+          includeSupportGroups: false,
         ),
-        Container(
-          height: 42,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.white.withOpacity(0.15),
-                Colors.white.withOpacity(0.08),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.25),
-              width: 1,
-            ),
-          ),
-          child: PopupMenuButton<String>(
-            offset: const Offset(0, 50),
-            elevation: 8,
-            shadowColor: Colors.black.withOpacity(0.15),
-            color: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white.withOpacity(0.3),
-                          Colors.white.withOpacity(0.1),
-                        ],
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.person_outline, color: Colors.white, size: 16),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Bem-vindo, ${widget.userData['nomeCompleto']?.split(' ').first ?? 'Usuário'}',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Icon(
-                    Icons.arrow_drop_down,
-                    color: Colors.white.withOpacity(0.9),
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-            onSelected: (String value) {
-              switch (value) {
-                case 'sintomas':
-                  _showSintomasModal();
-                  break;
-                case 'teste_fagerstrom':
-                  _openFagerstromTest();
-                  break;
-                case 'minhas_matriculas':
-                  _openMyEnrollments();
-                  break;
-                case 'editar_dados':
-                  MeusDadosModal.show(context);
-                  break;
-                case 'sair':
-                  LogoutModal.show(context);
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'sintomas',
-                child: Row(
-                  children: [
-                    Icon(Icons.monitor_heart_outlined, size: 20, color: Color(0xFF1F4E6E)),
-                    SizedBox(width: 12),
-                    Text('Sintomas Diários', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'teste_fagerstrom',
-                child: Row(
-                  children: [
-                    Icon(Icons.assessment_outlined, size: 20, color: Color(0xFFD97706)),
-                    SizedBox(width: 12),
-                    Text('Teste de Fagerström', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'minhas_matriculas',
-                child: Row(
-                  children: [
-                    Icon(Icons.list_alt_outlined, size: 20, color: Color(0xFF6B21A8)),
-                    SizedBox(width: 12),
-                    Text('Minhas Matrículas', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'editar_dados',
-                child: Row(
-                  children: [
-                    Icon(Icons.person, size: 20, color: Color(0xFF64748B)),
-                    SizedBox(width: 12),
-                    Text('Meus Dados', style: TextStyle(fontSize: 14, fontFamily: 'Inter')),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              PopupMenuItem<String>(
-                value: 'sair',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout_outlined, size: 20, color: Colors.red.shade400),
-                    const SizedBox(width: 12),
-                    Text('Sair', style: TextStyle(fontSize: 14, color: Colors.red.shade400, fontFamily: 'Inter')),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        const SizedBox(width: 10),
         _buildNotificationBell(),
       ],
     );
   }
 
-  Widget _buildAdminEnfermeiraHeader(bool isMobile, double horizontalPadding) {
-    return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 12,
-        left: horizontalPadding,
-        right: horizontalPadding,
-        bottom: 12,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFF334155),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+  Widget _buildSupportGroupsButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _openUPAScreen,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          height: 42,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: _softBlue,
+            borderRadius: BorderRadius.circular(10),
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              if (widget.showBackButton)
-                Container(
-                  margin: EdgeInsets.only(right: 5),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                    onPressed: widget.onBackPressed ?? () => Navigator.pop(context),
-                    padding: const EdgeInsets.all(10),
-                    constraints: const BoxConstraints(),
-                  ),
-                ),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(35),
-                ),
-                child: Icon(widget.icon, color: widget.iconColor, size: 29),
+              Icon(
+                Icons.location_on_outlined,
+                color: _primary,
+                size: 18,
               ),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isMobile ? widget.title.split(' • ')[0] : widget.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                      fontFamily: 'Poppins',
-                    ),
-                  ),
-                  if (widget.subtitle.isNotEmpty && !isMobile)
-                    Text(
-                      widget.subtitle,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                ],
+              SizedBox(width: 8),
+              Text(
+                'Turmas de Apoio',
+                style: TextStyle(
+                  color: _primary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Inter',
+                ),
               ),
             ],
           ),
-          HeaderActionsWidget(
-            userData: widget.userData,
-            onEditData: () => MeusDadosModal.show(context),
-            onChangePassword: () => MeusDadosModal.show(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPopupMenu({
+    required bool isMobile,
+    required bool includeSupportGroups,
+  }) {
+    return PopupMenuButton<String>(
+      tooltip: isMobile ? 'Abrir menu' : 'Minha conta',
+      offset: const Offset(0, 50),
+      elevation: 0,
+      color: _background,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: _border),
+      ),
+      onSelected: _handleMenuSelection,
+      itemBuilder: (context) => _buildMenuItems(
+        includeSupportGroups: includeSupportGroups,
+      ),
+      child: Container(
+        height: 42,
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 10 : 14,
+        ),
+        decoration: BoxDecoration(
+          color: isMobile ? _softBlue : _background,
+          border: Border.all(
+            color: isMobile ? _softBlue : _border,
+          ),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: isMobile
+            ? const Icon(
+                Icons.menu,
+                color: _primary,
+                size: 22,
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.person_outline,
+                    color: _primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 9),
+                  Text(
+                    'Olá, $_firstName',
+                    style: const TextStyle(
+                      color: _foreground,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: _secondary,
+                    size: 18,
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  List<PopupMenuEntry<String>> _buildMenuItems({
+    required bool includeSupportGroups,
+  }) {
+    return [
+      if (includeSupportGroups) ...[
+        _buildMenuItem(
+          value: 'turmas_apoio',
+          icon: Icons.location_on_outlined,
+          label: 'Turmas de Apoio',
+        ),
+        const PopupMenuDivider(height: 8),
+      ],
+      _buildMenuItem(
+        value: 'sintomas',
+        icon: Icons.monitor_heart_outlined,
+        label: 'Sintomas Diários',
+      ),
+      _buildMenuItem(
+        value: 'teste_fagerstrom',
+        icon: Icons.assessment_outlined,
+        label: 'Teste de Fagerström',
+      ),
+      _buildMenuItem(
+        value: 'minhas_matriculas',
+        icon: Icons.list_alt_outlined,
+        label: 'Minhas Matrículas',
+      ),
+      const PopupMenuDivider(height: 8),
+      _buildMenuItem(
+        value: 'editar_dados',
+        icon: Icons.person_outline,
+        label: 'Meus Dados',
+      ),
+      _buildMenuItem(
+        value: 'sair',
+        icon: Icons.logout_outlined,
+        label: 'Sair',
+        isDestructive: true,
+      ),
+    ];
+  }
+
+  PopupMenuItem<String> _buildMenuItem({
+    required String value,
+    required IconData icon,
+    required String label,
+    bool isDestructive = false,
+  }) {
+    final itemColor =
+        isDestructive ? const Color(0xFFB85F55) : _primary;
+
+    return PopupMenuItem<String>(
+      value: value,
+      height: 44,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 19,
+            color: itemColor,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: TextStyle(
+              color: isDestructive ? itemColor : _foreground,
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+              fontFamily: 'Inter',
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAdminEnfermeiraHeader(bool isMobile) {
+    return Row(
+      children: [
+        if (widget.showBackButton) ...[
+          _buildBackButton(),
+          const SizedBox(width: 10),
+        ],
+        Container(
+          width: isMobile ? 40 : 46,
+          height: isMobile ? 40 : 46,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: _softBlue,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            widget.icon,
+            color: _primary,
+            size: isMobile ? 23 : 27,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                isMobile
+                    ? widget.title.split(' • ').first
+                    : widget.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: _foreground,
+                  fontSize: isMobile ? 16 : 20,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.3,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              if (!isMobile && widget.subtitle.isNotEmpty) ...[
+                const SizedBox(height: 3),
+                Text(
+                  widget.subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _secondary,
+                    fontSize: 12,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        HeaderActionsWidget(
+          userData: widget.userData,
+          onEditData: () => MeusDadosModal.show(context),
+          onChangePassword: () => MeusDadosModal.show(context),
+        ),
+      ],
     );
   }
 }

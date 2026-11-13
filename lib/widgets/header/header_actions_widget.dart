@@ -1,9 +1,9 @@
+
 import 'package:flutter/material.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/screens/sobre_screen.dart';
 import 'package:tabagismo_app/services/toast_service.dart';
 import 'package:tabagismo_app/widgets/header/modals/logout_modal_widget.dart';
-
 
 class HeaderActionsWidget extends StatelessWidget {
   final Map<String, dynamic> userData;
@@ -12,85 +12,129 @@ class HeaderActionsWidget extends StatelessWidget {
   final bool isHome;
 
   const HeaderActionsWidget({
-    Key? key,
+    super.key,
     required this.userData,
     this.onEditData,
     this.onChangePassword,
     this.isHome = false,
-  }) : super(key: key);
+  });
+
+  static const Color _foreground = Color(0xFF333333);
+  static const Color _secondary = Color(0xFF667078);
+  static const Color _accent = Color(0xFF426E8C);
+  static const Color _buttonBackground = Color(0xFFE1EDF6);
+  static const Color _buttonBorder = Color(0xFFCADDEB);
+  static const Color _surface = Color(0xFFFFFDF9);
+  static const Color _divider = Color(0xFFE6E5DF);
+  static const Color _danger = Color(0xFFC65D47);
 
   String _getUserFirstName() {
-    String nomeCompleto = userData['nomeCompleto'] ??
-        userData['nome'] ??
-        userData['name'] ??
-        'Usuário';
-    if (nomeCompleto.isNotEmpty && nomeCompleto.contains(' ')) {
-      return nomeCompleto.split(' ').first;
+    final nomeCompleto = (userData['nomeCompleto'] ??
+            userData['nome'] ??
+            userData['name'] ??
+            'Usuário')
+        .toString()
+        .trim();
+
+    if (nomeCompleto.isEmpty) {
+      return 'Usuário';
     }
-    return nomeCompleto;
+
+    return nomeCompleto.split(RegExp(r'\s+')).first;
   }
 
-  void _performLogout(BuildContext context) async {
+  Future<void> _performLogout(BuildContext context) async {
     final authService = AuthService();
+
     await authService.logout();
-    if (context.mounted) {
-      ToastService.showSuccess(context, 'Você saiu da sua conta com sucesso');
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const SobreScreen()),
-        (route) => false,
-      );
-    }
+
+    if (!context.mounted) return;
+
+    ToastService.showSuccess(
+      context,
+      'Você saiu da sua conta com sucesso',
+    );
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SobreScreen(),
+      ),
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 500;
+    final isMobile = MediaQuery.sizeOf(context).width < 500;
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
+        color: _buttonBackground,
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
+          color: _buttonBorder,
           width: 1,
         ),
       ),
       child: PopupMenuButton<String>(
-        offset: const Offset(0, 52),
-        elevation: 4,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+        offset: const Offset(0, 48),
+        elevation: 0,
+        color: _surface,
+        surfaceTintColor: Colors.transparent,
+        constraints: const BoxConstraints(
+          minWidth: 205,
+          maxWidth: 260,
         ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(
+            color: _divider,
+            width: 1,
+          ),
+        ),
+        tooltip: 'Opções da conta',
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 10 : 12,
+            vertical: 7,
+          ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                width: 27,
+                height: 27,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFD1E3F0),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.person_outline, color: Colors.white, size: 16),
+                child: const Icon(
+                  Icons.person_outline_rounded,
+                  color: _accent,
+                  size: 17,
+                ),
               ),
-              if (!isMobile) const SizedBox(width: 8),
-              if (!isMobile)
+              if (!isMobile) ...[
+                const SizedBox(width: 9),
                 Text(
                   'Bem-vindo, ${_getUserFirstName()}',
                   style: const TextStyle(
-                    color: Colors.white,
+                    fontFamily: 'Inter',
+                    color: _foreground,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    fontFamily: 'Inter',
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+              ],
               const SizedBox(width: 6),
-              Icon(
-                Icons.arrow_drop_down,
-                color: Colors.white.withValues(alpha: 0.9),
-                size: 20,
+              const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: _accent,
+                size: 19,
               ),
             ],
           ),
@@ -104,29 +148,103 @@ class HeaderActionsWidget extends StatelessWidget {
               onChangePassword?.call();
               break;
             case 'sair':
-              LogoutModal.show(context, onLogout: () => _performLogout(context));
+              LogoutModal.show(
+                context,
+                onLogout: () => _performLogout(context),
+              );
               break;
           }
         },
-        itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-          const PopupMenuItem<String>(
-            value: 'editar_dados',
+        itemBuilder: (BuildContext context) => [
+          PopupMenuItem<String>(
+            enabled: false,
+            height: 43,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 6,
+            ),
             child: Row(
               children: [
-                Icon(Icons.person, size: 20, color: Color(0xFF0F2B3D)),
-                SizedBox(width: 12),
-                Text('Meus Dados', style: TextStyle(fontSize: 14)),
+                Container(
+                  width: 30,
+                  height: 30,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _buttonBackground,
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: const Icon(
+                    Icons.account_circle_outlined,
+                    color: _accent,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _getUserFirstName(),
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _foreground,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
           ),
-          const PopupMenuDivider(),
-          PopupMenuItem<String>(
-            value: 'sair',
+          const PopupMenuDivider(
+            height: 12,
+          ),
+          const PopupMenuItem<String>(
+            value: 'editar_dados',
+            height: 46,
             child: Row(
               children: [
-                Icon(Icons.logout_outlined, size: 20, color: const Color(0xFFC65D47)),
-                const SizedBox(width: 12),
-                Text('Sair', style: TextStyle(fontSize: 14, color: Color(0xFFC65D47))),
+                Icon(
+                  Icons.person_outline_rounded,
+                  size: 19,
+                  color: _accent,
+                ),
+                SizedBox(width: 12),
+                Text(
+                  'Meus Dados',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: _foreground,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuDivider(
+            height: 12,
+          ),
+          const PopupMenuItem<String>(
+            value: 'sair',
+            height: 46,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.logout_rounded,
+                  size: 19,
+                  color: _danger,
+                ),
+                SizedBox(width: 12),
+                Text(
+                  'Sair',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: _danger,
+                  ),
+                ),
               ],
             ),
           ),

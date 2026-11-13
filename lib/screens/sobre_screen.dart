@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:tabagismo_app/widgets/header/modals/login_cadastro_widget.dart';
 import 'package:tabagismo_app/widgets/footer_widget.dart';
@@ -11,636 +12,641 @@ class SobreScreen extends StatefulWidget {
   State<SobreScreen> createState() => _SobreScreenState();
 }
 
-
 class _SobreScreenState extends State<SobreScreen> {
+  static const Color _cream = Color(0xFFFAF8F3);
+  static const Color _paper = Color(0xFFFCFBF8);
+  static const Color _white = Color(0xFFFFFFFF);
+  static const Color _ink = Color(0xFF333333);
+  static const Color _body = Color(0xFF4E4E4E);
+  static const Color _muted = Color(0xFF8A8A85);
+  static const Color _border = Color(0xFFE4E0D6);
+  static const Color _mint = Color(0xFFD9F0E6);
+  static const Color _mintBorder = Color(0xFFB8E4D2);
+  static const Color _green = Color(0xFF2F7A63);
+  static const Color _terra = Color(0xFFF2D9CC);
+  static const Color _terraDark = Color(0xFF8F4A2C);
+  static const Color _lavender = Color(0xFFE8E5F4);
+  static const Color _lavenderDark = Color(0xFF65568D);
+  static const Color _blue = Color(0xFFE1EDF6);
+  static const Color _blueDark = Color(0xFF426E8C);
+  static const Color _sage = Color(0xFFE5EEDC);
+  static const Color _sageDark = Color(0xFF54734B);
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       LoaderService.show(context, message: 'Carregando...');
       Future.delayed(const Duration(milliseconds: 600), () {
-        LoaderService.hide();
+        if (mounted) LoaderService.hide();
       });
     });
   }
 
+  double _paddingFor(double width) {
+    if (width < 600) return 20;
+    if (width < 900) return 32;
+    if (width < 1200) return 48;
+    return 64;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 919;
-    final isTablet = screenWidth >= 768 && screenWidth < 1200;
-    final isSmallMobile = screenWidth < 480;
-    final horizontalPadding = isMobile ? (isSmallMobile ? 12.0 : 16.0) : (isTablet ? 32.0 : 50.0);
+    final width = MediaQuery.sizeOf(context).width;
+    final small = width < 480;
+    final padding = _paddingFor(width);
 
     return Scaffold(
+      backgroundColor: _paper,
       resizeToAvoidBottomInset: false,
       body: CustomScrollView(
-slivers: [
-  SliverAppBar(
-    pinned: true,
-    backgroundColor: const Color(0xFF334155),
-    elevation: 0,
-    titleSpacing: 0,
-    toolbarHeight: isSmallMobile ? 56 : 64,
-    title: Padding(
-      padding: EdgeInsets.only(left: horizontalPadding),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(35),
-            ),
-            child: Icon(
-              Icons.smoke_free_outlined,
-              color: Colors.white,
-              size: isSmallMobile ? 20 : 24,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'DESFUMO',
-                style: TextStyle(
-                  fontFamily: 'BebasNeue',
-                  fontSize: isSmallMobile ? 22 : 24,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 1,
-                  color: Colors.white,
-                  height: 0.9,
-                ),
-              ),
-                const Text(
-                  'Apoio ao Tabagismo',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                    height: 0.9,
-                    letterSpacing: 1,
-                  ),
-                ),
-            ],
-          ),
-        ],
+        slivers: [
+        
+SliverAppBar(
+  pinned: true,
+  elevation: 0,
+  scrolledUnderElevation: 0,
+  backgroundColor: const Color(0xFFFFFDF9),
+  surfaceTintColor: Colors.transparent,
+  toolbarHeight: small ? 76 : 88,
+  titleSpacing: 0,
+  automaticallyImplyLeading: false,
+  flexibleSpace: Container(
+    decoration: const BoxDecoration(
+      color: Color(0xFFFFFDF9),
+      border: Border(
+        bottom: BorderSide(
+          color: Color(0xFFDEDCD5),
+          width: 1,
+        ),
       ),
     ),
-  actions: [
-  Padding(
-    padding: EdgeInsets.only(right: horizontalPadding),
+  ),
+  title: Padding(
+    padding: EdgeInsets.symmetric(
+      horizontal: width < 768
+          ? 16.0
+          : width < 1200
+              ? 32.0
+              : 50.0,
+    ),
     child: Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        OutlinedButton(
-          onPressed: () => _showAuthModal(context, initialTab: 0),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.white,
-            side: BorderSide(
-              color: Colors.white.withValues(alpha: 0.3),
-              width: 1,
-            ),
-            padding: isSmallMobile
-                ? const EdgeInsets.symmetric(horizontal: 20, vertical: 14)
-                : const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-            minimumSize: isSmallMobile ? const Size(40, 35) : null,
-            visualDensity: VisualDensity.compact,
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE1EDF6),
+            borderRadius: BorderRadius.circular(35),
           ),
-          child: isSmallMobile
-              ? const Icon(Icons.login_outlined, size: 18)
-              : const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.login_outlined, size: 16),
-                    SizedBox(width: 6),
-                    Text(
-                      'Entrar',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                  ],
-                ),
+          child: const Icon(
+            Icons.smoke_free_outlined,
+            color: Color(0xFF426E8C),
+            size: 32,
+          ),
         ),
-        const SizedBox(width: 6),
-        ElevatedButton(
-          onPressed: () => _showAuthModal(context, initialTab: 1),
+        const SizedBox(width: 12),
+        const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'DESFUMO',
+              style: TextStyle(
+                fontFamily: 'BebasNeue',
+                fontSize: 28,
+                fontWeight: FontWeight.w400,
+                letterSpacing: 1,
+                color: Color(0xFF333333),
+                height: 0.9,
+              ),
+            ),
+            Text(
+              'Apoio ao Tabagismo',
+              style: TextStyle(
+                color: Color(0xFF667078),
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                height: 0.9,
+                letterSpacing: 2,
+              ),
+            ),
+          ],
+        ),
+        const Spacer(),
+        if (small)
+          IconButton(
+            onPressed: () =>
+                _showAuthModal(context, initialTab: 0),
+            tooltip: 'Entrar',
+            icon: const Icon(
+              Icons.login_outlined,
+              color: Color(0xFF426E8C),
+              size: 21,
+            ),
+          )
+        else
+          TextButton.icon(
+            onPressed: () =>
+                _showAuthModal(context, initialTab: 0),
+            icon: const Icon(
+              Icons.login_outlined,
+              size: 18,
+            ),
+            label: const Text('Entrar'),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF426E8C),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+              textStyle: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        SizedBox(width: small ? 4 : 10),
+        ElevatedButton.icon(
+          onPressed: () =>
+              _showAuthModal(context, initialTab: 1),
+          icon: Icon(
+            Icons.person_add_alt_1_outlined,
+            size: small ? 16 : 18,
+          ),
+          label: Text(
+            small ? 'Cadastrar' : 'Criar minha conta',
+          ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2E8B6A),
+            backgroundColor: const Color(0xFF426E8C),
             foregroundColor: Colors.white,
-            padding: isSmallMobile
-                ? const EdgeInsets.symmetric(horizontal: 20, vertical: 14)
-                : const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
             elevation: 0,
-            minimumSize: isSmallMobile ? const Size(40, 35) : null,
-            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.symmetric(
+              horizontal: small ? 12 : 18,
+              vertical: small ? 12 : 15,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            textStyle: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: small ? 11 : 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          child: isSmallMobile
-              ? const Icon(Icons.person_add_outlined, size: 18)
-              : const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.person_add_outlined, size: 16),
-                    SizedBox(width: 6),
-                    Text(
-                      'Cadastrar',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                  ],
-                ),
         ),
       ],
     ),
   ),
-],
-  ),
-  SliverToBoxAdapter(
-    child: Column(
-      children: [
-        _buildHeroSection(context),
-        _buildSobreSection(context),
-        _buildBeneficiosSection(context),
-        _buildProgramaInfoSection(context),
-        const FooterWidget(),
-      ],
-    ),
-  ),
-],
+),
+
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                _buildHeroSection(context),
+                _buildSobreSection(context),
+                _buildBeneficiosSection(context),
+                _buildProgramaInfoSection(context),
+                _buildFinalSection(context),
+                const FooterWidget(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-void _showAuthModal(BuildContext context, {int initialTab = 0}) {
-  final isMobile = MediaQuery.of(context).size.width < 600;
-  final isSmallMobile = MediaQuery.of(context).size.width < 400;
+  void _showAuthModal(BuildContext context, {int initialTab = 0}) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final isSmallMobile = MediaQuery.of(context).size.width < 400;
+    final authModal = AuthModal(initialTab: initialTab);
 
-  final authModal = AuthModal(initialTab: initialTab);
+    authModal.tabIndexNotifier.value = initialTab;
 
-  // Força o ValueNotifier a ter o valor inicial
-  authModal.tabIndexNotifier.value = initialTab;
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Material(
+          color: Colors.transparent,
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            alignment: Alignment.center,
+            child: ValueListenableBuilder(
+              valueListenable: authModal.tabIndexNotifier,
+              builder: (context, tabIndex, child) {
+                final isCadastro = tabIndex == 1;
 
-  showGeneralDialog(
-    context: context,
-    barrierDismissible: true,
-    barrierLabel: '',
-    transitionDuration: const Duration(milliseconds: 200),
-    pageBuilder: (context, animation, secondaryAnimation) {
-      return Material(
-        color: Colors.transparent,
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
-          alignment: Alignment.center,
-          child: ValueListenableBuilder(
-            valueListenable: authModal.tabIndexNotifier,
-            builder: (context, tabIndex, child) {
-              final isCadastro = tabIndex == 1;
-              return Container(
-                width: isMobile ? double.infinity : 500,
-                height: isMobile && isCadastro ? double.infinity : null,
-                margin: isMobile 
-                    ? (isCadastro ? EdgeInsets.zero : EdgeInsets.all(isSmallMobile ? 8 : 12))
-                    : EdgeInsets.all(20),
-                constraints: BoxConstraints(
-                  maxHeight: isMobile && isCadastro 
-                      ? double.infinity 
-                      : (isMobile ? MediaQuery.of(context).size.height * 0.95 : 880),
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: isMobile 
-                      ? (isCadastro ? BorderRadius.zero : BorderRadius.circular(28))
-                      : BorderRadius.circular(28),
-                ),
-                child: Padding(
-                  padding: isMobile 
-                      ? (isCadastro ? EdgeInsets.zero : EdgeInsets.all(isSmallMobile ? 8 : 12))
-                      : EdgeInsets.all(20),
-                  child: authModal,
-                ),
-              );
-            },
+                return Container(
+                  width: isMobile ? double.infinity : 500,
+                  height: isMobile && isCadastro ? double.infinity : null,
+                  margin: isMobile
+                      ? (isCadastro
+                          ? EdgeInsets.zero
+                          : EdgeInsets.all(isSmallMobile ? 8 : 12))
+                      : const EdgeInsets.all(20),
+                  constraints: BoxConstraints(
+                    maxHeight: isMobile && isCadastro
+                        ? double.infinity
+                        : (isMobile
+                            ? MediaQuery.of(context).size.height * 0.95
+                            : 880),
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: isMobile && isCadastro
+                        ? BorderRadius.zero
+                        : BorderRadius.circular(28),
+                  ),
+                  child: Padding(
+                    padding: isMobile
+                        ? (isCadastro
+                            ? EdgeInsets.zero
+                            : EdgeInsets.all(isSmallMobile ? 8 : 12))
+                        : const EdgeInsets.all(20),
+                    child: authModal,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    ).then((_) {
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MyApp()),
+      );
+    });
+  }
+
+  Widget _buildHeroSection(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final mobile = width < 920;
+    final small = width < 480;
+    final padding = _paddingFor(width);
+
+    final titleSize = small
+        ? 42.0
+        : mobile
+            ? 54.0
+            : width < 1200
+                ? 58.0
+                : 72.0;
+
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _eyebrow(
+          'PROGRAMA DE APOIO AO TABAGISMO',
+          Icons.health_and_safety_outlined,
+          _green,
+          _white,
+          _mintBorder,
+        ),
+        const SizedBox(height: 30),
+        Text(
+          'Parar de fumar\npode ser mais fácil\ncom apoio.',
+          style: TextStyle(
+            fontFamily: 'DMSerifDisplay',
+            fontSize: titleSize,
+            height: 1.06,
+            letterSpacing: -1.3,
+            color: _ink,
           ),
         ),
-      );
-    },
-  ).then((_) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const MyApp()),
+        const SizedBox(height: 23),
+        Container(
+          width: 58,
+          height: 3,
+          decoration: BoxDecoration(
+            color: _green,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(height: 23),
+         ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 490),
+          child: Text(
+            'O Desfumo conecta pessoas que querem parar de fumar a grupos de apoio e acompanhamento profissional. Conheça o programa e saiba como participar.',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 15,
+              height: 1.8,
+              color: _body,
+            ),
+          ),
+        ),
+        const SizedBox(height: 32),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _actionButton(
+              'Quero participar',
+              Icons.arrow_forward,
+              () => _showAuthModal(context, initialTab: 1),
+              primary: true,
+            ),
+            _actionButton(
+              'Já tenho conta',
+              Icons.login_outlined,
+              () => _showAuthModal(context, initialTab: 0),
+              primary: false,
+            ),
+          ],
+        ),
+        const SizedBox(height: 34),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _heroFeature(
+              Icons.groups_outlined,
+              'Grupos de apoio',
+              _mint,
+              _green,
+            ),
+            _heroFeature(
+              Icons.medical_services_outlined,
+              'Equipe profissional',
+              _blue,
+              _blueDark,
+            ),
+          ],
+        ),
+      ],
     );
-  });
-}
-  Widget _buildHeroSection(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 919;
-    final isTablet = screenWidth >= 768 && screenWidth < 1200;
-    final isSmallMobile = screenWidth < 480;
 
     return Container(
-      height: isMobile ? (isSmallMobile ? 500 : 550) : 600,
       width: double.infinity,
+      decoration: const BoxDecoration(color: _cream),
       child: Stack(
-        fit: StackFit.expand,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: const [
-                  Color(0xFF0A1628),
-                  Color(0xFF1A3A5C),
-                  Color(0xFF0D2137),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            top: -200,
-            right: -150,
-            child: Container(
-              width: 500,
-              height: 500,
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFF2E8B6A).withValues(alpha: 0.12),
-                    Colors.transparent,
-                  ],
-                ),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -150,
-            left: -100,
-            child: Container(
-              width: 400,
-              height: 400,
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFF1F4E6E).withValues(alpha: 0.12),
-                    Colors.transparent,
-                  ],
-                ),
-                shape: BoxShape.circle,
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: const _SobrePatternPainter(),
               ),
             ),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? (isSmallMobile ? 16 : 24) : (isTablet ? 48 : 80),
-              vertical: isMobile ? 16 : 0,
+            padding: EdgeInsets.fromLTRB(
+              padding,
+              mobile ? 52 : 92,
+              padding,
+              mobile ? 66 : 106,
             ),
-            child: isMobile
-                ? Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1320),
+                child: mobile
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.06),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.08),
-                                width: 2,
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.smoke_free,
-                              size: isSmallMobile ? 28 : 36,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'DESFUMO',
-                                style: TextStyle(
-                                  fontFamily: 'BebasNeue',
-                                  fontSize: isSmallMobile ? 40 : 48,
-                                  fontWeight: FontWeight.w400,
-                                  letterSpacing: 2,
-                                  color: Colors.white,
-                                  height: 0.8,
-                                ),
-                              ),
-                              Text(
-                                'Apoio ao Tabagismo',
-                                style: TextStyle(
-                                  fontSize: isSmallMobile ? 10 : 12,
-                                  color: Colors.white60,
-                                  fontWeight: FontWeight.w300,
-                                  letterSpacing: 2,
-                                ),
-                              ),
-                            ],
+                          content,
+                          const SizedBox(height: 45),
+                          _buildDoctorVisual(true),
+                        ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(flex: 6, child: content),
+                          const SizedBox(width: 32),
+                          Expanded(
+                            flex: 5,
+                            child: _buildDoctorVisual(false),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
-                      Text(
-                        isSmallMobile
-                            ? 'Apoio Profissional para Vencer o Tabagismo'
-                            : 'Apoio Profissional para Você Vencer o Tabagismo',
-                        style: TextStyle(
-                          fontSize: isSmallMobile ? 22 : 28,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          fontFamily: 'Poppins',
-                          letterSpacing: -0.5,
-                          height: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        isSmallMobile
-                            ? 'Programa com suporte médico, psicológico e grupos de apoio para você parar de fumar.'
-                            : 'Programa completo com suporte médico, psicológico e grupos de apoio para você parar de fumar e transformar sua saúde.',
-                        style: TextStyle(
-                          fontSize: isSmallMobile ? 13 : 15,
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontFamily: 'Inter',
-                          height: 1.6,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        alignment: WrapAlignment.start,
-                        children: [
-                          _buildEstatisticaItem('50+', 'Usuários ativos', const Color.fromARGB(255, 63, 168, 131), isSmallMobile),
-                          Container(
-                            width: 1,
-                            height: 36,
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
-                          _buildEstatisticaItem('200+', 'Pessoas ajudadas', const Color(0xFFD97706), isSmallMobile),
-                          Container(
-                            width: 1,
-                            height: 36,
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
-                          _buildEstatisticaItem('150+', 'UPAs parceiras', const Color.fromARGB(255, 117, 165, 197), isSmallMobile),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        spacing: 12,
-                        children: [
-                          _buildTrustBadge(Icons.verified, 'Profissional', const Color.fromARGB(255, 63, 168, 131), isSmallMobile),
-                          _buildTrustBadge(Icons.favorite, 'Humanizado', const Color(0xFFD97706), isSmallMobile),
-                          _buildTrustBadge(Icons.groups, 'Comunitário', const Color.fromARGB(255, 117, 165, 197), isSmallMobile),
-                        ],
-                      ),
-                    ],
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        flex: 4,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.06),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.08),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.smoke_free,
-                                    size: 32,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                const Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'DESFUMO',
-                                      style: TextStyle(
-                                        fontFamily: 'BebasNeue',
-                                        fontSize: 48,
-                                        fontWeight: FontWeight.w400,
-                                        letterSpacing: 2,
-                                        color: Colors.white,
-                                        height: 0.8,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Apoio ao Tabagismo',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.white60,
-                                        fontWeight: FontWeight.w300,
-                                        letterSpacing: 4,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 40),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                _buildEstatisticaItem('50+', 'Usuários ativos', const Color.fromARGB(255, 63, 168, 131), false),
-                                const SizedBox(width: 24),
-                                Container(
-                                  width: 1,
-                                  height: 40,
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                ),
-                                const SizedBox(width: 24),
-                                _buildEstatisticaItem('200+', 'Pessoas ajudadas', const Color(0xFFD97706), false),
-                                const SizedBox(width: 24),
-                                Container(
-                                  width: 1,
-                                  height: 40,
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                ),
-                                const SizedBox(width: 24),
-                                _buildEstatisticaItem('150+', 'UPAs parceiras', const Color.fromARGB(255, 117, 165, 197), false),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: Container(
-                          width: 1,
-                          height: 320,
-                          color: Colors.white.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 5,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Apoio Profissional para\nVocê Vencer o Tabagismo',
-                              style: TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                fontFamily: 'Poppins',
-                                letterSpacing: -0.5,
-                                height: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Programa completo com suporte médico, psicológico e grupos de apoio para você parar de fumar e transformar sua saúde.',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Colors.white.withValues(alpha: 0.7),
-                                fontFamily: 'Inter',
-                                height: 1.6,
-                              ),
-                            ),
-                            const SizedBox(height: 28),
-                            Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              alignment: WrapAlignment.start,
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () => _showAuthModal(context, initialTab: 1),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2E8B6A),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(50),
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                  child: const Text(
-                                    'Quero Parar de Fumar',
-                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                                OutlinedButton(
-                                  onPressed: () => _showAuthModal(context, initialTab: 0),
-                                  style: OutlinedButton.styleFrom(
-                                    side: BorderSide(
-                                      color: Colors.white.withValues(alpha: 0.3),
-                                    ),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(50),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Já tenho conta',
-                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 28),
-                            Row(
-                              spacing: 20,
-                              children: [
-                                _buildTrustBadge(Icons.verified, 'Profissional', const Color.fromARGB(255, 63, 168, 131), false),
-                                _buildTrustBadge(Icons.favorite, 'Humanizado', const Color(0xFFD97706), false),
-                                _buildTrustBadge(Icons.groups, 'Comunitário', const Color.fromARGB(255, 117, 165, 197), false),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEstatisticaItem(String valor, String label, Color cor, bool isSmall) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          valor,
-          style: TextStyle(
-            fontSize: isSmall ? 22 : 26,
-            fontWeight: FontWeight.bold,
-            color: cor,
-            fontFamily: 'Poppins',
+  Widget _buildDoctorVisual(bool mobile) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = mobile
+            ? (width * 0.95).clamp(310.0, 480.0)
+            : 570.0;
+
+        return SizedBox(
+          width: width,
+          height: height,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: width * 0.09,
+                right: width * 0.07,
+                top: height * 0.07,
+                bottom: height * 0.045,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _mint,
+                    borderRadius: BorderRadius.circular(38),
+                    border: Border.all(
+                      color: _mintBorder,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(37),
+                    child: CustomPaint(
+                      painter: const _DoctorBackgroundPainter(),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: height * 0.025,
+                left: width * 0.14,
+                child: Transform.rotate(
+                  angle: -0.13,
+                  child: Container(
+                    width: width * 0.16,
+                    height: width * 0.16,
+                    decoration: BoxDecoration(
+                      color: _terra,
+                      borderRadius: BorderRadius.circular(17),
+                      border: Border.all(
+                        color: const Color(0xFFE8C4B3),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: width * 0.005,
+                bottom: height * 0.06,
+                child: Transform.rotate(
+                  angle: 0.15,
+                  child: Container(
+                    width: width * 0.18,
+                    height: width * 0.18,
+                    decoration: BoxDecoration(
+                      color: _lavender,
+                      borderRadius: BorderRadius.circular(19),
+                      border: Border.all(
+                        color: const Color(0xFFD8D2EB),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: width * 0.10,
+                right: width * 0.09,
+                top: height * 0.005,
+                bottom: height * 0.05,
+                child: Image.asset(
+                  'assets/images/MEDICO.png',
+                  fit: BoxFit.contain,
+                  alignment: Alignment.bottomCenter,
+                ),
+              ),
+              Positioned(
+                left: 0,
+                bottom: height * 0.13,
+                child: _doctorInfoCard(
+                  Icons.groups_2_outlined,
+                  'Grupos de apoio',
+                  'Encontros com outras pessoas',
+                  _green,
+                  _white,
+                  mobile,
+                ),
+              ),
+              Positioned(
+                right: -20,
+                top: height * 0.11,
+                child: _doctorInfoCard(
+                  Icons.medical_services_outlined,
+                  'Orientação profissional',
+                  'Apoio durante o tratamento',
+                  _lavenderDark,
+                  _lavender,
+                  mobile,
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isSmall ? 10 : 12,
-            color: Colors.white60,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
-  Widget _buildTrustBadge(IconData icon, String label, Color color, bool isSmall) {
+  Widget _doctorInfoCard(
+    IconData icon,
+    String title,
+    String subtitle,
+    Color accent,
+    Color background,
+    bool mobile,
+  ) {
+    return Container(
+      constraints: BoxConstraints(
+        maxWidth: mobile ? 190 : 230,
+      ),
+      padding: EdgeInsets.all(mobile ? 11 : 14),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: background == _white
+              ? _border
+              : const Color(0xFFD8D2EB),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: mobile ? 31 : 37,
+            height: mobile ? 31 : 37,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              color: accent,
+              size: mobile ? 17 : 20,
+            ),
+          ),
+          const SizedBox(width: 9),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: mobile ? 10 : 12,
+                    fontWeight: FontWeight.w700,
+                    color: _ink,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: mobile ? 9 : 10,
+                    height: 1.35,
+                    color: _body,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroFeature(
+    IconData icon,
+    String label,
+    Color background,
+    Color foreground,
+  ) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.all(4),
+          width: 33,
+          height: 33,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
+            color: background,
+            borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, size: isSmall ? 12 : 14, color: color),
+          child: Icon(icon, size: 18, color: foreground),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 9),
         Text(
           label,
-          style: TextStyle(
-            fontSize: isSmall ? 11 : 13,
-            color: Colors.white60,
+          style: const TextStyle(
             fontFamily: 'Inter',
-            fontWeight: FontWeight.w400,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: _body,
           ),
         ),
       ],
@@ -648,447 +654,993 @@ void _showAuthModal(BuildContext context, {int initialTab = 0}) {
   }
 
   Widget _buildSobreSection(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 960;
-    final isTablet = screenWidth >= 768 && screenWidth < 1200;
-    final isSmallMobile = screenWidth < 480;
+    final width = MediaQuery.sizeOf(context).width;
+    final mobile = width < 900;
+    final padding = _paddingFor(width);
+
+    final intro = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionLabel('01', 'CONHEÇA O PROGRAMA', _lavenderDark),
+        const SizedBox(height: 19),
+        Text(
+          'O que é o\nDesfumo?',
+          style: TextStyle(
+            fontFamily: 'DMSerifDisplay',
+            fontSize: mobile ? 43 : 55,
+            height: 1.08,
+            color: _ink,
+          ),
+        ),
+        const SizedBox(height: 22),
+        const Text(
+          'O Desfumo é um programa de apoio para pessoas que desejam parar de fumar. Ele reúne orientação profissional, atividades em grupo e materiais educativos em um mesmo ambiente.',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 15,
+            height: 1.8,
+            color: _body,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Pela plataforma, você pode conhecer as turmas disponíveis, realizar sua matrícula e utilizar recursos para acompanhar seu progresso.',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 15,
+            height: 1.8,
+            color: _body,
+          ),
+        ),
+      ],
+    );
+
+    final details = Column(
+      children: [
+        _aboutDetail(
+          '01',
+          Icons.health_and_safety_outlined,
+          'Acompanhamento profissional',
+          'Orientações e acompanhamento durante o processo de parar de fumar.',
+          _mint,
+          _green,
+        ),
+        const SizedBox(height: 12),
+        _aboutDetail(
+          '02',
+          Icons.groups_outlined,
+          'Encontros em grupo',
+          'Espaço para conversar sobre dificuldades, experiências e estratégias.',
+          _lavender,
+          _lavenderDark,
+        ),
+        const SizedBox(height: 12),
+        _aboutDetail(
+          '03',
+          Icons.menu_book_outlined,
+          'Materiais de orientação',
+          'Conteúdos para consultar e utilizar durante o acompanhamento.',
+          _blue,
+          _blueDark,
+        ),
+      ],
+    );
 
     return Container(
       width: double.infinity,
+      color: _white,
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? (isSmallMobile ? 16 : 24) : (isTablet ? 48 : 80),
-        vertical: isMobile ? 40 : 60,
+        horizontal: padding,
+        vertical: mobile ? 72 : 112,
       ),
-      color: Colors.white,
-      child: isMobile
-          ? Column(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1320),
+          child: mobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    intro,
+                    const SizedBox(height: 36),
+                    details,
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(flex: 5, child: intro),
+                    const SizedBox(width: 85),
+                    Expanded(flex: 5, child: details),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _aboutDetail(
+    String number,
+    IconData icon,
+    String title,
+    String description,
+    Color background,
+    Color accent,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(
+          color: accent.withValues(alpha: 0.13),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 47,
+            height: 47,
+            decoration: BoxDecoration(
+              color: _white.withValues(alpha: 0.65),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(icon, size: 24, color: accent),
+          ),
+          const SizedBox(width: 17),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Sobre o Desfumo',
+                  number,
                   style: TextStyle(
-                    fontSize: isSmallMobile ? 24 : 28,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0F172A),
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: 50,
-                  height: 3,
-                  color: const Color(0xFF1F4E6E),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'O Desfumo é um programa de apoio ao tabagismo que conecta pessoas que desejam parar de fumar a grupos de apoio em Unidades de Pronto Atendimento (UPAs) e Unidades Básica de Saúde (UBSs). Oferecemos acompanhamento profissional, material educativo, avaliações e uma comunidade de apoio.',
-                  style: TextStyle(
-                    fontSize: isSmallMobile ? 14 : 15,
-                    color: const Color(0xFF475569),
                     fontFamily: 'Inter',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1,
+                    color: accent,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: _ink,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
                     height: 1.6,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    height: isSmallMobile ? 150 : 200,
-                    width: double.infinity,
-                    child: Image.asset(
-                      'assets/images/MEDICO.png',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ],
-            )
-          : Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Sobre o Desfumo',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0F172A),
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        width: 50,
-                        height: 3,
-                        color: const Color(0xFF1F4E6E),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'O Desfumo é um programa de apoio ao tabagismo que conecta pessoas que desejam parar de fumar a grupos de apoio em Unidades de Pronto Atendimento (UPAs) e UBSs. Oferecemos acompanhamento profissional, material educativo e uma comunidade de apoio.',
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Color(0xFF475569),
-                          fontFamily: 'Inter',
-                          height: 1.6,
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      Row(
-                        children: [
-                          _buildSobreItem(
-                            Icons.health_and_safety,
-                            'Acompanhamento',
-                            'Equipe especializada',
-                          ),
-                          const SizedBox(width: 32),
-                          _buildSobreItem(
-                            Icons.school,
-                            'Material Educativo',
-                            'Conteúdo exclusivo',
-                          ),
-                          const SizedBox(width: 32),
-                          _buildSobreItem(
-                            Icons.people,
-                            'Comunidade',
-                            'Apoio mútuo',
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 48),
-                Expanded(
-                  flex: 4,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      height: 350,
-                      width: double.infinity,
-                      child: Image.asset(
-                        'assets/images/MEDICO.png',
-                        fit: BoxFit.contain,
-                      ),
-                    ),
+                    color: _body,
                   ),
                 ),
               ],
             ),
-    );
-  }
-
-  Widget _buildSobreItem(IconData icon, String title, String subtitle) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1F4E6E).withValues(alpha: 0.08),
-            shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 20, color: const Color(0xFF1F4E6E)),
-        ),
-        const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF0F172A),
-                fontFamily: 'Poppins',
-              ),
-            ),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF64748B),
-                fontFamily: 'Inter',
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-Widget _buildBeneficiosSection(BuildContext context) {
-  final screenWidth = MediaQuery.of(context).size.width;
-  final isMobile = screenWidth < 991;
-  final isSmallMobile = screenWidth < 480;
-  final isTablet = screenWidth >= 768 && screenWidth < 1200;
-
-  final beneficios = [
-    {
-      'icon': Icons.group,
-      'title': 'Apoio em Grupo',
-      'desc': 'Compartilhe experiências e desafios com pessoas que estão na mesma jornada. O apoio mútuo fortalece a determinação.',
-      'color': const Color(0xFF1F4E6E)
-    },
-    {
-      'icon': Icons.medical_services,
-      'title': 'Acompanhamento Profissional',
-      'desc': 'Equipe multidisciplinar formada por médicos, psicólogos e enfermeiros especializados em tabagismo.',
-      'color': const Color(0xFF2E8B6A)
-    },
-    {
-      'icon': Icons.psychology,
-      'title': 'Suporte Psicológico',
-      'desc': 'Apoio com técnicas de enfrentamento para lidar com fissuras, ansiedade e mudanças de comportamento.',
-      'color': const Color(0xFF6B21A8)
-    },
-    {
-      'icon': Icons.attach_money,
-      'title': 'Economia Financeira',
-      'desc': 'Pare de fumar e economize milhares de reais por ano. Invista em saúde e bem-estar.',
-      'color': const Color(0xFF0F766E)
-    },
-    {
-      'icon': Icons.favorite,
-      'title': 'Saúde e Qualidade de Vida',
-      'desc': 'Melhore sua capacidade respiratória, reduza o risco de doenças cardíacas e aumente sua expectativa de vida.',
-      'color': const Color(0xFFC65D47)
-    },
-  ];
-
-  return Container(
-    width: double.infinity,
-    padding: EdgeInsets.symmetric(
-      horizontal: isMobile ? (isSmallMobile ? 16 : 24) : (isTablet ? 48 : 80),
-      vertical: isMobile ? 40 : 60,
-    ),
-    color: const Color(0xFFF8FAFC),
-    child: Column(
-      children: [
-        Container(
-          width: 60,
-          height: 4,
-          decoration: BoxDecoration(
-            color: const Color(0xFF2E8B6A),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Benefícios do Programa',
-          style: TextStyle(
-            fontSize: isMobile ? (isSmallMobile ? 24 : 28) : 32,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF0F172A),
-            fontFamily: 'Poppins',
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Como o Desfumo pode transformar sua vida?',
-          style: TextStyle(
-            fontSize: 15,
-            color: Color(0xFF475569),
-            fontFamily: 'Inter',
-          ),
-        ),
-        const SizedBox(height: 32),
-        Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          alignment: WrapAlignment.center,
-          children: beneficios.map((b) {
-            return SizedBox(
-              width: isMobile ? double.infinity : (isTablet ? 280 : 320),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: (b['color'] as Color).withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(b['icon'] as IconData, size: 26, color: b['color'] as Color),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      b['title'] as String,
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: b['color'] as Color,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    SizedBox(
-                      height: 60,
-                      child: Text(
-                        b['desc'] as String,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF475569),
-                          fontFamily: 'Inter',
-                          height: 1.5,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    ),
-  );
-}
-
-  Widget _buildProgramaInfoSection(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 919;
-    final isSmallMobile = screenWidth < 480;
-    final isTablet = screenWidth >= 768 && screenWidth < 1200;
-
-    final passos = [
-      {'numero': '01', 'titulo': 'Cadastro', 'desc': 'Crie sua conta no Desfumo'},
-      {'numero': '02', 'titulo': 'Matrícula', 'desc': 'Escolha uma UPA e turma disponível'},
-      {'numero': '03', 'titulo': 'Acompanhamento', 'desc': 'Encontros semanais e quinzenais'},
-      {'numero': '04', 'titulo': 'Conclusão', 'desc': 'Celebre sua jornada sem cigarro'},
-    ];
-
-    final paddingHorizontal = isMobile ? (isSmallMobile ? 16.0 : 24.0) : (isTablet ? 48.0 : 80.0);
-    final spacing = isMobile ? 12.0 : 24.0;
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: paddingHorizontal,
-        vertical: isMobile ? 40 : 60,
-      ),
-      color: Colors.white,
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFF2E8B6A),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Como Funciona o Programa',
-            style: TextStyle(
-              fontSize: isMobile ? (isSmallMobile ? 24 : 28) : 32,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF0F172A),
-              fontFamily: 'Poppins',
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Quatro passos para uma vida sem cigarro',
-            style: TextStyle(
-              fontSize: 15,
-              color: Color(0xFF64748B),
-              fontFamily: 'Inter',
-            ),
-          ),
-          const SizedBox(height: 32),
-          isMobile
-              ? Wrap(
-                  spacing: spacing,
-                  runSpacing: 24,
-                  alignment: WrapAlignment.center,
-                  children: passos.map((p) {
-                    return SizedBox(
-                      width: (MediaQuery.of(context).size.width - paddingHorizontal * 2 - spacing) / 2,
-                      child: _buildPassoItem(p),
-                    );
-                  }).toList(),
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: passos.map((p) {
-                    return Expanded(
-                      child: _buildPassoItem(p),
-                    );
-                  }).toList(),
-                ),
         ],
       ),
     );
   }
 
-  Widget _buildPassoItem(Map<String, String> p) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: const Color(0xFF1F4E6E).withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              p['numero']!,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1F4E6E),
-                fontFamily: 'Poppins',
+  Widget _buildBeneficiosSection(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final mobile = width < 900;
+    final padding = _paddingFor(width);
+
+
+final benefits = [
+  _BenefitData(
+    'Apoio em grupo',
+    'Converse com pessoas que também estão tentando parar de fumar, compartilhe dificuldades e conheça outras estratégias.',
+    Icons.groups_outlined,
+    _mint,
+    _green,
+  ),
+  _BenefitData(
+    'Acompanhamento profissional',
+    'Receba orientações de profissionais de saúde durante as etapas do tratamento.',
+    Icons.medical_services_outlined,
+    _lavender,
+    _lavenderDark,
+  ),
+  _BenefitData(
+    'Suporte psicológico',
+    'Conheça formas de lidar com a vontade de fumar e com as mudanças de comportamento.',
+    Icons.psychology_outlined,
+    _blue,
+    _blueDark,
+  ),
+  _BenefitData(
+    'Economia financeira',
+    'Reduzir ou interromper o consumo de cigarros também pode diminuir seus gastos mensais.',
+    Icons.account_balance_wallet_outlined,
+    _terra,
+    _terraDark,
+  ),
+  _BenefitData(
+    'Saúde e qualidade de vida',
+    'Parar de fumar reduz riscos à saúde e traz benefícios que começam após a interrupção do consumo.',
+    Icons.favorite_border,
+    _sage,
+    _sageDark,
+  ),
+  _BenefitData(
+    'Acompanhamento de metas',
+    'Registre seus objetivos, acompanhe seu progresso e consulte suas conquistas ao longo do processo.',
+    Icons.flag_outlined,
+    const Color(0xFFF3E8D9),
+    const Color(0xFF956B3E),
+  ),
+];
+
+    return Container(
+      width: double.infinity,
+      color: _cream,
+      padding: EdgeInsets.symmetric(
+        horizontal: padding,
+        vertical: mobile ? 72 : 108,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1320),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _sectionLabel('02', 'POR QUE PARTICIPAR', _terraDark),
+              const SizedBox(height: 18),
+              Text(
+                'O apoio vai além\ndos encontros.',
+                style: TextStyle(
+                  fontFamily: 'DMSerifDisplay',
+                  fontSize: mobile ? 42 : 54,
+                  height: 1.12,
+                  color: _ink,
+                ),
               ),
+              const SizedBox(height: 15),
+               ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 650),
+                child: Text(
+                  'O programa combina diferentes formas de acompanhamento para ajudar você a lidar com os desafios de parar de fumar.',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 15,
+                    height: 1.7,
+                    color: _body,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 38),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final available = constraints.maxWidth;
+                  final columns = available >= 1080
+                      ? 3
+                      : available >= 650
+                          ? 2
+                          : 1;
+                  final gap = 16.0;
+                  final cardWidth =
+                      (available - gap * (columns - 1)) / columns;
+
+                  return Wrap(
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: [
+                      for (int i = 0; i < benefits.length; i++)
+                        SizedBox(
+                          width: cardWidth,
+                          child: _benefitCard(
+                            benefits[i],
+                            i,
+                            columns == 3 ? 235 : null,
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _benefitCard(
+    _BenefitData benefit,
+    int index,
+    double? minHeight,
+  ) {
+    return Container(
+      constraints: BoxConstraints(minHeight: minHeight ?? 0),
+      padding: const EdgeInsets.all(26),
+      decoration: BoxDecoration(
+        color: benefit.background,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: benefit.accent.withValues(alpha: 0.14),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: _white.withValues(alpha: 0.66),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  benefit.icon,
+                  color: benefit.accent,
+                  size: 25,
+                ),
+              ),
+              Text(
+                '0${index + 1}',
+                style: TextStyle(
+                  fontFamily: 'DMSerifDisplay',
+                  fontSize: 28,
+                  color: benefit.accent.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 25),
+          Text(
+            benefit.title,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: _ink,
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          p['titulo']!,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF0F172A),
-            fontFamily: 'Poppins',
+          const SizedBox(height: 9),
+          Text(
+            benefit.description,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              height: 1.65,
+              color: _body,
+            ),
           ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 6),
-        Text(
-          p['desc']!,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF64748B),
-            fontFamily: 'Inter',
-            height: 1.4,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgramaInfoSection(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final mobile = width < 900;
+    final padding = _paddingFor(width);
+
+    final steps = [
+      _StepData(
+        '01',
+        'Cadastro',
+        'Crie sua conta para acessar a plataforma.',
+        Icons.person_add_alt_1_outlined,
+        _mint,
+        _green,
+      ),
+      _StepData(
+        '02',
+        'Matrícula',
+        'Consulte as unidades e escolha uma turma disponível.',
+        Icons.event_available_outlined,
+        _blue,
+        _blueDark,
+      ),
+      _StepData(
+        '03',
+        'Acompanhamento',
+        'Participe dos encontros e acompanhe suas metas.',
+        Icons.groups_outlined,
+        _lavender,
+        _lavenderDark,
+      ),
+      _StepData(
+        '04',
+        'Continuidade',
+        'Consulte seus registros e continue utilizando os materiais.',
+        Icons.trending_up_outlined,
+        _terra,
+        _terraDark,
+      ),
+    ];
+
+    return Container(
+      width: double.infinity,
+      color: _white,
+      padding: EdgeInsets.symmetric(
+        horizontal: padding,
+        vertical: mobile ? 72 : 110,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1320),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _sectionLabel('03', 'COMO FUNCIONA', _blueDark),
+              const SizedBox(height: 19),
+              Text(
+                'Do cadastro ao\nacompanhamento.',
+                style: TextStyle(
+                  fontFamily: 'DMSerifDisplay',
+                  fontSize: mobile ? 42 : 54,
+                  height: 1.12,
+                  color: _ink,
+                ),
+              ),
+              const SizedBox(height: 16),
+               ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 650),
+                child: Text(
+                  'Veja as etapas para começar a participar do programa e utilizar os recursos da plataforma.',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 15,
+                    height: 1.7,
+                    color: _body,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 42),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final available = constraints.maxWidth;
+                  final columns = available >= 1050
+                      ? 4
+                      : available >= 620
+                          ? 2
+                          : 1;
+                  final gap = 16.0;
+                  final cardWidth =
+                      (available - gap * (columns - 1)) / columns;
+
+                  return Wrap(
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: [
+                      for (int i = 0; i < steps.length; i++)
+                        SizedBox(
+                          width: cardWidth,
+                          child: _stepCard(steps[i]),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ],
           ),
-          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  Widget _stepCard(_StepData step) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 240),
+      padding: const EdgeInsets.all(25),
+      decoration: BoxDecoration(
+        color: _paper,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                step.number,
+                style: TextStyle(
+                  fontFamily: 'DMSerifDisplay',
+                  fontSize: 39,
+                  color: step.accent,
+                ),
+              ),
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: step.background,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(
+                  step.icon,
+                  size: 23,
+                  color: step.accent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          Container(
+            width: 34,
+            height: 2,
+            color: step.accent.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            step.title,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: _ink,
+            ),
+          ),
+          const SizedBox(height: 9),
+          Text(
+            step.description,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              height: 1.65,
+              color: _body,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFinalSection(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final mobile = width < 800;
+    final padding = _paddingFor(width);
+
+    return Container(
+      width: double.infinity,
+      color: _white,
+      padding: EdgeInsets.fromLTRB(
+        padding,
+        0,
+        padding,
+        mobile ? 72 : 110,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1320),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(mobile ? 28 : 58),
+            decoration: BoxDecoration(
+              color: _blue,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: const Color(0xFFC8DFEE),
+              ),
+            ),
+            child: mobile
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _finalIcon(),
+                      const SizedBox(height: 22),
+                      _finalContent(),
+                      const SizedBox(height: 26),
+                      _actionButton(
+                        'Criar minha conta',
+                        Icons.arrow_forward,
+                        () => _showAuthModal(context, initialTab: 1),
+                        primary: true,
+                        background: _blueDark,
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      _finalIcon(),
+                      const SizedBox(width: 30),
+                      const Expanded(child: _FinalText()),
+                      const SizedBox(width: 24),
+                      _actionButton(
+                        'Criar minha conta',
+                        Icons.arrow_forward,
+                        () => _showAuthModal(context, initialTab: 1),
+                        primary: true,
+                        background: _blueDark,
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _finalIcon() {
+    return Container(
+      width: 76,
+      height: 76,
+      decoration: BoxDecoration(
+        color: _white.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: const Icon(
+        Icons.how_to_reg_outlined,
+        size: 35,
+        color: _blueDark,
+      ),
+    );
+  }
+
+  Widget _finalContent() {
+    return const _FinalText();
+  }
+
+  Widget _sectionLabel(
+    String number,
+    String label,
+    Color accent,
+  ) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          number,
+          style: TextStyle(
+            fontFamily: 'DMSerifDisplay',
+            fontSize: 22,
+            color: accent,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          width: 25,
+          height: 1,
+          color: accent.withValues(alpha: 0.45),
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.5,
+              color: accent,
+            ),
+          ),
         ),
       ],
     );
   }
+
+  Widget _eyebrow(
+    String label,
+    IconData icon,
+    Color foreground,
+    Color background,
+    Color border,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: foreground),
+          const SizedBox(width: 9),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+                color: foreground,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionButton(
+    String label,
+    IconData icon,
+    VoidCallback onPressed, {
+    required bool primary,
+    Color background = _green,
+  }) {
+    final style = TextStyle(
+      fontFamily: 'Inter',
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+    );
+
+    if (primary) {
+      return ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: background,
+          foregroundColor: _white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 20,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: style,
+        ),
+      );
+    }
+
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: _ink,
+        side: const BorderSide(color: _mintBorder),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 20,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        textStyle: style,
+      ),
+    );
+  }
+}
+
+class _FinalText extends StatelessWidget {
+  const _FinalText();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Quer participar do Desfumo?',
+          style: TextStyle(
+            fontFamily: 'DMSerifDisplay',
+            fontSize: 34,
+            height: 1.15,
+            color: Color(0xFF333333),
+          ),
+        ),
+        SizedBox(height: 12),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 530),
+          child: Text(
+            'Crie sua conta para consultar turmas disponíveis, realizar sua matrícula e acessar os recursos de acompanhamento.',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              height: 1.7,
+              color: Color(0xFF4E4E4E),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BenefitData {
+  final String title;
+  final String description;
+  final IconData icon;
+  final Color background;
+  final Color accent;
+
+  const _BenefitData(
+    this.title,
+    this.description,
+    this.icon,
+    this.background,
+    this.accent,
+  );
+}
+
+class _StepData {
+  final String number;
+  final String title;
+  final String description;
+  final IconData icon;
+  final Color background;
+  final Color accent;
+
+  const _StepData(
+    this.number,
+    this.title,
+    this.description,
+    this.icon,
+    this.background,
+    this.accent,
+  );
+}
+
+class _SobrePatternPainter extends CustomPainter {
+  const _SobrePatternPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final shapes = [
+      _PatternSquare(
+        0.025,
+        0.10,
+        95,
+        -0.12,
+        const Color(0xFFD9F0E6),
+      ),
+      _PatternSquare(
+        0.18,
+        0.80,
+        68,
+        0.17,
+        const Color(0xFFF2D9CC),
+      ),
+      _PatternSquare(
+        0.48,
+        0.08,
+        45,
+        -0.08,
+        const Color(0xFFE8E5F4),
+      ),
+      _PatternSquare(
+        0.85,
+        0.04,
+        110,
+        0.15,
+        const Color(0xFFE1EDF6),
+      ),
+      _PatternSquare(
+        0.94,
+        0.72,
+        85,
+        -0.19,
+        const Color(0xFFD9F0E6),
+      ),
+      _PatternSquare(
+        0.57,
+        0.90,
+        58,
+        0.12,
+        const Color(0xFFE8E5F4),
+      ),
+    ];
+
+    for (final shape in shapes) {
+      canvas.save();
+      canvas.translate(
+        size.width * shape.x,
+        size.height * shape.y,
+      );
+      canvas.rotate(shape.rotation);
+
+      final rect = Rect.fromCenter(
+        center: Offset.zero,
+        width: shape.side,
+        height: shape.side,
+      );
+
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          rect,
+          Radius.circular(shape.side * 0.18),
+        ),
+        Paint()..color = shape.color.withValues(alpha: 0.52),
+      );
+
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SobrePatternPainter oldDelegate) {
+    return false;
+  }
+}
+
+class _DoctorBackgroundPainter extends CustomPainter {
+  const _DoctorBackgroundPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final whitePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.23);
+
+    final mintPaint = Paint()
+      ..color = const Color(0xFF8CD4B9).withValues(alpha: 0.25);
+
+    canvas.drawCircle(
+      Offset(size.width * 0.57, size.height * 0.42),
+      size.width * 0.36,
+      whitePaint,
+    );
+
+    canvas.drawCircle(
+      Offset(size.width * 0.90, size.height * 0.10),
+      size.width * 0.23,
+      mintPaint,
+    );
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(
+          size.width * 0.08,
+          size.height * 0.17,
+          size.width * 0.18,
+          size.width * 0.18,
+        ),
+        const Radius.circular(20),
+      ),
+      whitePaint,
+    );
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(
+          size.width * 0.69,
+          size.height * 0.72,
+          size.width * 0.20,
+          size.width * 0.20,
+        ),
+        const Radius.circular(23),
+      ),
+      mintPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _DoctorBackgroundPainter oldDelegate) {
+    return false;
+  }
+}
+
+class _PatternSquare {
+  final double x;
+  final double y;
+  final double side;
+  final double rotation;
+  final Color color;
+
+  const _PatternSquare(
+    this.x,
+    this.y,
+    this.side,
+    this.rotation,
+    this.color,
+  );
 }

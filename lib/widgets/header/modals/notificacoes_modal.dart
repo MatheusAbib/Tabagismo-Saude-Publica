@@ -4,45 +4,47 @@ import 'package:tabagismo_app/services/toast_service.dart';
 
 class NotificacoesModal {
   static void show(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final isSmallMobile = MediaQuery.of(context).size.width < 400;
-
-    showDialog(
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        return _NotificacoesModalContent(
-          isMobile: isMobile,
-          isSmallMobile: isSmallMobile,
-        );
-      },
+      builder: (context) => const _NotificacoesModalContent(),
     );
   }
 }
 
 class _NotificacoesModalContent extends StatefulWidget {
-  final bool isMobile;
-  final bool isSmallMobile;
-
-  const _NotificacoesModalContent({
-    Key? key,
-    required this.isMobile,
-    required this.isSmallMobile,
-  }) : super(key: key);
+  const _NotificacoesModalContent();
 
   @override
-  _NotificacoesModalContentState createState() => _NotificacoesModalContentState();
+  State<_NotificacoesModalContent> createState() =>
+      _NotificacoesModalContentState();
 }
 
-class _NotificacoesModalContentState extends State<_NotificacoesModalContent> {
-  List<Map<String, dynamic>> _notificacoes = [];
-  bool _isLoading = true;
+class _NotificacoesModalContentState
+    extends State<_NotificacoesModalContent> {
+  static const Color _background = Color(0xFFFFFDF9);
+  static const Color _surface = Color(0xFFFFFFFF);
+  static const Color _foreground = Color(0xFF333333);
+  static const Color _secondary = Color(0xFF667078);
+  static const Color _primary = Color(0xFF426E8C);
+  static const Color _softBlue = Color(0xFFE1EDF6);
+  static const Color _border = Color(0xFFE6E5DF);
+  static const Color _danger = Color(0xFFC65D47);
+  static const Color _dangerSoft = Color(0xFFF9EBE7);
 
-  final Color _accentColor = const Color(0xFF1F4E6E);
-  final Color _dangerColor = const Color(0xFFC65D47);
-  final Color _successColor = const Color(0xFF2E8B6A);
-  final Color _warningColor = const Color(0xFFD97706);
-  final Color _purpleColor = const Color(0xFF6B21A8);
+  List<Map<String, dynamic>> _notificacoes = [];
+
+  bool _isLoading = true;
+  bool _isProcessing = false;
+
+  int get _naoLidas {
+    return _notificacoes.where((notif) => !_estaLida(notif)).length;
+  }
+
+  bool _estaLida(Map<String, dynamic> notif) {
+    final valor = notif['lida'];
+    return valor == true || valor == 1 || valor == '1';
+  }
 
   @override
   void initState() {
@@ -51,498 +53,817 @@ class _NotificacoesModalContentState extends State<_NotificacoesModalContent> {
   }
 
   Future<void> _carregarNotificacoes() async {
-    setState(() => _isLoading = true);
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final response = await NotificationService.getNotificacoes();
+
+      if (!mounted) return;
+
       setState(() {
-        _notificacoes = List<Map<String, dynamic>>.from(response['notificacoes']);
-        _isLoading = false;
+        _notificacoes = List<Map<String, dynamic>>.from(
+          response['notificacoes'] ?? [],
+        );
       });
     } catch (e) {
-      setState(() => _isLoading = false);
-      ToastService.showError(context, 'Erro ao carregar notificações: $e');
+      if (mounted) {
+        ToastService.showError(
+          context,
+          'Erro ao carregar notificações: $e',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  void _marcarTodasComoLidas() async {
-    await NotificationService.marcarTodasComoLidas();
-    _carregarNotificacoes();
-    ToastService.showSuccess(context, 'Todas as notificações marcadas como lidas');
+  Future<void> _marcarTodasComoLidas() async {
+    if (_isProcessing || _naoLidas == 0) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      await NotificationService.marcarTodasComoLidas();
+
+      if (!mounted) return;
+
+      setState(() {
+        _notificacoes = _notificacoes.map((notif) {
+          return {
+            ...notif,
+            'lida': 1,
+          };
+        }).toList();
+      });
+
+      ToastService.showSuccess(
+        context,
+        'Todas as notificações foram marcadas como lidas.',
+      );
+    } catch (e) {
+      if (mounted) {
+        ToastService.showError(
+          context,
+          'Não foi possível marcar as notificações como lidas.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
+    }
   }
 
-void _confirmarLimparNotificacoes() {
-  final isMobile = MediaQuery.of(context).size.width < 600;
-  final isSmallMobile = MediaQuery.of(context).size.width < 400;
+  Future<void> _marcarComoLida(int id) async {
+    if (_isProcessing) return;
 
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return Dialog(
-        insetPadding: EdgeInsets.all(isSmallMobile ? 8 : (isMobile ? 12 : 20)),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Container(
-          width: isMobile ? MediaQuery.of(context).size.width * 0.92 : 420,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      await NotificationService.marcarComoLida(id);
+
+      if (!mounted) return;
+
+      setState(() {
+        _notificacoes = _notificacoes.map((notif) {
+          if (notif['id'] == id) {
+            return {
+              ...notif,
+              'lida': 1,
+            };
+          }
+
+          return notif;
+        }).toList();
+      });
+
+      ToastService.showSuccess(
+        context,
+        'Notificação marcada como lida.',
+      );
+    } catch (e) {
+      if (mounted) {
+        ToastService.showError(
+          context,
+          'Não foi possível marcar a notificação como lida.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _limparNotificacoes() async {
+    if (_isProcessing) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      await NotificationService.limparTodas();
+
+      if (!mounted) return;
+
+      setState(() {
+        _notificacoes = [];
+      });
+
+      ToastService.showSuccess(
+        context,
+        'Todas as notificações foram removidas.',
+      );
+    } catch (e) {
+      if (mounted) {
+        ToastService.showError(
+          context,
+          'Não foi possível limpar as notificações.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
+    }
+  }
+
+  void _confirmarLimparNotificacoes() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final isSmallMobile =
+            MediaQuery.sizeOf(dialogContext).width < 400;
+
+        return Dialog(
+          backgroundColor: _background,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isSmallMobile ? 12 : 20,
+            vertical: 24,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: _dangerColor.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.delete_sweep, size: 40, color: _dangerColor),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Limpar Notificações',
-                style: TextStyle(
-                  fontSize: isMobile ? 20 : 24,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F172A),
-                  letterSpacing: -0.5,
-                  fontFamily: 'Poppins',
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Tem certeza que deseja remover todas as notificações?',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Color(0xFF475569), height: 1.4),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Esta ação não pode ser desfeita.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 24),
-              Row(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: _border),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 420,
+              maxHeight: MediaQuery.sizeOf(dialogContext).height - 48,
+            ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(isSmallMobile ? 20 : 26),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        minimumSize: const Size(double.infinity, 44),
-                      ),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
+                  Container(
+                    width: 68,
+                    height: 68,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: _dangerSoft,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: _danger,
+                      size: 31,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        await NotificationService.limparTodas();
-                        _carregarNotificacoes();
-                        ToastService.showSuccess(context, 'Todas as notificações foram removidas!');
-                      },
-                      icon: const Icon(Icons.check, size: 18),
-                      label: const Text(
-                        'Sim, limpar',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _dangerColor,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        minimumSize: const Size(double.infinity, 44),
-                      ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Limpar notificações?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: _foreground,
+                      fontFamily: 'DMSerifDisplay',
                     ),
+                  ),
+                  const SizedBox(height: 11),
+                  const Text(
+                    'Todas as notificações serão removidas do seu histórico. Esta ação não poderá ser desfeita.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.6,
+                      color: _secondary,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          style: _outlineButtonStyle(),
+                          child: const Text('Cancelar'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(dialogContext);
+                            _limparNotificacoes();
+                          },
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 17,
+                          ),
+                          label: const Text('Limpar'),
+                          style: _dangerButtonStyle(),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
-      );
-    },
-  );
-}
-
-  void _marcarComoLida(int id) async {
-    await NotificationService.marcarComoLida(id);
-    _carregarNotificacoes();
-    ToastService.showSuccess(context, 'Notificação marcada como lida');
+        );
+      },
+    );
   }
 
   String _formatarDataHora(String? dataStr) {
-    if (dataStr == null) return '';
+    if (dataStr == null || dataStr.isEmpty) return '';
+
     try {
-      DateTime date = DateTime.parse(dataStr);
+      final date = DateTime.parse(dataStr).toLocal();
       final now = DateTime.now();
       final diff = now.difference(date);
-      if (diff.inDays > 0) {
-        return '${date.day}/${date.month}/${date.year}';
-      } else if (diff.inHours > 0) {
-        return '${diff.inHours}h atrás';
-      } else if (diff.inMinutes > 0) {
-        return '${diff.inMinutes}min atrás';
-      } else {
-        return 'Agora mesmo';
+
+      if (diff.isNegative) {
+        return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
       }
+
+      if (diff.inDays >= 1) {
+        if (diff.inDays == 1) return 'Ontem';
+
+        return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+      }
+
+      if (diff.inHours >= 1) {
+        return 'Há ${diff.inHours}h';
+      }
+
+      if (diff.inMinutes >= 1) {
+        return 'Há ${diff.inMinutes}min';
+      }
+
+      return 'Agora mesmo';
     } catch (e) {
       return '';
     }
   }
 
-  Color _getTipoColor(String tipo) {
+  IconData _getTipoIcon(String tipo) {
     switch (tipo) {
-      case 'sucesso': return _successColor;
-      case 'matricula': return _purpleColor;
-      case 'sintoma': return _accentColor;
-      case 'fagerstrom': return _warningColor;
-      default: return const Color(0xFFF97316);
+      case 'matricula':
+        return Icons.school_outlined;
+      case 'sintoma':
+        return Icons.monitor_heart_outlined;
+      case 'fagerstrom':
+        return Icons.assignment_outlined;
+      case 'sucesso':
+        return Icons.check_circle_outline;
+      default:
+        return Icons.notifications_none_outlined;
     }
   }
 
-  IconData _getTipoIcon(String tipo) {
+  String _getTipoLabel(String tipo) {
     switch (tipo) {
-      case 'matricula': return Icons.school;
-      case 'sintoma': return Icons.monitor_heart;
-      case 'fagerstrom': return Icons.assessment;
-      default: return Icons.notifications_none;
+      case 'matricula':
+        return 'Matrícula';
+      case 'sintoma':
+        return 'Acompanhamento';
+      case 'fagerstrom':
+        return 'Teste de Fagerström';
+      case 'sucesso':
+        return 'Atualização';
+      default:
+        return 'Notificação';
     }
+  }
+
+  ButtonStyle _outlineButtonStyle() {
+    return OutlinedButton.styleFrom(
+      foregroundColor: _secondary,
+      side: const BorderSide(color: _border),
+      elevation: 0,
+      minimumSize: const Size(0, 44),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 12,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      textStyle: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        fontFamily: 'Inter',
+      ),
+    );
+  }
+
+  ButtonStyle _dangerButtonStyle() {
+    return ElevatedButton.styleFrom(
+      backgroundColor: _danger,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      minimumSize: const Size(0, 44),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 12,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      textStyle: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        fontFamily: 'Inter',
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final isMobile = size.width < 600;
+    final isSmallMobile = size.width < 400;
+
     return Dialog(
-      insetPadding: EdgeInsets.all(widget.isSmallMobile ? 4 : (widget.isMobile ? 8 : 20)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      child: Container(
-        width: widget.isMobile ? double.infinity : 700,
-        height: widget.isMobile ? MediaQuery.of(context).size.height * 0.92 : 650,
-        constraints: BoxConstraints(maxWidth: 700),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
+      backgroundColor: _background,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isSmallMobile ? 8 : (isMobile ? 12 : 24),
+        vertical: isMobile ? 12 : 24,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: _border),
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 650,
+          maxHeight: size.height - (isMobile ? 24 : 48),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: Column(
-            children: [
-              _buildHeader(),
-if (_notificacoes.isNotEmpty && widget.isMobile)
-  Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        InkWell(
-          onTap: _marcarTodasComoLidas,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: _accentColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
+        child: SizedBox(
+          height: size.height * (isMobile ? 0.86 : 0.75),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(19),
+            child: Column(
               children: [
-                Icon(Icons.done_all, color: _accentColor, size: 14),
-                const SizedBox(width: 4),
-                Text(
-                  'Ler todas',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: _accentColor,
-                    fontFamily: 'Inter',
-                  ),
+                _buildHeader(isMobile),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: _border,
+                ),
+                if (!_isLoading && _notificacoes.isNotEmpty)
+                  _buildToolbar(isMobile),
+                Expanded(
+                  child: _isLoading
+                      ? _buildLoading()
+                      : _notificacoes.isEmpty
+                          ? _buildEmptyState()
+                          : _buildNotificationList(isMobile),
                 ),
               ],
             ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        InkWell(
-          onTap: _confirmarLimparNotificacoes,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: _dangerColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.delete_sweep, color: _dangerColor, size: 14),
-                const SizedBox(width: 4),
-                Text(
-                  'Limpar',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: _dangerColor,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ),
-  ),              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _notificacoes.isEmpty
-                        ? _buildEmptyState()
-                        : ListView.builder(
-                            padding: EdgeInsets.all(widget.isMobile ? 8 : 16),
-                            itemCount: _notificacoes.length,
-                            itemBuilder: (context, index) {
-                              return _buildNotificationCard(_notificacoes[index]);
-                            },
-                          ),
-              ),
-            ],
           ),
         ),
       ),
     );
   }
 
- Widget _buildHeader() {
-  final isMobile = MediaQuery.of(context).size.width < 600;
-  
-  return Container(
-    padding: EdgeInsets.all(isMobile ? 12 : 20),
-    decoration: const BoxDecoration(
-      color: Color(0xFF334155),
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(28),
-        topRight: Radius.circular(28),
+  Widget _buildHeader(bool isMobile) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 14 : 20,
+        vertical: isMobile ? 14 : 18,
       ),
-    ),
-    child: Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(12),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: _softBlue,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: const Icon(
+              Icons.notifications_none_outlined,
+              color: _primary,
+              size: 22,
+            ),
           ),
-          child: const Icon(Icons.notifications_none, color: Colors.white, size: 20),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Notificações',
-                style: TextStyle(
-                  fontSize: isMobile ? 14 : 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  fontFamily: 'Poppins',
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Notificações',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: _foreground,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _isLoading
+                      ? 'Carregando suas atualizações'
+                      : _naoLidas > 0
+                          ? '$_naoLidas ${_naoLidas == 1 ? 'não lida' : 'não lidas'}'
+                          : 'Todas as notificações estão em dia',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: _secondary,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _isProcessing
+                  ? null
+                  : () => Navigator.pop(context),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _border),
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: _secondary,
+                  size: 19,
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToolbar(bool isMobile) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 14 : 20,
+        vertical: 11,
+      ),
+      decoration: const BoxDecoration(
+        color: _background,
+        border: Border(
+          bottom: BorderSide(color: _border),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              '${_notificacoes.length} ${_notificacoes.length == 1 ? 'notificação' : 'notificações'}',
+              style: const TextStyle(
+                color: _secondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                fontFamily: 'Inter',
+              ),
+            ),
+          ),
+          if (_naoLidas > 0)
+            _buildToolbarAction(
+              icon: Icons.done_all,
+              label: isMobile ? 'Ler todas' : 'Marcar todas como lidas',
+              onTap: _isProcessing ? null : _marcarTodasComoLidas,
+            ),
+          if (_naoLidas > 0)
+            const SizedBox(width: 8),
+          _buildToolbarAction(
+            icon: Icons.delete_outline,
+            label: 'Limpar',
+            onTap: _isProcessing
+                ? null
+                : _confirmarLimparNotificacoes,
+            isDanger: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToolbarAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback? onTap,
+    bool isDanger = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 5,
+            vertical: 6,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: onTap == null
+                    ? _secondary
+                    : isDanger
+                        ? _danger
+                        : _primary,
+              ),
+              const SizedBox(width: 5),
               Text(
-                'Mantenha-se informado',
+                label,
                 style: TextStyle(
-                  fontSize: isMobile ? 9 : 12,
-                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: onTap == null
+                      ? _secondary
+                      : isDanger
+                          ? _danger
+                          : _primary,
                   fontFamily: 'Inter',
                 ),
               ),
             ],
           ),
         ),
-        if (_notificacoes.isNotEmpty && !widget.isMobile)
-          Row(
-            children: [
-              InkWell(
-                onTap: _marcarTodasComoLidas,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.done_all, color: Colors.white70, size: 14),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Ler todas',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.white70,
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              InkWell(
-                onTap: _confirmarLimparNotificacoes,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFC65D47).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_sweep, color: const Color(0xFFFCA5A5), size: 14),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Limpar',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: const Color(0xFFFCA5A5),
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        IconButton(
-          icon: const Icon(Icons.close, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ],
-    ),
-  );
-}
+      ),
+    );
+  }
 
-  Widget _buildMobileActions() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          TextButton(
-            onPressed: _marcarTodasComoLidas,
-            child: const Text('Marcar todas', style: TextStyle(color: Color(0xFF2C7DA0), fontSize: 11)),
-          ),
-        ],
+  Widget _buildLoading() {
+    return const Center(
+      child: CircularProgressIndicator(
+        color: _primary,
+        strokeWidth: 2.5,
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.notifications_none, size: 56, color: Color(0xFF94A3B8)),
-          SizedBox(height: 12),
-          Text(
-            'Nenhuma notificação',
-            style: TextStyle(color: Color(0xFF64748B), fontFamily: 'Inter', fontSize: 14),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Você está em dia!',
-            style: TextStyle(color: Color(0xFF94A3B8), fontFamily: 'Inter', fontSize: 12),
-          ),
-        ],
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _softBlue,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.notifications_none_outlined,
+                size: 32,
+                color: _primary,
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Nenhuma notificação',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: _foreground,
+                fontFamily: 'Inter',
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Quando houver novidades sobre seu acompanhamento, elas aparecerão aqui.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: _secondary,
+                height: 1.6,
+                fontFamily: 'Inter',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildNotificationCard(Map<String, dynamic> notif) {
-    final dataHora = _formatarDataHora(notif['data_criacao']);
-    final cor = _getTipoColor(notif['tipo']);
-    final isLida = notif['lida'] == 1;
+  Widget _buildNotificationList(bool isMobile) {
+    return ListView.separated(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 14 : 20,
+        vertical: 8,
+      ),
+      itemCount: _notificacoes.length,
+      separatorBuilder: (context, index) {
+        return const Divider(
+          height: 1,
+          thickness: 1,
+          color: _border,
+        );
+      },
+      itemBuilder: (context, index) {
+        return _buildNotificationItem(_notificacoes[index]);
+      },
+    );
+  }
+
+  Widget _buildNotificationItem(Map<String, dynamic> notif) {
+    final isLida = _estaLida(notif);
+    final tipo = notif['tipo']?.toString() ?? '';
+    final titulo = notif['titulo']?.toString() ?? 'Notificação';
+    final mensagem = notif['mensagem']?.toString() ?? '';
+    final dataHora = _formatarDataHora(
+      notif['data_criacao']?.toString(),
+    );
+    final id = notif['id'] is int
+        ? notif['id'] as int
+        : int.tryParse(notif['id']?.toString() ?? '');
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isLida ? const Color(0xFFF8FAFC) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isLida ? const Color(0xFFE2E8F0) : cor.withValues(alpha: 0.3),
-          width: isLida ? 1 : 1.5,
-        ),
-        boxShadow: isLida
-            ? null
-            : [
-                BoxShadow(
-                  color: cor.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+      padding: const EdgeInsets.symmetric(
+        vertical: 17,
+        horizontal: 2,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isLida
+                  ? const Color(0xFFF3F2EF)
+                  : _softBlue,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              _getTipoIcon(tipo),
+              size: 19,
+              color: isLida ? _secondary : _primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        titulo,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isLida
+                              ? FontWeight.w500
+                              : FontWeight.w700,
+                          color: _foreground,
+                          height: 1.4,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ),
+                    if (!isLida) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 7,
+                        height: 7,
+                        margin: const EdgeInsets.only(top: 5),
+                        decoration: const BoxDecoration(
+                          color: _primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  mensagem,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: _secondary,
+                    height: 1.55,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 7,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      _getTipoLabel(tipo),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: _secondary,
+                        fontWeight: FontWeight.w500,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    if (dataHora.isNotEmpty)
+                      Text(
+                        dataHora,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: _secondary,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    if (!isLida && id != null)
+                      InkWell(
+                        onTap: _isProcessing
+                            ? null
+                            : () => _marcarComoLida(id),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 3,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.check,
+                                size: 14,
+                                color: _primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Marcar como lida',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: _isProcessing
+                                      ? _secondary
+                                      : _primary,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: cor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(_getTipoIcon(notif['tipo']), color: cor, size: 20),
-        ),
-        title: Text(
-          notif['titulo'],
-          style: TextStyle(
-            fontWeight: isLida ? FontWeight.normal : FontWeight.w600,
-            fontSize: 14,
-            color: const Color(0xFF0F172A),
-            fontFamily: 'Inter',
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              notif['mensagem'],
-              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontFamily: 'Inter'),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
             ),
-            if (dataHora.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  dataHora,
-                  style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontFamily: 'Inter'),
-                ),
-              ),
-          ],
-        ),
-        trailing: !isLida
-            ? IconButton(
-                icon: Icon(Icons.check_circle_outline, color: cor, size: 20),
-                onPressed: () => _marcarComoLida(notif['id']),
-              )
-            : null,
+          ),
+        ],
       ),
     );
   }

@@ -4,36 +4,35 @@ import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/services/toast_service.dart';
 
 class MeusDadosModal {
-static void show(BuildContext context) {
-  final isMobile = MediaQuery.of(context).size.width < 800;
-  final isSmallMobile = MediaQuery.of(context).size.width < 480;
-  final Color accentColor = const Color(0xFF1F4E6E);
-  final Color successColor = const Color(0xFF2E8B6A);
+  static void show(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final isMobile = size.width < 800;
+    final isSmallMobile = size.width < 480;
 
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) {
-      return Dialog(
-        insetPadding: EdgeInsets.only(
-          left: isSmallMobile ? 8 : (isMobile ? 12 : 20),
-          right: isSmallMobile ? 8 : (isMobile ? 12 : 20),
-          top: 20,
-          bottom: 20,
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        child: Container(
-          width: isMobile ? double.infinity : (MediaQuery.of(context).size.width > 800 ? 500 : MediaQuery.of(context).size.width * 0.85),
-          constraints: BoxConstraints(maxWidth: 750),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(28)),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: const Color(0xFFFFFDF9),
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isSmallMobile ? 8 : (isMobile ? 12 : 20),
+            vertical: 20,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFFE6E5DF)),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 500,
+              maxHeight: MediaQuery.sizeOf(dialogContext).height - 40,
+            ),
             child: _MeusDadosModalContent(
               isMobile: isMobile,
               isSmallMobile: isSmallMobile,
-              accentColor: accentColor,
-              successColor: successColor,
-              ),
             ),
           ),
         );
@@ -45,30 +44,41 @@ static void show(BuildContext context) {
 class _MeusDadosModalContent extends StatefulWidget {
   final bool isMobile;
   final bool isSmallMobile;
-  final Color accentColor;
-  final Color successColor;
 
   const _MeusDadosModalContent({
-    Key? key,
     required this.isMobile,
     required this.isSmallMobile,
-    required this.accentColor,
-    required this.successColor,
-  }) : super(key: key);
+  });
 
   @override
-  _MeusDadosModalContentState createState() => _MeusDadosModalContentState();
+  State<_MeusDadosModalContent> createState() =>
+      _MeusDadosModalContentState();
 }
 
 class _MeusDadosModalContentState extends State<_MeusDadosModalContent> {
+  static const Color _background = Color(0xFFFFFDF9);
+  static const Color _surface = Color(0xFFFFFFFF);
+  static const Color _pageBackground = Color(0xFFFAF8F3);
+  static const Color _foreground = Color(0xFF333333);
+  static const Color _secondary = Color(0xFF667078);
+  static const Color _primary = Color(0xFF426E8C);
+  static const Color _softBlue = Color(0xFFE1EDF6);
+  static const Color _border = Color(0xFFE6E5DF);
+  static const Color _success = Color(0xFF2E8B6A);
+  static const Color _danger = Color(0xFFC65D47);
+
+  final AuthService _authService = AuthService();
+
   bool _isLoading = true;
   bool _isEditing = false;
   bool _isSaving = false;
+  bool _isAdmin = false;
+
   String _sexoSelecionado = '';
   String _cpf = '';
   String _dataNascimento = '';
   String _tipoUsuario = 'comum';
-  bool _isAdmin = false;
+
   String _nomeOriginal = '';
   String _emailOriginal = '';
   String _telefoneOriginal = '';
@@ -76,36 +86,10 @@ class _MeusDadosModalContentState extends State<_MeusDadosModalContent> {
 
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final MaskedTextController _telefoneController = MaskedTextController(mask: '(00) 00000-0000');
 
-  String _formatTelefone(String telefone) {
-    if (telefone.length == 11) {
-      return '(${telefone.substring(0, 2)}) ${telefone.substring(2, 7)}-${telefone.substring(7)}';
-    }
-    return telefone;
-  }
-
-  String _formatCpf(String cpf) {
-    if (cpf.length == 11) {
-      return '${cpf.substring(0, 3)}.${cpf.substring(3, 6)}.${cpf.substring(6, 9)}-${cpf.substring(9)}';
-    }
-    return cpf;
-  }
-
-  String _formatarData(dynamic data) {
-    if (data == null || data.toString().isEmpty) return '-';
-    try {
-      String dataStr = data.toString();
-      if (dataStr.contains('T')) {
-        dataStr = dataStr.split('T')[0];
-      }
-      final partes = dataStr.split('-');
-      if (partes.length != 3) return dataStr;
-      return '${partes[2]}/${partes[1]}/${partes[0]}';
-    } catch (e) {
-      return data.toString();
-    }
-  }
+  final MaskedTextController _telefoneController = MaskedTextController(
+    mask: '(00) 00000-0000',
+  );
 
   @override
   void initState() {
@@ -113,441 +97,901 @@ class _MeusDadosModalContentState extends State<_MeusDadosModalContent> {
     _carregarDados();
   }
 
-Future<void> _carregarDados() async {
-  setState(() => _isLoading = true);
-  try {
-    final authService = AuthService();
-    final response = await authService.getUserData();
-    print('RESPOSTA COMPLETA: $response');
-    final userData = response['user'];
-    print('USER DATA: $userData');
-    _nomeController.text = userData['nomeCompleto'] ?? '';
-    _nomeOriginal = userData['nomeCompleto'] ?? '';
-    _sexoSelecionado = userData['sexo'] ?? '';
-    _sexoOriginal = userData['sexo'] ?? '';
-    _emailController.text = userData['email'] ?? '';
-    _isAdmin = userData['is_admin'] == 1;
-    _emailOriginal = userData['email'] ?? '';
-    _telefoneController.text = userData['telefone'] != null 
-        ? _formatTelefone(userData['telefone']) 
-        : '';
-    _telefoneOriginal = userData['telefone'] ?? '';
-    _cpf = userData['cpf'] != null ? _formatCpf(userData['cpf']) : 'Não informado';
-    _tipoUsuario = userData['tipo_usuario'] ?? 'comum';
-    if (userData['dataNascimento'] != null) {
-      _dataNascimento = _formatarData(userData['dataNascimento']);
-    } else {
-      _dataNascimento = '-';
+  @override
+  void dispose() {
+    _nomeController.dispose();
+    _emailController.dispose();
+    _telefoneController.dispose();
+    super.dispose();
+  }
+
+  String _somenteNumeros(String value) {
+    return value.replaceAll(RegExp(r'[^\d]'), '');
+  }
+
+  String _formatTelefone(String telefone) {
+    final numeros = _somenteNumeros(telefone);
+
+    if (numeros.length == 11) {
+      return '(${numeros.substring(0, 2)}) ${numeros.substring(2, 7)}-${numeros.substring(7)}';
     }
-  } catch (e) {
-    ToastService.showError(context, 'Erro ao carregar dados: $e');
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
+
+    return telefone;
+  }
+
+  String _formatCpf(String cpf) {
+    final numeros = _somenteNumeros(cpf);
+
+    if (numeros.length == 11) {
+      return '${numeros.substring(0, 3)}.${numeros.substring(3, 6)}.${numeros.substring(6, 9)}-${numeros.substring(9)}';
+    }
+
+    return cpf;
+  }
+
+  String _formatarData(dynamic data) {
+    if (data == null || data.toString().isEmpty) return '-';
+
+    try {
+      String dataStr = data.toString();
+
+      if (dataStr.contains('T')) {
+        dataStr = dataStr.split('T')[0];
+      }
+
+      final partes = dataStr.split('-');
+
+      if (partes.length != 3) return dataStr;
+
+      return '${partes[2]}/${partes[1]}/${partes[0]}';
+    } catch (e) {
+      return data.toString();
     }
   }
-}
+
+  Future<void> _carregarDados() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await _authService.getUserData();
+      final userData = response['user'];
+
+      if (!mounted) return;
+
+      setState(() {
+        _nomeController.text = userData['nomeCompleto'] ?? '';
+        _nomeOriginal = userData['nomeCompleto'] ?? '';
+
+        _emailController.text = userData['email'] ?? '';
+        _emailOriginal = userData['email'] ?? '';
+
+        _sexoSelecionado = userData['sexo'] ?? '';
+        _sexoOriginal = userData['sexo'] ?? '';
+
+        _isAdmin = userData['is_admin'] == 1;
+        _tipoUsuario = userData['tipo_usuario'] ?? 'comum';
+
+        final telefone = userData['telefone']?.toString() ?? '';
+
+        _telefoneController.text = _formatTelefone(telefone);
+        _telefoneOriginal = _somenteNumeros(telefone);
+
+        _cpf = userData['cpf'] != null
+            ? _formatCpf(userData['cpf'].toString())
+            : 'Não informado';
+
+        _dataNascimento = _formatarData(userData['dataNascimento']);
+      });
+    } catch (e) {
+      if (mounted) {
+        ToastService.showError(
+          context,
+          'Erro ao carregar dados: $e',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  bool _isUsuarioComum() {
+    return _tipoUsuario == 'comum' && !_isAdmin;
+  }
+
   bool _hasChanges() {
     if (_nomeController.text.trim() != _nomeOriginal) return true;
     if (_emailController.text.trim() != _emailOriginal) return true;
-    String telefoneLimpo = _telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
-    if (telefoneLimpo != _telefoneOriginal) return true;
-    if (_tipoUsuario == 'comum' && _sexoSelecionado != _sexoOriginal) return true;
+
+    if (_somenteNumeros(_telefoneController.text) != _telefoneOriginal) {
+      return true;
+    }
+
+    if (_isUsuarioComum() && _sexoSelecionado != _sexoOriginal) {
+      return true;
+    }
+
     return false;
   }
 
   bool _canSave() {
     if (_nomeController.text.trim().isEmpty) return false;
     if (_emailController.text.trim().isEmpty) return false;
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(_emailController.text.trim())) return false;
-    String telefoneLimpo = _telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
-    if (telefoneLimpo.isNotEmpty && telefoneLimpo.length != 11) return false;
-    if (!_hasChanges()) return false;
-    return true;
+
+    if (!RegExp(
+      r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$',
+    ).hasMatch(_emailController.text.trim())) {
+      return false;
+    }
+
+    final telefone = _somenteNumeros(_telefoneController.text);
+
+    if (telefone.isNotEmpty && telefone.length != 11) return false;
+
+    return _hasChanges();
   }
 
-bool _isUsuarioComum() {
-  return _tipoUsuario == 'comum' && !_isAdmin;
-}
+  void _cancelarEdicao() {
+    setState(() {
+      _nomeController.text = _nomeOriginal;
+      _emailController.text = _emailOriginal;
+      _telefoneController.text = _formatTelefone(_telefoneOriginal);
+      _sexoSelecionado = _sexoOriginal;
+      _isEditing = false;
+    });
+  }
 
-  InputDecoration _buildInputDecoration(String label, IconData icon) {
+  Future<void> _salvarDados() async {
+    if (_isSaving || !_canSave()) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final telefone = _somenteNumeros(_telefoneController.text);
+
+      final Map<String, dynamic> data = {
+        'nomeCompleto': _nomeController.text.trim(),
+        'email': _emailController.text.trim(),
+        'telefone': telefone,
+      };
+
+      if (_isUsuarioComum()) {
+        data['sexo'] = _sexoSelecionado;
+      }
+
+      await _authService.updateUserData(data);
+
+      if (!mounted) return;
+
+      ToastService.showSuccess(
+        context,
+        'Dados atualizados com sucesso!',
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ToastService.showError(
+          context,
+          'Erro ao atualizar dados: $e',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  InputDecoration _buildInputDecoration(
+    String label,
+    IconData icon,
+  ) {
+    final radius = BorderRadius.circular(10);
+
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-      floatingLabelStyle: TextStyle(fontWeight: FontWeight.w600, color: widget.accentColor),
-      prefixIcon: Icon(icon, color: widget.accentColor, size: 20),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+      labelStyle: const TextStyle(
+        fontSize: 13,
+        color: _secondary,
+        fontFamily: 'Inter',
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+      floatingLabelStyle: const TextStyle(
+        color: _primary,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        fontFamily: 'Inter',
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: widget.accentColor, width: 1.5),
+      prefixIcon: Icon(
+        icon,
+        color: _primary,
+        size: 19,
       ),
       filled: true,
-      fillColor: _isEditing ? Colors.grey.shade50 : const Color(0xFFF8FAFC),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      fillColor: _surface,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 15,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: radius,
+        borderSide: const BorderSide(color: _border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: radius,
+        borderSide: const BorderSide(color: _border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: radius,
+        borderSide: const BorderSide(
+          color: _primary,
+          width: 1.5,
+        ),
+      ),
+    );
+  }
+
+  ButtonStyle _primaryButtonStyle() {
+    return ElevatedButton.styleFrom(
+      backgroundColor: _primary,
+      foregroundColor: Colors.white,
+      disabledBackgroundColor: const Color(0xFFE5E7E8),
+      disabledForegroundColor: _secondary,
+      elevation: 0,
+      minimumSize: const Size(0, 46),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 12,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      textStyle: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        fontFamily: 'Inter',
+      ),
+    );
+  }
+
+  ButtonStyle _outlineButtonStyle() {
+    return OutlinedButton.styleFrom(
+      foregroundColor: _primary,
+      side: const BorderSide(color: _border),
+      minimumSize: const Size(0, 46),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 12,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      textStyle: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        fontFamily: 'Inter',
+      ),
+    );
+  }
+
+  Widget _buildReadonlyField(
+    String label,
+    String value,
+    IconData icon,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 13,
+        vertical: 11,
+      ),
+      decoration: BoxDecoration(
+        color: _pageBackground,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _border),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: _secondary,
+            size: 19,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: _secondary,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value.isEmpty ? 'Não informado' : value,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: _foreground,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.lock_outline,
+            size: 15,
+            color: _secondary,
+          ),
+        ],
+      ),
     );
   }
 
   void _abrirAlterarSenha() {
-    final isMobile = MediaQuery.of(context).size.width < 500;
-    final isSmallMobile = MediaQuery.of(context).size.width < 400;
-
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
+
     bool isLoading = false;
-    
-    bool _hasMinLength = false;
-    bool _hasSpecialChar = false;
-    bool _hasUpperCase = false;
-    bool _hasNumber = false;
+    bool obscureCurrent = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
 
-    void _validatePassword() {
-      setState(() {
-        final senha = newPasswordController.text;
-        _hasMinLength = senha.length >= 6;
-        _hasSpecialChar = RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(senha);
-        _hasUpperCase = RegExp(r'[A-Z]').hasMatch(senha);
-        _hasNumber = RegExp(r'[0-9]').hasMatch(senha);
-      });
-    }
-
-    newPasswordController.addListener(_validatePassword);
-
-    showDialog(
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
       useRootNavigator: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          bool senhaCanSave() {
-            if (currentPasswordController.text.isEmpty) return false;
-            if (newPasswordController.text.isEmpty) return false;
-            if (newPasswordController.text.length < 6) return false;
-            if (newPasswordController.text != confirmPasswordController.text) return false;
-            if (!_hasSpecialChar || !_hasUpperCase || !_hasNumber) return false;
-            return true;
-          }
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final senha = newPasswordController.text;
 
-          bool _hasStartedTyping = newPasswordController.text.isNotEmpty;
+            final hasMinLength = senha.length >= 6;
+            final hasSpecialChar = RegExp(
+              r'[!@#$%^&*(),.?":{}|<>]',
+            ).hasMatch(senha);
+            final hasUpperCase = RegExp(r'[A-Z]').hasMatch(senha);
+            final hasNumber = RegExp(r'[0-9]').hasMatch(senha);
 
-          Widget _buildStrengthItem(String label, bool isValid) {
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isValid ? Icons.check_circle : Icons.cancel,
-                  size: 14,
-                  color: isValid ? Colors.green : Colors.grey.shade400,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isValid ? Colors.green.shade700 : Colors.grey.shade500,
-                    fontWeight: isValid ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ],
-            );
-          }
+            final senhasConferem =
+                confirmPasswordController.text.isNotEmpty &&
+                senha == confirmPasswordController.text;
 
-          Widget _buildPasswordStrengthIndicator() {
-            bool senhasConferem = confirmPasswordController.text.isNotEmpty && 
-                                   newPasswordController.text == confirmPasswordController.text;
+            final canSave =
+                currentPasswordController.text.isNotEmpty &&
+                hasMinLength &&
+                hasSpecialChar &&
+                hasUpperCase &&
+                hasNumber &&
+                senhasConferem;
 
-            return Container(
-              margin: const EdgeInsets.symmetric(vertical: 0),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 4,
-                alignment: WrapAlignment.start,
-                children: [
-                  _buildStrengthItem('Mínimo 6 caracteres', _hasMinLength),
-                  _buildStrengthItem('Letra maiúscula', _hasUpperCase),
-                  _buildStrengthItem('Número', _hasNumber),
-                  _buildStrengthItem('Caractere especial', _hasSpecialChar),
-                  _buildStrengthItem('Senhas coincidem', senhasConferem),
-                ],
-              ),
-            );
-          }
-
-          return Dialog(
-            insetPadding: EdgeInsets.all(isSmallMobile ? 4 : 8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Container(
-              padding: EdgeInsets.all(isSmallMobile ? 16 : 24),
-              width: isMobile ? MediaQuery.of(context).size.width * 0.92 : 450,
-              child: Column(
+            Widget strengthItem(String label, bool valid) {
+              return Row(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: widget.accentColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.lock_outline, color: Color(0xFF1F4E6E), size: 20),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        isSmallMobile ? 'Alterar Senha' : 'Alterar Senha',
-                        style: TextStyle(
-                          fontSize: isSmallMobile ? 16 : 20,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F172A),
-                        ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 18),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
+                  Icon(
+                    valid
+                        ? Icons.check_circle_outline
+                        : Icons.radio_button_unchecked,
+                    color: valid ? _success : _secondary,
+                    size: 15,
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: currentPasswordController,
-                    obscureText: true,
-                    onChanged: (_) => setState(() {}),
-                    decoration: _buildInputDecoration('Senha Atual', Icons.lock_outline),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: newPasswordController,
-                    obscureText: true,
-                    onChanged: (_) => setState(() {}),
-                    decoration: _buildInputDecoration('Nova Senha', Icons.lock_reset),
-                  ),
-                  if (_hasStartedTyping) ...[
-                    const SizedBox(height: 12),
-                    _buildPasswordStrengthIndicator(),
-                  ],
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: confirmPasswordController,
-                    obscureText: true,
-                    onChanged: (_) => setState(() {}),
-                    decoration: _buildInputDecoration('Confirmar Nova Senha', Icons.verified_user),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFE2E8F0)),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            minimumSize: const Size(double.infinity, 40),
-                          ),
-                          child: const Text(
-                            'Cancelar',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: isLoading || !senhaCanSave() ? null : () async {
-                            setState(() => isLoading = true);
-                            try {
-                              final authService = AuthService();
-                              await authService.changeUserPassword(
-                                currentPasswordController.text,
-                                newPasswordController.text,
-                              );
-                              if (mounted) {
-                                Navigator.pop(context);
-                                ToastService.showSuccess(context, 'Senha alterada com sucesso!');
-                              }
-                            } catch (e) {
-                              if (mounted) {
-                                ToastService.showError(context, 'Erro ao alterar senha: $e');
-                              }
-                            } finally {
-                              setState(() => isLoading = false);
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: senhaCanSave() ? widget.successColor : Colors.grey.shade400,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            minimumSize: const Size(double.infinity, 40),
-                          ),
-                          child: isLoading
-                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.save,
-                                      size: 16,
-                                      color: senhaCanSave() ? Colors.white : Colors.grey.shade500,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Salvar',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: senhaCanSave() ? Colors.white : Colors.grey.shade500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                    ],
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight:
+                          valid ? FontWeight.w600 : FontWeight.w400,
+                      color: valid ? _success : _secondary,
+                      fontFamily: 'Inter',
+                    ),
                   ),
                 ],
+              );
+            }
+
+            Widget passwordField({
+              required String label,
+              required TextEditingController controller,
+              required IconData icon,
+              required bool obscure,
+              required VoidCallback toggle,
+            }) {
+              return TextField(
+                controller: controller,
+                obscureText: obscure,
+                onChanged: (_) => setDialogState(() {}),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: _foreground,
+                  fontFamily: 'Inter',
+                ),
+                decoration: _buildInputDecoration(
+                  label,
+                  icon,
+                ).copyWith(
+                  suffixIcon: IconButton(
+                    onPressed: toggle,
+                    icon: Icon(
+                      obscure
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: 19,
+                      color: _secondary,
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return Dialog(
+              backgroundColor: _background,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 20,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: const BorderSide(color: _border),
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 450,
+                  maxHeight:
+                      MediaQuery.sizeOf(dialogContext).height - 40,
+                ),
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(
+                    MediaQuery.sizeOf(dialogContext).width < 400
+                        ? 16
+                        : 22,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: _softBlue,
+                              borderRadius: BorderRadius.circular(11),
+                            ),
+                            child: const Icon(
+                              Icons.lock_outline,
+                              color: _primary,
+                              size: 21,
+                            ),
+                          ),
+                          const SizedBox(width: 11),
+                          const Expanded(
+                            child: Text(
+                              'Alterar Senha',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: _foreground,
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: isLoading
+                                ? null
+                                : () => Navigator.pop(dialogContext),
+                            icon: const Icon(
+                              Icons.close,
+                              color: _secondary,
+                              size: 19,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Defina uma nova senha para manter sua conta protegida.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.5,
+                          color: _secondary,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      passwordField(
+                        label: 'Senha Atual',
+                        controller: currentPasswordController,
+                        icon: Icons.lock_outline,
+                        obscure: obscureCurrent,
+                        toggle: () {
+                          setDialogState(() {
+                            obscureCurrent = !obscureCurrent;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      passwordField(
+                        label: 'Nova Senha',
+                        controller: newPasswordController,
+                        icon: Icons.lock_reset_outlined,
+                        obscure: obscureNew,
+                        toggle: () {
+                          setDialogState(() {
+                            obscureNew = !obscureNew;
+                          });
+                        },
+                      ),
+                      if (senha.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: _pageBackground,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: _border),
+                          ),
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Requisitos da senha',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: _foreground,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 14,
+                                runSpacing: 10,
+                                children: [
+                                  strengthItem(
+                                    'Mínimo 6 caracteres',
+                                    hasMinLength,
+                                  ),
+                                  strengthItem(
+                                    'Letra maiúscula',
+                                    hasUpperCase,
+                                  ),
+                                  strengthItem(
+                                    'Número',
+                                    hasNumber,
+                                  ),
+                                  strengthItem(
+                                    'Caractere especial',
+                                    hasSpecialChar,
+                                  ),
+                                  strengthItem(
+                                    'Senhas coincidem',
+                                    senhasConferem,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      passwordField(
+                        label: 'Confirmar Nova Senha',
+                        controller: confirmPasswordController,
+                        icon: Icons.verified_user_outlined,
+                        obscure: obscureConfirm,
+                        toggle: () {
+                          setDialogState(() {
+                            obscureConfirm = !obscureConfirm;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 22),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: isLoading
+                                  ? null
+                                  : () => Navigator.pop(dialogContext),
+                              style: _outlineButtonStyle(),
+                              child: const Text('Cancelar'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: isLoading || !canSave
+                                  ? null
+                                  : () async {
+                                      setDialogState(() {
+                                        isLoading = true;
+                                      });
+
+                                      try {
+                                        await _authService
+                                            .changeUserPassword(
+                                          currentPasswordController.text,
+                                          newPasswordController.text,
+                                        );
+
+                                        if (!dialogContext.mounted) return;
+
+                                        Navigator.pop(dialogContext);
+
+                                        if (mounted) {
+                                          ToastService.showSuccess(
+                                            context,
+                                            'Senha alterada com sucesso!',
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (dialogContext.mounted) {
+                                          ToastService.showError(
+                                            dialogContext,
+                                            'Erro ao alterar senha: $e',
+                                          );
+                                        }
+                                      } finally {
+                                        if (dialogContext.mounted) {
+                                          setDialogState(() {
+                                            isLoading = false;
+                                          });
+                                        }
+                                      }
+                                    },
+                              icon: isLoading
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.save_outlined,
+                                      size: 17,
+                                    ),
+                              label: Text(
+                                isLoading ? 'Salvando...' : 'Salvar',
+                              ),
+                              style: _primaryButtonStyle(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const SizedBox(
+        height: 220,
+        child: Center(
+          child: CircularProgressIndicator(
+            color: _primary,
+            strokeWidth: 2.5,
+          ),
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(19),
+      child: Container(
+        color: _background,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildHeader(),
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: _border,
+            ),
+            Flexible(
+              fit: FlexFit.loose,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(
+                  widget.isSmallMobile ? 14 : 22,
+                ),
+                child: _isEditing
+                    ? _buildEdicao()
+                    : _buildVisualizacao(),
               ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
 
-@override
-Widget build(BuildContext context) {
-  if (_isLoading) {
-    return const Center(child: CircularProgressIndicator());
-  }
-
-  return Container(
-    padding: EdgeInsets.all(widget.isSmallMobile ? 16 : 24),
-    width: widget.isMobile ? MediaQuery.of(context).size.width * 0.92 : 480,
-    constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
-    child: SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildHeader() {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: widget.isSmallMobile ? 14 : 20,
+        vertical: 16,
+      ),
+      child: Row(
         children: [
-          _buildHeader(),
-          const SizedBox(height: 16),
-          if (!_isEditing)
-            _buildVisualizacao()
-          else
-            _buildEdicao(),
-          const SizedBox(height: 20),
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: _softBlue,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: const Icon(
+              Icons.person_outline,
+              color: _primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Meus Dados',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: _foreground,
+                fontFamily: 'Inter',
+              ),
+            ),
+          ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _isSaving ? null : () => Navigator.pop(context),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _border),
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: _secondary,
+                  size: 19,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
-    ),
-  );
-}
-
-  Widget _buildHeader() {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: widget.accentColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.person_outline, color: Color(0xFF1F4E6E), size: 20),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          widget.isSmallMobile ? 'Meus Dados' : 'Meus Dados',
-          style: TextStyle(
-            fontSize: widget.isSmallMobile ? 16 : 20,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF0F172A),
-          ),
-        ),
-        const Spacer(),
-        IconButton(
-          icon: const Icon(Icons.close, size: 18),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ],
     );
   }
 
   Widget _buildVisualizacao() {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.all(16),
+          width: double.infinity,
+          padding: EdgeInsets.all(
+            widget.isSmallMobile ? 13 : 16,
+          ),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            color: _surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _border),
           ),
           child: Column(
             children: [
-              _buildInfoRow(Icons.person, 'Nome', _nomeController.text),
-              const SizedBox(height: 12),
-              _buildInfoRow(Icons.email, 'Email', _emailController.text),
-              const SizedBox(height: 12),
-              _buildInfoRow(Icons.phone, 'Telefone', _telefoneController.text),
-              const SizedBox(height: 12),
-              _buildInfoRow(Icons.assignment_ind, 'CPF', _cpf),
+              _buildInfoRow(
+                Icons.person_outline,
+                'Nome',
+                _nomeController.text,
+              ),
+              const Divider(height: 23, color: _border),
+              _buildInfoRow(
+                Icons.email_outlined,
+                'Email',
+                _emailController.text,
+              ),
+              const Divider(height: 23, color: _border),
+              _buildInfoRow(
+                Icons.phone_outlined,
+                'Telefone',
+                _telefoneController.text,
+              ),
+              const Divider(height: 23, color: _border),
+              _buildInfoRow(
+                Icons.assignment_ind_outlined,
+                'CPF',
+                _cpf,
+              ),
               if (_isUsuarioComum()) ...[
-                const SizedBox(height: 12),
-                _buildInfoRow(Icons.wc, 'Sexo', _sexoSelecionado.isEmpty ? 'Não informado' : _sexoSelecionado),
-                const SizedBox(height: 12),
-                _buildInfoRow(Icons.cake, 'Data Nascimento', _dataNascimento),
+                const Divider(height: 23, color: _border),
+                _buildInfoRow(
+                  Icons.wc_outlined,
+                  'Sexo',
+                  _sexoSelecionado.isEmpty
+                      ? 'Não informado'
+                      : _sexoSelecionado,
+                ),
+                const Divider(height: 23, color: _border),
+                _buildInfoRow(
+                  Icons.cake_outlined,
+                  'Data Nascimento',
+                  _dataNascimento,
+                ),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
         Row(
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () => setState(() => _isEditing = true),
-                icon: const Icon(Icons.edit, size: 18),
+                onPressed: () {
+                  setState(() {
+                    _isEditing = true;
+                  });
+                },
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 17,
+                ),
                 label: const Text(
                   'Editar Dados',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1F4E6E),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+                style: _primaryButtonStyle(),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: _abrirAlterarSenha,
-                icon: const Icon(Icons.lock_outline, size: 18),
+                icon: const Icon(
+                  Icons.lock_outline,
+                  size: 17,
+                ),
                 label: const Text(
                   'Alterar Senha',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: widget.accentColor),
-                  foregroundColor: widget.accentColor,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+                style: _outlineButtonStyle(),
               ),
             ),
           ],
@@ -556,34 +1000,60 @@ Widget build(BuildContext context) {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: const Color(0xFF64748B)),
-        const SizedBox(width: 12),
+        Container(
+          width: 30,
+          height: 30,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _pageBackground,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 17,
+            color: _secondary,
+          ),
+        ),
+        const SizedBox(width: 11),
         SizedBox(
-          width: 120,
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF64748B),
-              fontFamily: 'Inter',
+          width: widget.isSmallMobile ? 76 : 110,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: _secondary,
+                fontFamily: 'Inter',
+              ),
             ),
           ),
         ),
+        const SizedBox(width: 6),
         Expanded(
-          child: Text(
-            value.isEmpty ? 'Não informado' : value,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF0F172A),
-              fontFamily: 'Inter',
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              value.isEmpty ? 'Não informado' : value,
+              textAlign: TextAlign.right,
+              softWrap: true,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: _foreground,
+                fontFamily: 'Inter',
+                height: 1.45,
+              ),
             ),
-            textAlign: TextAlign.right,
           ),
         ),
       ],
@@ -592,188 +1062,147 @@ Widget build(BuildContext context) {
 
   Widget _buildEdicao() {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.all(16),
+          width: double.infinity,
+          padding: EdgeInsets.all(
+            widget.isSmallMobile ? 13 : 16,
+          ),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            color: _surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _border),
           ),
           child: Column(
             children: [
               TextField(
                 controller: _nomeController,
                 onChanged: (_) => setState(() {}),
-                decoration: _buildInputDecoration('Nome Completo', Icons.person),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: _foreground,
+                  fontFamily: 'Inter',
+                ),
+                decoration: _buildInputDecoration(
+                  'Nome Completo',
+                  Icons.person_outline,
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
                 onChanged: (_) => setState(() {}),
-                decoration: _buildInputDecoration('Email', Icons.email),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: _foreground,
+                  fontFamily: 'Inter',
+                ),
+                decoration: _buildInputDecoration(
+                  'Email',
+                  Icons.email_outlined,
+                ),
               ),
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.assignment_ind, color: Colors.grey.shade600, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'CPF',
-                            style: TextStyle(fontSize: 11, color: Colors.grey),
-                          ),
-                          Text(
-                            _cpf,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              _buildReadonlyField(
+                'CPF',
+                _cpf,
+                Icons.assignment_ind_outlined,
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _telefoneController,
                 keyboardType: TextInputType.phone,
                 onChanged: (_) => setState(() {}),
-                decoration: _buildInputDecoration('Telefone', Icons.phone),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: _foreground,
+                  fontFamily: 'Inter',
+                ),
+                decoration: _buildInputDecoration(
+                  'Telefone',
+                  Icons.phone_outlined,
+                ),
               ),
               if (_isUsuarioComum()) ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _sexoSelecionado.isEmpty ? null : _sexoSelecionado,
-                  decoration: _buildInputDecoration('Sexo', Icons.wc),
-                  items: ['Masculino', 'Feminino', 'Outro'].map((String value) {
+                  value: _sexoSelecionado.isEmpty
+                      ? null
+                      : _sexoSelecionado,
+                  isExpanded: true,
+                  dropdownColor: _surface,
+                  decoration: _buildInputDecoration(
+                    'Sexo',
+                    Icons.wc_outlined,
+                  ),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: _foreground,
+                    fontFamily: 'Inter',
+                  ),
+                  items: [
+                    'Masculino',
+                    'Feminino',
+                    'Outro',
+                  ].map((value) {
                     return DropdownMenuItem<String>(
                       value: value,
                       child: Text(value),
                     );
                   }).toList(),
-                  onChanged: (value) => setState(() => _sexoSelecionado = value ?? ''),
+                  onChanged: (value) {
+                    setState(() {
+                      _sexoSelecionado = value ?? '';
+                    });
+                  },
                 ),
                 const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.cake, color: Colors.grey.shade600, size: 18),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Data Nascimento',
-                              style: TextStyle(fontSize: 11, color: Colors.grey),
-                            ),
-                            Text(
-                              _dataNascimento,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                _buildReadonlyField(
+                  'Data Nascimento',
+                  _dataNascimento,
+                  Icons.cake_outlined,
                 ),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
         Row(
           children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: () => setState(() => _isEditing = false),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFFE2E8F0)),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  minimumSize: const Size(double.infinity, 40),
-                ),
-                child: const Text(
-                  'Cancelar',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                ),
+                onPressed: _isSaving ? null : _cancelarEdicao,
+                style: _outlineButtonStyle(),
+                child: const Text('Cancelar'),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
-              child: ElevatedButton(
-                onPressed: _isSaving || !_canSave() ? null : () async {
-                  setState(() => _isSaving = true);
-                  try {
-                    final authService = AuthService();
-                    String telefoneLimpo = _telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
-                    Map<String, dynamic> data = {
-                      'nomeCompleto': _nomeController.text,
-                      'email': _emailController.text,
-                      'telefone': telefoneLimpo,
-                    };
-                    if (_isUsuarioComum()) {
-                      data['sexo'] = _sexoSelecionado;
-                    }
-                    await authService.updateUserData(data);
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      ToastService.showSuccess(context, 'Dados atualizados com sucesso!');
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ToastService.showError(context, 'Erro ao atualizar dados: $e');
-                    }
-                  } finally {
-                    setState(() => _isSaving = false);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _canSave() ? widget.successColor : Colors.grey.shade400,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  minimumSize: const Size(double.infinity, 40),
-                ),
-                child: _isSaving
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.save,
-                            size: 16,
-                            color: _canSave() ? Colors.white : Colors.grey.shade500,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Salvar',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: _canSave() ? Colors.white : Colors.grey.shade500,
-                            ),
-                          ),
-                        ],
+              child: ElevatedButton.icon(
+                onPressed: _isSaving || !_canSave()
+                    ? null
+                    : _salvarDados,
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.save_outlined,
+                        size: 17,
                       ),
+                label: Text(
+                  _isSaving ? 'Salvando...' : 'Salvar',
                 ),
+                style: _primaryButtonStyle(),
               ),
-            
+            ),
           ],
         ),
       ],

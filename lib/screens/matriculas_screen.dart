@@ -22,8 +22,8 @@ class MyEnrollmentsScreen extends StatefulWidget {
 
 class _MyEnrollmentsScreenState extends State<MyEnrollmentsScreen> with SingleTickerProviderStateMixin {
   final _enrollmentService = EnrollmentService();
-  final Color _primaryDark = const Color(0xFF334155);
-  final Color _accentColor = const Color(0xFF1F4E6E);
+  final Color _primaryDark = const Color(0xFF333333);
+  final Color _accentColor = const Color(0xFF426E8C);
   final Color _successColor = const Color(0xFF2E8B6A);
   final Color _warningColor = const Color(0xFFD97706);
   final Color _dangerColor = const Color(0xFFC65D47);
@@ -98,6 +98,154 @@ class _MyEnrollmentsScreenState extends State<MyEnrollmentsScreen> with SingleTi
     }
   }
 
+
+Future<void> _abrirModalPadronizado({
+  required Widget child,
+  double maxWidth = 700,
+  bool barrierDismissible = false,
+}) {
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: barrierDismissible,
+    builder: (dialogContext) {
+      final size = MediaQuery.sizeOf(dialogContext);
+      final mobile = size.width < 600;
+
+      return Dialog(
+        backgroundColor: const Color(0xFFFFFDF9),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(
+            color: Color(0xFFE6E5DF),
+            width: 1,
+          ),
+        ),
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: mobile ? 12 : 24,
+          vertical: 20,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: maxWidth,
+            maxHeight: size.height * 0.85,
+          ),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
+Widget _buildModalHeader({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  VoidCallback? onClose,
+  Widget? action,
+  Color iconColor = const Color(0xFF426E8C),
+  Color iconBackground = const Color(0xFFE1EDF6),
+}) {
+  final mobile = MediaQuery.sizeOf(context).width < 600;
+
+  return Container(
+    width: double.infinity,
+    padding: EdgeInsets.symmetric(
+      horizontal: mobile ? 16 : 22,
+      vertical: 18,
+    ),
+    decoration: const BoxDecoration(
+      color: Color(0xFFFFFDF9),
+      border: Border(
+        bottom: BorderSide(
+          color: Color(0xFFE6E5DF),
+        ),
+      ),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: iconBackground,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            icon,
+            color: iconColor,
+            size: 23,
+          ),
+        ),
+        const SizedBox(width: 13),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: mobile ? 16 : 18,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF333333),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  color: Color(0xFF667078),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (action != null) ...[
+          const SizedBox(width: 8),
+          action,
+        ],
+        const SizedBox(width: 8),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onClose ?? () => Navigator.pop(context),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: const Color(0xFFE6E5DF),
+                ),
+              ),
+              child: const Icon(
+                Icons.close,
+                color: Color(0xFF667078),
+                size: 19,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+
   Future<void> _recarregarSilenciosamente() async {
     try {
       final response = await _enrollmentService.getMyEnrollments();
@@ -131,134 +279,98 @@ class _MyEnrollmentsScreenState extends State<MyEnrollmentsScreen> with SingleTi
     }
   }
 
-  Future<void> _verHistoricoPresencas(int matriculaId) async {
-    try {
-      final authService = AuthService();
-      final response = await authService.getMinhasPresencasPorMatricula(matriculaId);
-      
-      final presencas = response['presencas'] as List? ?? [];
-      final estatisticas = response['estatisticas'] as Map<String, dynamic>? ?? {
-        'percentual': '0',
-        'presentes': 0,
-        'faltas': 0,
-        'total': 0
-      };
-      
-      final isMobile = MediaQuery.of(context).size.width < 800;
-      final isSmallMobile = MediaQuery.of(context).size.width < 480;
-      
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => Dialog(
-          insetPadding: EdgeInsets.only(
-            left: isSmallMobile ? 8 : (isMobile ? 12 : 20),
-            right: isSmallMobile ? 8 : (isMobile ? 12 : 20),
-            top: 20,
-            bottom: 20,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: Container(
-            width: isMobile ? double.infinity : (MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.95),
-            constraints: BoxConstraints(maxWidth: 700),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: _buildHistoricoPresencasContent(presencas, estatisticas),
-            ),
-          ),
-        ),
-      );
-    } catch (e) {
-      ToastService.showError(context, 'Erro ao carregar histórico: $e');
-    }
-  }
+  
+Future<void> _verHistoricoPresencas(int matriculaId) async {
+  try {
+    final authService = AuthService();
+    final response = await authService.getMinhasPresencasPorMatricula(
+      matriculaId,
+    );
 
-  Widget _buildHistoricoPresencasContent(List<dynamic> presencas, Map<String, dynamic> estatisticas) {
-    return Container(
-      color: Colors.white,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFF334155),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.history,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Minhas Presenças',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        'Histórico de frequência',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildEstatisticasCard(estatisticas),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Registros de Presença',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F172A),
-                      fontFamily: 'Poppins',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildListaPresencasModal(presencas),
-                ],
-              ),
-            ),
-          ),
-        ],
+    if (!mounted) return;
+
+    final presencas = response['presencas'] as List? ?? [];
+    final estatisticas =
+        response['estatisticas'] as Map<String, dynamic>? ??
+        {
+          'percentual': '0',
+          'presentes': 0,
+          'faltas': 0,
+          'total': 0,
+        };
+
+    await _abrirModalPadronizado(
+      child: _buildHistoricoPresencasContent(
+        presencas,
+        estatisticas,
       ),
     );
+  } catch (e) {
+    if (!mounted) return;
+
+    ToastService.showError(
+      context,
+      'Erro ao carregar histórico: $e',
+    );
   }
+}
+
+Widget _buildHistoricoPresencasContent(
+  List<dynamic> presencas,
+  Map<String, dynamic> estatisticas,
+) {
+  final mobile = MediaQuery.sizeOf(context).width < 600;
+
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _buildModalHeader(
+        icon: Icons.history_outlined,
+        title: 'Minhas presenças',
+        subtitle: 'Histórico de frequência',
+      ),
+      Flexible(
+        fit: FlexFit.loose,
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          padding: EdgeInsets.all(mobile ? 16 : 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildEstatisticasCard(estatisticas),
+              const SizedBox(height: 24),
+              const Row(
+                children: [
+                  Icon(
+                    Icons.fact_check_outlined,
+                    size: 20,
+                    color: Color(0xFF426E8C),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Registros de presença',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _buildListaPresencasModal(presencas),
+            ],
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
 
   Widget _buildEstatisticasCard(Map<String, dynamic> stats) {
     return Container(
@@ -314,7 +426,7 @@ class _MyEnrollmentsScreenState extends State<MyEnrollmentsScreen> with SingleTi
                   ],
                 ),
               ),
-              Container(width: 1, height: 50, color: const Color(0xFFE2E8F0)),
+              Container(width: 1, height: 50, color: const Color(0xFFDCE5EB)),
               Expanded(
                 child: Column(
                   children: [
@@ -339,7 +451,7 @@ class _MyEnrollmentsScreenState extends State<MyEnrollmentsScreen> with SingleTi
                   ],
                 ),
               ),
-              Container(width: 1, height: 50, color: const Color(0xFFE2E8F0)),
+              Container(width: 1, height: 50, color: const Color(0xFFDCE5EB)),
               Expanded(
                 child: Column(
                   children: [
@@ -387,7 +499,7 @@ class _MyEnrollmentsScreenState extends State<MyEnrollmentsScreen> with SingleTi
       return Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
+          color: const Color(0xFFFAF8F3),
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Center(
@@ -432,7 +544,7 @@ class _MyEnrollmentsScreenState extends State<MyEnrollmentsScreen> with SingleTi
     
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: const Color(0xFFFAF8F3),
         borderRadius: BorderRadius.circular(16),
       ),
       child: ListView.separated(
@@ -524,219 +636,205 @@ class _MyEnrollmentsScreenState extends State<MyEnrollmentsScreen> with SingleTi
     );
   }
 
-  void _verDetalhes(Map<String, dynamic> enrollment) {
-    final isMobile = MediaQuery.of(context).size.width < 800;
-    final isSmallMobile = MediaQuery.of(context).size.width < 480;
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        insetPadding: EdgeInsets.only(
-          left: isSmallMobile ? 8 : (isMobile ? 12 : 20),
-          right: isSmallMobile ? 8 : (isMobile ? 12 : 20),
-          top: 20,
-          bottom: 20,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Container(
-          width: isMobile ? double.infinity : (MediaQuery.of(context).size.width > 800 ? 700 : MediaQuery.of(context).size.width * 0.95),
-          constraints: BoxConstraints(maxWidth: 700),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
-            child: _buildDetailsModalContent(enrollment),
-          ),
-        ),
-      ),
-    );
-  }
 
-Widget _buildDetailsModalContent(Map<String, dynamic> enrollment) {
+void _verDetalhes(Map<String, dynamic> enrollment) {
+  _abrirModalPadronizado(
+    child: _buildDetailsModalContent(enrollment),
+  );
+}
+
+Widget _buildDetailsModalContent(
+  Map<String, dynamic> enrollment,
+) {
   Map<String, dynamic> comorbidades = {};
+
   if (enrollment['comorbidades'] != null) {
     if (enrollment['comorbidades'] is String) {
       try {
         comorbidades = Map<String, dynamic>.from(
-          json.decode(enrollment['comorbidades'])
+          json.decode(enrollment['comorbidades']),
         );
       } catch (e) {
         comorbidades = {};
       }
     } else {
-      comorbidades = Map<String, dynamic>.from(enrollment['comorbidades']);
+      comorbidades = Map<String, dynamic>.from(
+        enrollment['comorbidades'],
+      );
     }
   }
 
-  String enderecoUpa = enrollment['upa_endereco'] ?? 'Não informado';
-  String cidadeUpa = enrollment['upa_cidade'] ?? 'Não informado';
-  String cepUpa = enrollment['upa_cep'] ?? '';
+  final enderecoUpa =
+      enrollment['upa_endereco']?.toString() ?? 'Não informado';
+  final cidadeUpa =
+      enrollment['upa_cidade']?.toString() ?? 'Não informado';
+  final cepUpa = enrollment['upa_cep']?.toString() ?? '';
+
   String enderecoCompleto = '$enderecoUpa, $cidadeUpa';
+
   if (cepUpa.isNotEmpty) {
     enderecoCompleto += ' • ${_formatarCep(cepUpa)}';
   }
 
-  final isMobile = MediaQuery.of(context).size.width < 600;
-  final isSmallMobile = MediaQuery.of(context).size.width < 400;
+  final mobile = MediaQuery.sizeOf(context).width < 600;
 
-  return Container(
-    color: Colors.white,
-    child: Column(
-      children: [
-        Container(
-          padding: EdgeInsets.all(isMobile ? 14 : 20),
-          decoration: BoxDecoration(
-            color: const Color(0xFF334155),
-          ),
-          child: Row(
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _buildModalHeader(
+        icon: Icons.assignment_ind_outlined,
+        title: 'Detalhes da matrícula',
+        subtitle: 'Informações completas',
+        action: enrollment['status'] == 'em_espera'
+            ? Tooltip(
+                message: 'Cancelar matrícula',
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _confirmarCancelamento(enrollment);
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8ECEA),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFFEFD6D0),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        color: Color(0xFFC65D47),
+                        size: 19,
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            : null,
+      ),
+      Flexible(
+        fit: FlexFit.loose,
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          padding: EdgeInsets.all(mobile ? 16 : 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: EdgeInsets.all(isMobile ? 8 : 10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.assignment_ind,
-                  color: Colors.white,
-                  size: isMobile ? 20 : 24,
-                ),
+              _buildStatusBanner(enrollment),
+              const SizedBox(height: 24),
+              _buildSectionHeader('Localização'),
+              const SizedBox(height: 12),
+              _buildDetailCard(
+                'Endereço',
+                enderecoCompleto,
+                Icons.location_on_outlined,
+                color: _accentColor,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isSmallMobile ? 'Detalhes' : 'Detalhes da Matrícula',
-                      style: TextStyle(
-                        fontSize: isMobile ? 16 : 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      'Informações completas',
-                      style: TextStyle(
-                        fontSize: isMobile ? 10 : 12,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 24),
+              _buildSectionHeader('Informações da turma'),
+              const SizedBox(height: 12),
+              _buildDetailCard(
+                'UPA',
+                enrollment['upa_nome']?.toString() ??
+                    'Não informado',
+                Icons.local_hospital_outlined,
+                color: _accentColor,
               ),
-              if (enrollment['status'] == 'em_espera')
-                IconButton(
-                  icon: Icon(Icons.delete_outline, color: Colors.white, size: isMobile ? 18 : 24),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _confirmarCancelamento(enrollment);
-                  },
-                  tooltip: 'Cancelar matrícula',
+              const SizedBox(height: 12),
+              _buildDetailCard(
+                'Turma',
+                enrollment['turma_horario']?.toString() ??
+                    'Não informado',
+                Icons.schedule_outlined,
+                color: _successColor,
+              ),
+              if (enrollment['segunda_opcao_turma'] != null &&
+                  enrollment['segunda_opcao_turma']
+                      .toString()
+                      .isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _buildDetailCard(
+                  'Segunda opção',
+                  enrollment['segunda_opcao_turma'].toString(),
+                  Icons.swap_horiz_outlined,
+                  color: _warningColor,
                 ),
-              IconButton(
-                icon: Icon(Icons.close, color: Colors.white, size: isMobile ? 18 : 24),
-                onPressed: () => Navigator.pop(context),
+              ],
+              const SizedBox(height: 12),
+              _buildDetailCard(
+                'Data da matrícula',
+                _formatDate(enrollment['created_at']),
+                Icons.calendar_today_outlined,
+                color: _accentColor,
+              ),
+              const SizedBox(height: 24),
+              _buildSectionHeader('Informações pessoais'),
+              const SizedBox(height: 12),
+              _buildDetailCard(
+                'Escolaridade',
+                enrollment['escolaridade']?.toString() ??
+                    'Não informado',
+                Icons.school_outlined,
+                color: _accentColor,
+              ),
+              const SizedBox(height: 12),
+              _buildDetailCard(
+                'Score Fagerström',
+                enrollment['score_fagestrom']?.toString() ??
+                    'Não informado',
+                Icons.assessment_outlined,
+                color: _accentColor,
+              ),
+              const SizedBox(height: 12),
+              _buildDetailCard(
+                'Medicamento',
+                enrollment['medicamento']?.toString() ??
+                    'Não informado',
+                Icons.medication_outlined,
+                color: _accentColor,
+              ),
+              const SizedBox(height: 24),
+              _buildSectionHeader('Comorbidades'),
+              const SizedBox(height: 12),
+              _buildComorbidadesSection(
+                'Câncer',
+                comorbidades['cancer'] ?? [],
+              ),
+              const SizedBox(height: 12),
+              _buildComorbidadesSection(
+                'Cardiovascular',
+                comorbidades['cardiovascular'] ?? [],
+              ),
+              const SizedBox(height: 12),
+              _buildComorbidadesSection(
+                'Metabólico',
+                comorbidades['metabolico'] ?? [],
+              ),
+              const SizedBox(height: 12),
+              _buildComorbidadesSection(
+                'Psiquiátrico',
+                comorbidades['psiquiatrico'] ?? [],
+              ),
+              const SizedBox(height: 12),
+              _buildComorbidadesSection(
+                'Respiratório',
+                comorbidades['respiratorio'] ?? [],
               ),
             ],
           ),
         ),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(isMobile ? 16 : 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildStatusBanner(enrollment),
-                const SizedBox(height: 24),
-                _buildSectionHeader('Localização'),
-                const SizedBox(height: 12),
-                _buildDetailCard(
-                  'Endereço',
-                  enderecoCompleto,
-                  Icons.location_on_outlined,
-                  color: _accentColor,
-                ),
-                const SizedBox(height: 24),
-                _buildSectionHeader('Informações da Turma'),
-                const SizedBox(height: 12),
-                _buildDetailCard(
-                  'UPA',
-                  enrollment['upa_nome'] ?? 'Não informado',
-                  Icons.local_hospital_outlined,
-                  color: _accentColor,
-                ),
-                const SizedBox(height: 12),
-                _buildDetailCard(
-                  'Turma',
-                  enrollment['turma_horario'] ?? 'Não informado',
-                  Icons.schedule_outlined,
-                  color: _successColor,
-                ),
-                if (enrollment['segunda_opcao_turma'] != null && enrollment['segunda_opcao_turma'].isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  _buildDetailCard(
-                    'Segunda Opção',
-                    enrollment['segunda_opcao_turma'],
-                    Icons.swap_horiz,
-                    color: _warningColor,
-                  ),
-                ],
-                const SizedBox(height: 12),
-                _buildDetailCard(
-                  'Data da Matrícula',
-                  _formatDate(enrollment['created_at']),
-                  Icons.calendar_today_outlined,
-                  color: const Color(0xFF64748B),
-                ),
-                const SizedBox(height: 24),
-                _buildSectionHeader('Informações Pessoais'),
-                const SizedBox(height: 12),
-                _buildDetailCard(
-                  'Escolaridade',
-                  enrollment['escolaridade'] ?? 'Não informado',
-                  Icons.school_outlined,
-                  color: _purpleColor,
-                ),
-                const SizedBox(height: 12),
-                _buildDetailCard(
-                  'Score Fagerström',
-                  enrollment['score_fagestrom']?.toString() ?? 'Não informado',
-                  Icons.assessment_outlined,
-                  color: _warningColor,
-                ),
-                const SizedBox(height: 12),
-                _buildDetailCard(
-                  'Medicamento',
-                  enrollment['medicamento'] ?? 'Não informado',
-                  Icons.medication_outlined,
-                  color: _successColor,
-                ),
-                const SizedBox(height: 24),
-                _buildSectionHeader('Comorbidades'),
-                const SizedBox(height: 12),
-                _buildComorbidadesSection('Câncer', comorbidades['cancer'] ?? []),
-                const SizedBox(height: 12),
-                _buildComorbidadesSection('Cardiovascular', comorbidades['cardiovascular'] ?? []),
-                const SizedBox(height: 12),
-                _buildComorbidadesSection('Metabólico', comorbidades['metabolico'] ?? []),
-                const SizedBox(height: 12),
-                _buildComorbidadesSection('Psiquiátrico', comorbidades['psiquiatrico'] ?? []),
-                const SizedBox(height: 12),
-                _buildComorbidadesSection('Respiratório', comorbidades['respiratorio'] ?? []),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ),
+      ),
+    ],
   );
 }
+
 
 Widget _buildSectionHeader(String title) {
   final isMobile = MediaQuery.of(context).size.width < 600;
@@ -746,7 +844,7 @@ Widget _buildSectionHeader(String title) {
     style: TextStyle(
       fontSize: isMobile ? 15 : 17,
       fontWeight: FontWeight.w700,
-      color: const Color(0xFF0F172A),
+      color: const Color(0xFF333333),
       fontFamily: 'Poppins',
     ),
   );
@@ -799,7 +897,7 @@ Widget _buildStatusBanner(Map<String, dynamic> enrollment) {
                 'Status da Matrícula',
                 style: TextStyle(
                   fontSize: isMobile ? 11 : 12,
-                  color: const Color(0xFF64748B),
+                  color: const Color(0xFF737A80),
                   fontFamily: 'Inter',
                 ),
               ),
@@ -831,14 +929,14 @@ Widget _buildStatusBanner(Map<String, dynamic> enrollment) {
   }
 
   Widget _buildDetailCard(String label, String value, IconData icon, {Color? color}) {
-    final useColor = color ?? _accentColor;
+    final useColor = _accentColor;
     
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: const Color(0xFFFAF8F3),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: const Color(0xFFDCE5EB)),
       ),
       child: Row(
         children: [
@@ -869,7 +967,7 @@ Widget _buildStatusBanner(Map<String, dynamic> enrollment) {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: color ?? const Color(0xFF0F172A),
+                    color: const Color(0xFF333333),
                     fontFamily: 'Inter',
                   ),
                 ),
@@ -900,9 +998,9 @@ Widget _buildStatusBanner(Map<String, dynamic> enrollment) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: const Color(0xFFFAF8F3),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: const Color(0xFFDCE5EB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -949,7 +1047,7 @@ Widget _buildStatusBanner(Map<String, dynamic> enrollment) {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
+                    color: const Color(0xFFDCE5EB),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -968,94 +1066,210 @@ Widget _buildStatusBanner(Map<String, dynamic> enrollment) {
     );
   }
 
-  Future<void> _confirmarCancelamento(Map<String, dynamic> enrollment) async {
-    final isMobile = MediaQuery.of(context).size.width < 500;
-    final isSmallMobile = MediaQuery.of(context).size.width < 400;
-    
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        insetPadding: EdgeInsets.symmetric(
-          horizontal: isSmallMobile ? 8 : (isMobile ? 12 : 20),
-          vertical: 20,
+
+Future<void> _confirmarCancelamento(
+  Map<String, dynamic> enrollment,
+) async {
+  final mobile = MediaQuery.sizeOf(context).width < 600;
+
+  await _abrirModalPadronizado(
+    maxWidth: 460,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildModalHeader(
+          icon: Icons.warning_amber_rounded,
+          title: 'Cancelar matrícula',
+          subtitle: 'Confirmação necessária',
+          iconColor: const Color(0xFFC65D47),
+          iconBackground: const Color(0xFFF8ECEA),
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _dangerColor.withOpacity(0.1),
-                  shape: BoxShape.circle,
+        Flexible(
+          fit: FlexFit.loose,
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            padding: EdgeInsets.all(mobile ? 18 : 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tem certeza que deseja cancelar sua matrícula?',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF333333),
+                    height: 1.4,
+                  ),
                 ),
-                child: Icon(Icons.warning_amber_rounded, color: _dangerColor, size: 48),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Cancelar Matrícula',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: _primaryDark,
-                  fontFamily: 'Poppins',
+                const SizedBox(height: 12),
+                const Text(
+                  'Confira as informações abaixo antes de confirmar.',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    color: Color(0xFF667078),
+                    height: 1.6,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Tem certeza que deseja cancelar sua matrícula na ${enrollment['upa_nome']}?\n\nTurma: ${enrollment['turma_horario']}\n\nEsta ação não pode ser desfeita.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.4),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.grey.shade300),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text(
-                        'Não, sair',
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAF8F3),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFE6E5DF),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Unidade de atendimento',
                         style: TextStyle(
-                          fontSize: 15,
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          color: Color(0xFF667078),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        enrollment['upa_nome']?.toString() ??
+                            'Não informado',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
+                          color: Color(0xFF333333),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Turma',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          color: Color(0xFF667078),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        enrollment['turma_horario']?.toString() ??
+                            'Não informado',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF333333),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(13),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8ECEA),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFFEFD6D0),
+                    ),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Color(0xFFC65D47),
+                        size: 19,
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Esta ação não pode ser desfeita.',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            height: 1.5,
+                            color: Color(0xFF9B4939),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF667078),
+                          side: const BorderSide(
+                            color: Color(0xFFE6E5DF),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 15,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          textStyle: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        child: const Text('Voltar'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          await _cancelarMatricula(enrollment);
+                        },
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          size: 17,
+                        ),
+                        label: const Text('Cancelar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFC65D47),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 15,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          textStyle: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        await _cancelarMatricula(enrollment);
-                      },
-                      icon: const Icon(Icons.check, size: 18),
-                      label: const Text('Sim, cancelar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _dangerColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
+
 
   Future<void> _cancelarMatricula(Map<String, dynamic> enrollment) async {
     setState(() => _isLoading = true);
@@ -1304,165 +1518,125 @@ Widget _buildInfoBanner() {
     );
   }
 
-  void _mostrarInformacoesGrupos() {
-    final isMobile = MediaQuery.of(context).size.width < 800;
-    final isSmallMobile = MediaQuery.of(context).size.width < 480;
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        insetPadding: EdgeInsets.only(
-          left: isSmallMobile ? 8 : (isMobile ? 12 : 20),
-          right: isSmallMobile ? 8 : (isMobile ? 12 : 20),
-          top: 20,
-          bottom: 20,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Container(
-          width: isMobile ? double.infinity : (MediaQuery.of(context).size.width > 800 ? 800 : MediaQuery.of(context).size.width * 0.95),
-          constraints: BoxConstraints(maxWidth: 800),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
-            child: _buildInformacoesGruposContent(),
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildInformacoesGruposContent() {
-    return Container(
-      color: Colors.white,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFF334155),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.info_outline,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Como Funcionam as Turmas',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        'Tudo o que você precisa saber',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildInfoSection(
-                    icon: Icons.how_to_reg_outlined,
-                    title: 'Processo de Matrícula',
-                    content: 'Após realizar sua matrícula em uma das turmas disponíveis, você entrará na lista de espera. Em até 5 dias úteis, a unidade entrará em contato pelo telefone e email cadastrados para confirmar sua vaga e fornecer mais informações sobre o início das atividades.',
-                    color: _accentColor,
-                  ),
-                  const SizedBox(height: 24),
-                  _buildInfoSection(
-                    icon: Icons.calendar_today_outlined,
-                    title: 'Frequência dos Encontros',
-                    content: 'O programa de apoio é estruturado da seguinte forma:\n\n• Primeiro mês: Encontros SEMANAIS (1 vez por semana)\n• Meses seguintes: Encontros QUINZENAIS (a cada 15 dias)\n\nCada encontro tem duração aproximada de 2 horas.',
-                    color: _successColor,
-                  ),
-                  const SizedBox(height: 24),
-                  _buildInfoSection(
-                    icon: Icons.group_outlined,
-                    title: 'Dinâmica dos Grupos',
-                    color: _warningColor,
-                    contentWidget: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Os grupos são espaços acolhedores e sigilosos onde você encontrará apoio para sua jornada de abandono do tabagismo.\n',
-                          style: TextStyle(
-                            fontSize: 14,
-                            height: 1.5,
-                            color: Color(0xFF475569),
-                            fontFamily: 'Inter',
-                          ),
-                        ),
-                        _infoItem(Icons.chat_bubble_outline, 'Roda de Conversa: Compartilhamento de experiências e desafios', _warningColor),
-                        const SizedBox(height: 8),
-                        _infoItem(Icons.health_and_safety_outlined, 'Educação em Saúde: Informações sobre os efeitos do tabagismo', _warningColor),
-                        const SizedBox(height: 8),
-                        _infoItem(Icons.psychology_outlined, 'Estratégias de Enfrentamento: Técnicas para lidar com a fissura', _warningColor),
-                        const SizedBox(height: 8),
-                        _infoItem(Icons.self_improvement_outlined, 'Atividades Práticas: Exercícios respiratórios e relaxamento', _warningColor),
-                        const SizedBox(height: 8),
-                        _infoItem(Icons.person_outline, 'Acompanhamento Individual: Orientação personalizada', _warningColor),
-                        const SizedBox(height: 8),
-                        _infoItem(Icons.people_outline, 'Rede de Apoio: Vínculos com pessoas na mesma jornada', _warningColor),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildInfoSection(
-                    icon: Icons.medical_services_outlined,
-                    title: 'Acompanhamento Profissional',
-                    content: 'Os grupos são coordenados por uma equipe multidisciplinar composta por:\n\n• Médicos especialistas em tabagismo\n• Psicólogos',
-                    color: _purpleColor,
-                  ),
-                  const SizedBox(height: 24),
-                  _buildInfoSection(
-                    icon: Icons.phone_android_outlined,
-                    title: 'Comunicação e Suporte',
-                    content: 'Além dos encontros presenciais, você receberá:\n\n✓ Mensagens de apoio via WhatsApp\n✓ Material informativo complementar\n✓ Acompanhamento telefônico\n✓ Grupo de suporte online',
-                    color: const Color(0xFF14B8A6),
-                  ),
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
-          ),
-        ],
+void _mostrarInformacoesGrupos() {
+  _abrirModalPadronizado(
+    maxWidth: 800,
+    child: _buildInformacoesGruposContent(),
+  );
+}
+
+Widget _buildInformacoesGruposContent() {
+  final mobile = MediaQuery.sizeOf(context).width < 600;
+
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _buildModalHeader(
+        icon: Icons.info_outline,
+        title: 'Como funcionam as turmas',
+        subtitle: 'Tudo o que você precisa saber',
       ),
-    );
-  }
+      Flexible(
+        fit: FlexFit.loose,
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          padding: EdgeInsets.all(mobile ? 16 : 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoSection(
+                icon: Icons.how_to_reg_outlined,
+                title: 'Processo de matrícula',
+                content:
+                    'Após realizar sua matrícula em uma das turmas disponíveis, você entrará na lista de espera. Em até 5 dias úteis, a unidade entrará em contato pelo telefone e email cadastrados para confirmar sua vaga e fornecer mais informações sobre o início das atividades.',
+                color: _accentColor,
+              ),
+              const SizedBox(height: 24),
+              _buildInfoSection(
+                icon: Icons.calendar_today_outlined,
+                title: 'Frequência dos encontros',
+                content:
+                    'O programa de apoio é estruturado da seguinte forma:\n\n• Primeiro mês: Encontros SEMANAIS (1 vez por semana)\n• Meses seguintes: Encontros QUINZENAIS (a cada 15 dias)\n\nCada encontro tem duração aproximada de 2 horas.',
+                color: _accentColor,
+              ),
+              const SizedBox(height: 24),
+              _buildInfoSection(
+                icon: Icons.group_outlined,
+                title: 'Dinâmica dos grupos',
+                color: _accentColor,
+                contentWidget: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Os grupos são espaços acolhedores e sigilosos onde você encontrará apoio para sua jornada de abandono do tabagismo.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.5,
+                        color: Color(0xFF4E4E4E),
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _infoItem(
+                      Icons.chat_bubble_outline,
+                      'Roda de Conversa: Compartilhamento de experiências e desafios',
+                      _accentColor,
+                    ),
+                    _infoItem(
+                      Icons.health_and_safety_outlined,
+                      'Educação em Saúde: Informações sobre os efeitos do tabagismo',
+                      _accentColor,
+                    ),
+                    _infoItem(
+                      Icons.psychology_outlined,
+                      'Estratégias de Enfrentamento: Técnicas para lidar com a fissura',
+                      _accentColor,
+                    ),
+                    _infoItem(
+                      Icons.self_improvement_outlined,
+                      'Atividades Práticas: Exercícios respiratórios e relaxamento',
+                      _accentColor,
+                    ),
+                    _infoItem(
+                      Icons.person_outline,
+                      'Acompanhamento Individual: Orientação personalizada',
+                      _accentColor,
+                    ),
+                    _infoItem(
+                      Icons.people_outline,
+                      'Rede de Apoio: Vínculos com pessoas na mesma jornada',
+                      _accentColor,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildInfoSection(
+                icon: Icons.medical_services_outlined,
+                title: 'Acompanhamento profissional',
+                content:
+                    'Os grupos são coordenados por uma equipe multidisciplinar composta por:\n\n• Médicos especialistas em tabagismo\n• Psicólogos',
+                color: _accentColor,
+              ),
+              const SizedBox(height: 24),
+              _buildInfoSection(
+                icon: Icons.phone_android_outlined,
+                title: 'Comunicação e suporte',
+                content:
+                    'Além dos encontros presenciais, você receberá:\n\n✓ Mensagens de apoio via WhatsApp\n✓ Material informativo complementar\n✓ Acompanhamento telefônico\n✓ Grupo de suporte online',
+                color: _accentColor,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
 
 Widget _buildInfoSection({
   required IconData icon,
@@ -1472,56 +1646,72 @@ Widget _buildInfoSection({
   required Color color,
 }) {
   return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      border: Border(left: BorderSide(color: color, width: 4)),
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(
+        color: const Color(0xFFE6E5DF),
+      ),
     ),
-    child: Padding(
-      padding: const EdgeInsets.only(left: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 22),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE1EDF6),
+                borderRadius: BorderRadius.circular(10),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (contentWidget != null)
-            contentWidget
-          else if (content != null)
-            Text(
-              content,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.5,
-                color: Color(0xFF475569),
-                fontFamily: 'Inter',
+              child: Icon(
+                icon,
+                color: const Color(0xFF426E8C),
+                size: 20,
               ),
             ),
-        ],
-      ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF333333),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        const Divider(
+          height: 1,
+          color: Color(0xFFE6E5DF),
+        ),
+        const SizedBox(height: 14),
+        if (contentWidget != null)
+          contentWidget
+        else if (content != null)
+          Text(
+            content,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              height: 1.65,
+              color: Color(0xFF667078),
+            ),
+          ),
+      ],
     ),
   );
 }
+
   Widget _infoItem(IconData icon, String text, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -1558,21 +1748,16 @@ Widget _buildInfoSection({
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 768;
-    final isTablet = MediaQuery.of(context).size.width >= 768 && MediaQuery.of(context).size.width < 1200;
-    final horizontalPadding = isMobile ? 16.0 : (isTablet ? 24.0 : 32.0);
-    
+    final width = MediaQuery.sizeOf(context).width;
+    final padding = width < 600 ? 18.0 : width < 900 ? 28.0 : 42.0;
     return Consumer<PollingService>(
       builder: (context, pollingService, child) {
         if (_ultimaVersao != pollingService.versao) {
           _ultimaVersao = pollingService.versao;
-          if (!_isLoading) {
-            _recarregarSilenciosamente();
-          }
+          if (!_isLoading) _recarregarSilenciosamente();
         }
-        
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: const Color(0xFFFAF8F3),
           body: Column(
             children: [
               HeaderWidget(
@@ -1589,26 +1774,36 @@ Widget _buildInfoSection({
                   child: Column(
                     children: [
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                        child: Column(
-                          children: [
-                            _buildInfoBanner(),
-                            _isLoading
-                                ? Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(48),
-                                      child: CircularProgressIndicator(color: _accentColor),
-                                    ),
+                        padding: EdgeInsets.fromLTRB(padding, width < 600 ? 26 : 48, padding, 0),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1250),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _buildEnrollmentHero(),
+                                const SizedBox(height: 26),
+                                if (!_isLoading && _errorMessage == null && _enrollments.isNotEmpty) ...[
+                                  _buildEnrollmentSummary(),
+                                  const SizedBox(height: 26),
+                                ],
+                                if (_isLoading)
+                                  const Padding(
+                                    padding: EdgeInsets.all(65),
+                                    child: Center(child: CircularProgressIndicator(color: Color(0xFF426E8C))),
                                   )
-                                : _errorMessage != null
-                                    ? _buildErrorWidget()
-                                    : _enrollments.isEmpty
-                                        ? _buildEmptyWidget()
-                                        : _buildTabsContent(),
-                          ],
+                                else if (_errorMessage != null)
+                                  _buildErrorWidget()
+                                else if (_enrollments.isEmpty)
+                                  _buildEmptyWidget()
+                                else
+                                  _buildTabsContent(),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 70),
                       const FooterWidget(),
                     ],
                   ),
@@ -1621,65 +1816,133 @@ Widget _buildInfoSection({
     );
   }
 
-Widget _buildTabsContent() {
-  final isMobile = MediaQuery.of(context).size.width < 600;
-  
-  return Column(
-    children: [
-      Container(
-        color: Colors.white,
-        child: isMobile
-            ? Row(
-  children: [
-    Expanded(
-      child: _buildTabItemWidget('Ativas', _ativas.length, _successColor, 0),
-    ),
-    Expanded(
-      child: _buildTabItemWidget('Concluídas', _concluidas.length, _purpleColor, 1),
-    ),
-    Expanded(
-      child: _buildTabItemWidget('Canceladas', _canceladas.length, _dangerColor, 2),
-    ),
-  ],
-)
-            : TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                indicatorColor: _accentColor,
-                indicatorWeight: 3,
-                labelColor: _accentColor,
-                unselectedLabelColor: const Color(0xFF64748B),
-                labelStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Poppins',
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontSize: 14,
-                  fontFamily: 'Inter',
-                ),
-                tabs: [
-                  _buildTabItem('Ativas', _ativas.length, _successColor),
-                  _buildTabItem('Concluídas', _concluidas.length, _purpleColor),
-                  _buildTabItem('Canceladas', _canceladas.length, _dangerColor),
+  Widget _buildEnrollmentHero() {
+    final compact = MediaQuery.sizeOf(context).width < 720;
+    return Container(
+      padding: EdgeInsets.all(compact ? 24 : 44),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE1EDF6),
+        border: Border.all(color: const Color(0xFFC9DEED)),
+        borderRadius: BorderRadius.circular(26),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.assignment_outlined, color: Color(0xFF426E8C), size: 18),
+              SizedBox(width: 9),
+              Text('ACOMPANHAMENTO', style: TextStyle(fontFamily: 'Inter', fontSize: 11, letterSpacing: 1.3, fontWeight: FontWeight.w700, color: Color(0xFF426E8C))),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text('Minhas matrículas.', style: TextStyle(fontFamily: 'DMSerifDisplay', fontSize: compact ? 37 : 49, height: 1.15, color: const Color(0xFF333333))),
+          const SizedBox(height: 12),
+           ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 610),
+            child: Text('Consulte suas turmas, acompanhe suas matrículas e acesse os registros dos encontros.', style: TextStyle(fontFamily: 'Inter', fontSize: 14, height: 1.7, color: Color(0xFF4E4E4E))),
+          ),
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: _mostrarInformacoesGrupos,
+            icon: const Icon(Icons.info_outline, size: 18),
+            label: const Text('Como funcionam as turmas?'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF426E8C),
+              side: const BorderSide(color: Color(0xFFB7D2E4)),
+              backgroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnrollmentSummary() {
+    final items = [
+      ('Ativas', _ativas.length, Icons.event_available_outlined),
+      ('Concluídas', _concluidas.length, Icons.task_alt_outlined),
+      ('Canceladas', _canceladas.length, Icons.event_busy_outlined),
+    ];
+    return LayoutBuilder(builder: (context, constraints) {
+      final compact = constraints.maxWidth < 580;
+      return Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: items.map((item) {
+          final w = compact ? (constraints.maxWidth - 24) / 3 : (constraints.maxWidth - 24) / 3;
+          return SizedBox(
+            width: w,
+            child: Container(
+              padding: EdgeInsets.all(compact ? 12 : 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFDCE5EB)),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(item.$3, color: const Color(0xFF426E8C), size: compact ? 20 : 25),
+                  const SizedBox(height: 13),
+                  Text('${item.$2}', style: TextStyle(fontFamily: 'Inter', fontSize: compact ? 24 : 30, fontWeight: FontWeight.w700, color: const Color(0xFF333333))),
+                  const SizedBox(height: 3),
+                  Text(item.$1, style: TextStyle(fontFamily: 'Inter', fontSize: compact ? 11 : 13, color: const Color(0xFF737A80))),
                 ],
               ),
+            ),
+          );
+        }).toList(),
+      );
+    });
+  }
+
+
+Widget _buildTabsContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFDCE5EB)),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: TabBar(
+            controller: _tabController,
+            isScrollable: false,
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicator: BoxDecoration(color: const Color(0xFFE1EDF6), borderRadius: BorderRadius.circular(12)),
+            indicatorPadding: const EdgeInsets.all(5),
+            dividerColor: Colors.transparent,
+            labelColor: const Color(0xFF426E8C),
+            unselectedLabelColor: const Color(0xFF737A80),
+            labelStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 12),
+            unselectedLabelStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 12),
+            tabs: [
+              Tab(text: 'Ativas (${_ativas.length})'),
+              Tab(text: 'Concluídas (${_concluidas.length})'),
+              Tab(text: 'Canceladas (${_canceladas.length})'),
+            ],
+          ),
         ),
-      const SizedBox(height: 16),
-      SizedBox(
-        height: MediaQuery.of(context).size.height * 0.6,
-        child: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildListaMatriculas(_ativas, 'Nenhuma matrícula ativa'),
-            _buildListaMatriculas(_concluidas, 'Nenhuma matrícula concluída'),
-            _buildListaMatriculas(_canceladas, 'Nenhuma matrícula cancelada'),
-          ],
+        const SizedBox(height: 18),
+        AnimatedBuilder(
+          animation: _tabController,
+          builder: (context, child) {
+            final index = _tabController.index;
+            return _buildListaMatriculas(
+              index == 0 ? _ativas : index == 1 ? _concluidas : _canceladas,
+              index == 0 ? 'Nenhuma matrícula ativa' : index == 1 ? 'Nenhuma matrícula concluída' : 'Nenhuma matrícula cancelada',
+            );
+          },
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
+
 
 Widget _buildTabItemWidget(String label, int count, Color color, int index) {
   return AnimatedBuilder(
@@ -1709,7 +1972,7 @@ Widget _buildTabItemWidget(String label, int count, Color color, int index) {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? _accentColor : const Color(0xFF64748B),
+                  color: isSelected ? _accentColor : const Color(0xFF737A80),
                   fontFamily: 'Poppins',
                 ),
               ),
@@ -1768,55 +2031,63 @@ Widget _buildTabItemWidget(String label, int count, Color color, int index) {
     );
   }
 
-Widget _buildListaMatriculas(List<Map<String, dynamic>> lista, String mensagemVazia) {
+Widget _buildListaMatriculas(
+  List<Map<String, dynamic>> lista,
+  String mensagemVazia,
+) {
   if (lista.isEmpty) {
-    return Center(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 56,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(
+          color: const Color(0xFFDCE5EB),
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.inbox_outlined,
-              size: 48,
-              color: Colors.grey.shade400,
-            ),
+          const Icon(
+            Icons.inbox_outlined,
+            color: Color(0xFF426E8C),
+            size: 38,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 15),
           Text(
             mensagemVazia,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey.shade600,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
               fontFamily: 'Inter',
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: Color(0xFF333333),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           ElevatedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => UPAScreen(
-                    userData: widget.userData,
-                    onNameUpdated: widget.onNameUpdated,
-                  ),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => UPAScreen(
+                  userData: widget.userData,
+                  onNameUpdated: widget.onNameUpdated,
                 ),
-              );
-            },
-            icon: const Icon(Icons.search, size: 18),
-            label: const Text(
-              'Encontrar turmas',
-              style: TextStyle(fontWeight: FontWeight.w600),
+              ),
             ),
+            icon: const Icon(Icons.search, size: 18),
+            label: const Text('Encontrar turmas'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accentColor,
+              backgroundColor: const Color(0xFF426E8C),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 22,
+                vertical: 15,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -1827,259 +2098,267 @@ Widget _buildListaMatriculas(List<Map<String, dynamic>> lista, String mensagemVa
     );
   }
 
-  return ListView.builder(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    itemCount: lista.length,
-    itemBuilder: (context, index) {
-      return _buildEnrollmentCard(lista[index]);
-    },
+  return Column(
+    children: lista.map((enrollment) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: SizedBox(
+          width: double.infinity,
+          child: _buildEnrollmentCard(enrollment),
+        ),
+      );
+    }).toList(),
   );
 }
 
   Widget _buildEnrollmentCard(Map<String, dynamic> enrollment) {
-  String statusDisplay = enrollment['status_display'] ?? enrollment['status'];
-  Color statusColor = _getStatusColor(statusDisplay);
-  IconData statusIcon = _getStatusIcon(statusDisplay);
-  String statusText = _getStatusText(statusDisplay);
-  bool isCanceled = statusDisplay == 'cancelada';
-  bool isConcluida = statusDisplay == 'concluida';
-  bool isEmEspera = statusDisplay == 'em_espera';
-  bool isMatriculado = enrollment['status'] == 'matriculado';
-  final isMobile = MediaQuery.of(context).size.width < 600;
-  
-  String enderecoUpa = enrollment['upa_endereco'] ?? '';
-  String cidadeUpa = enrollment['upa_cidade'] ?? '';
-  String cepUpa = enrollment['upa_cep'] ?? '';
-  String enderecoCompleto = enderecoUpa.isNotEmpty 
-      ? '$enderecoUpa, $cidadeUpa${cepUpa.isNotEmpty ? ' • ${_formatarCep(cepUpa)}' : ''}'
-      : 'Endereço não informado';
-  
-  return Container(
-    margin: const EdgeInsets.only(bottom: 16),
-    decoration: BoxDecoration(
-      color: isCanceled ? Colors.grey.shade50 : Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.08),
-          blurRadius: 12,
-          offset: const Offset(0, 3),
+  final status = (enrollment['status'] ??
+          enrollment['status_display'] ??
+          '')
+      .toString();
+
+  final isEmEspera = status == 'em_espera';
+  final isConcluida = status == 'concluida';
+  final isMatriculado = status == 'matriculado';
+
+  final endereco = (enrollment['upa_endereco'] ?? '').toString();
+  final cidade = (enrollment['upa_cidade'] ?? '').toString();
+  final cep = (enrollment['upa_cep'] ?? '').toString();
+
+  final enderecoCompleto = endereco.isEmpty
+      ? 'Endereço não informado'
+      : '$endereco${cidade.isNotEmpty ? ', $cidade' : ''}${cep.isNotEmpty ? ' • ${_formatarCep(cep)}' : ''}';
+
+  final actions = <Widget>[
+    ElevatedButton.icon(
+      onPressed: () => _verDetalhes(enrollment),
+      icon: const Icon(Icons.description_outlined, size: 18),
+      label: const Text('Ver detalhes'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF426E8C),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-      ],
+      ),
+    ),
+    if (!isEmEspera && !isConcluida)
+      OutlinedButton.icon(
+        onPressed: () => _verCronograma(
+          enrollment['id'],
+          enrollment['turma_horario'],
+        ),
+        icon: const Icon(Icons.calendar_month_outlined, size: 18),
+        label: const Text('Ver cronograma'),
+        style: _secondaryEnrollmentButton(),
+      ),
+    if (isMatriculado)
+      OutlinedButton.icon(
+        onPressed: () => _verHistoricoPresencas(enrollment['id']),
+        icon: const Icon(Icons.fact_check_outlined, size: 18),
+        label: const Text('Ver presenças'),
+        style: _secondaryEnrollmentButton(),
+      ),
+    if (isMatriculado)
+      OutlinedButton.icon(
+        onPressed: () => _confirmarAbandonoMatricula(enrollment),
+        icon: const Icon(Icons.exit_to_app, size: 18),
+        label: const Text('Abandonar matrícula'),
+        style: _dangerEnrollmentButton(),
+      ),
+    if (isEmEspera)
+      OutlinedButton.icon(
+        onPressed: () => _confirmarCancelamento(enrollment),
+        icon: const Icon(Icons.close, size: 18),
+        label: const Text('Cancelar matrícula'),
+        style: _dangerEnrollmentButton(),
+      ),
+  ];
+
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(22),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(
+        color: const Color(0xFFDCE5EB),
+      ),
+      borderRadius: BorderRadius.circular(20),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: isMobile ? 12 : 14),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                isCanceled ? const Color(0xFFF1F5F9) : const Color(0xFFE2E8F0),
-                isCanceled ? const Color(0xFFF8FAFC) : const Color(0xFFF1F5F9),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(isMobile ? 8 : 10),
-                decoration: BoxDecoration(
-                  color: _primaryDark.withValues(alpha: isCanceled ? 0.05 : 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.local_hospital_outlined,
-                  color: isCanceled ? Colors.grey.shade500 : _primaryDark,
-                  size: isMobile ? 18 : 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      enrollment['upa_nome'] ?? 'UPA não identificada',
-                      style: TextStyle(
-                        fontSize: isMobile ? 14 : 16,
-                        fontWeight: FontWeight.bold,
-                        color: isCanceled ? Colors.grey.shade600 : _primaryDark,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                    if (!isMobile)
-                      Text(
-                        enderecoCompleto,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isCanceled ? Colors.grey.shade500 : Colors.grey.shade600,
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: statusColor.withOpacity(0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(statusIcon, color: statusColor, size: isMobile ? 12 : 14),
-                    const SizedBox(width: 4),
-                    Text(
-                      statusText,
-                      style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: isMobile ? 10 : 11,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-Padding(
-  padding: EdgeInsets.all(isMobile ? 12 : 16),
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Container(
-        padding: EdgeInsets.all(isMobile ? 10 : 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (isMobile)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    Icon(Icons.location_on, size: 14, color: isCanceled ? Colors.grey.shade400 : const Color(0xFF64748B)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        enderecoCompleto,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isCanceled ? Colors.grey.shade500 : Colors.grey.shade600,
-                          fontFamily: 'Inter',
-                          height: 1.3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            Container(
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE1EDF6),
+                borderRadius: BorderRadius.circular(12),
               ),
-            Row(
-              children: [
-                Icon(Icons.schedule_outlined, size: isMobile ? 14 : 16, color: isCanceled ? Colors.grey.shade400 : const Color(0xFF64748B)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Turma: ${enrollment['turma_horario'] ?? 'Não informado'}',
-                    style: TextStyle(
-                      fontSize: isMobile ? 12 : 14,
-                      color: isCanceled ? Colors.grey.shade500 : const Color(0xFF475569),
+              child: const Icon(
+                Icons.local_hospital_outlined,
+                color: Color(0xFF426E8C),
+                size: 23,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    (enrollment['upa_nome'] ??
+                            'Unidade não identificada')
+                        .toString(),
+                    style: const TextStyle(
                       fontFamily: 'Inter',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF333333),
                     ),
                   ),
-                ),
-              ],
-            ),
-            if (isEmEspera && enrollment['segunda_opcao_turma'] != null && enrollment['segunda_opcao_turma'].isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Icon(Icons.swap_horiz, size: isMobile ? 14 : 16, color: _warningColor),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '2ª opção: ${enrollment['segunda_opcao_turma']}',
-                      style: TextStyle(
-                        fontSize: isMobile ? 11 : 12,
-                        color: _warningColor,
-                        fontFamily: 'Inter',
-                      ),
+                  const SizedBox(height: 6),
+                  Text(
+                    cidade.isEmpty ? 'Unidade de saúde' : cidade,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      color: Color(0xFF737A80),
                     ),
                   ),
                 ],
               ),
-            ],
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Icon(Icons.calendar_today_outlined, size: isMobile ? 14 : 16, color: isCanceled ? Colors.grey.shade400 : const Color(0xFF64748B)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Data: ${_formatDate(enrollment['created_at'])}',
-                    style: TextStyle(
-                      fontSize: isMobile ? 11 : 12,
-                      color: isCanceled ? Colors.grey.shade500 : Colors.grey.shade600,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
-                ),
-              ],
             ),
-          ],
+            const SizedBox(width: 10),
+Align(
+  alignment: Alignment.topRight,
+  child: Container(
+    padding: const EdgeInsets.symmetric(
+      horizontal: 11,
+      vertical: 7,
+    ),
+    decoration: BoxDecoration(
+      color: _getStatusColor(status).withValues(alpha: 0.09),
+      borderRadius: BorderRadius.circular(30),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          _getStatusIcon(status),
+          size: 15,
+          color: _getStatusColor(status),
         ),
-      ),
-      if (isConcluida) ...[
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: _successColor.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _successColor.withOpacity(0.2)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.celebration, size: isMobile ? 16 : 18, color: _successColor),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Parabéns! Você concluiu o programa com sucesso!',
-                  style: TextStyle(
-                    fontSize: isMobile ? 11 : 12,
-                    color: _successColor,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ),
-            ],
+        const SizedBox(width: 6),
+        Text(
+          _getStatusText(status),
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: _getStatusColor(status),
           ),
         ),
       ],
-      const SizedBox(height: 14),
-      const Divider(color: Color(0xFFE2E8F0)),
-      const SizedBox(height: 12),
-      isMobile
-          ? _buildMobileActionButtons(enrollment, isEmEspera, isConcluida, isMatriculado)
-          : _buildDesktopActionButtons(enrollment, isEmEspera, isConcluida, isMatriculado),
-    ],
+    ),
   ),
 ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        const Divider(
+          height: 1,
+          color: Color(0xFFE4E0D6),
+        ),
+        const SizedBox(height: 20),
+Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    _enrollmentInfoLine(
+      Icons.schedule_outlined,
+      'Turma: ${enrollment['turma_horario'] ?? 'Não informado'}',
+    ),
+    if (isEmEspera &&
+        enrollment['segunda_opcao_turma'] != null &&
+        enrollment['segunda_opcao_turma'].toString().isNotEmpty) ...[
+      const SizedBox(height: 12),
+      _enrollmentInfoLine(
+        Icons.swap_horiz,
+        '2ª opção: ${enrollment['segunda_opcao_turma']}',
+      ),
+    ],
+    const SizedBox(height: 12),
+    _enrollmentInfoLine(
+      Icons.location_on_outlined,
+      enderecoCompleto,
+    ),
+    const SizedBox(height: 12),
+    _enrollmentInfoLine(
+      Icons.calendar_today_outlined,
+      'Matrícula: ${_formatDate(enrollment['created_at']?.toString())}',
+    ),
+  ],
+),
+        const SizedBox(height: 22),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final columns = width >= 950
+                ? actions.length
+                : width >= 550
+                    ? 2
+                    : 1;
+
+            const spacing = 10.0;
+
+            final buttonWidth =
+                (width - spacing * (columns - 1)) / columns;
+
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: actions.map((action) {
+                return SizedBox(
+                  width: buttonWidth,
+                  height: 48,
+                  child: action,
+                );
+              }).toList(),
+            );
+          },
+        ),
       ],
     ),
   );
 }
+
+  Widget _enrollmentInfoLine(IconData icon, String text) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 17, color: const Color(0xFF426E8C)),
+      const SizedBox(width: 10),
+      Expanded(child: Text(text, style: const TextStyle(fontFamily: 'Inter', fontSize: 13, height: 1.5, color: Color(0xFF4E4E4E)))),
+    ],
+  );
+
+  ButtonStyle _secondaryEnrollmentButton() => OutlinedButton.styleFrom(
+    foregroundColor: const Color(0xFF426E8C),
+    side: const BorderSide(color: Color(0xFFC9DEED)),
+    padding: const EdgeInsets.symmetric(vertical: 15),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  );
+
+  ButtonStyle _dangerEnrollmentButton() => OutlinedButton.styleFrom(
+    foregroundColor: const Color(0xFFC65D47),
+    side: const BorderSide(color: Color(0xFFE7B9AD)),
+    padding: const EdgeInsets.symmetric(vertical: 15),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  );
+
 
   Widget _buildMobileActionButtons(Map<String, dynamic> enrollment, bool isEmEspera, bool isConcluida, bool isMatriculado) {
   final isSmallMobile = MediaQuery.of(context).size.width < 400;
@@ -2271,216 +2550,475 @@ Padding(
     );
   }
 
-Future<void> _confirmarAbandonoMatricula(Map<String, dynamic> enrollment) async {
-  final TextEditingController confirmController = TextEditingController();
+
+Future<void> _confirmarAbandonoMatricula(
+  Map<String, dynamic> enrollment,
+) async {
+  final confirmController = TextEditingController();
   bool isLoading = false;
   bool isConfirmValid = false;
 
-  final isMobile = MediaQuery.of(context).size.width < 600;
-  final isSmallMobile = MediaQuery.of(context).size.width < 400;
+  try {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final size = MediaQuery.sizeOf(context);
+            final isMobile = size.width < 600;
+            final isSmallMobile = size.width < 400;
 
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) {
-        return Dialog(
-          insetPadding: EdgeInsets.only(
-            left: isSmallMobile ? 8 : (isMobile ? 12 : 20),
-            right: isSmallMobile ? 8 : (isMobile ? 12 : 20),
-            top: 20,
-            bottom: 20,
-          ),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: Container(
-            width: 420,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
+            return Dialog(
+              backgroundColor: const Color(0xFFFFFDF9),
+              elevation: 0,
+              shadowColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: const BorderSide(
+                  color: Color(0xFFE6E5DF),
+                  width: 1,
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: _dangerColor.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.exit_to_app,
-                    size: 48,
-                    color: Color(0xFFC65D47),
-                  ),
+              ),
+              insetPadding: EdgeInsets.only(
+                left: isSmallMobile ? 8 : (isMobile ? 12 : 20),
+                right: isSmallMobile ? 8 : (isMobile ? 12 : 20),
+                top: 20,
+                bottom: 20,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 460,
+                  maxHeight: size.height * 0.85,
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Abandonar Matrícula',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
-                    letterSpacing: -0.5,
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Tem certeza que deseja abandonar sua matrícula na ${enrollment['upa_nome']}?\n\n'
-                  'Turma: ${enrollment['turma_horario']}\n\n'
-                  'Esta ação não pode ser desfeita e você perderá o acesso ao cronograma e às atividades.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF475569),
-                    height: 1.4,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Para confirmar, digite a frase abaixo:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Text(
-                          'CONFIRMAR ABANDONO',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: _dangerColor,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: confirmController,
-                        textAlign: TextAlign.center,
-                        onChanged: (value) {
-                          setState(() {
-                            isConfirmValid = value.trim().toUpperCase() == 'CONFIRMAR ABANDONO';
-                          });
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Digite a frase acima',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: _dangerColor, width: 2),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFFE2E8F0)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: const Text(
-                          'Cancelar',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF64748B),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 16 : 22,
+                        vertical: 18,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFFFDF9),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Color(0xFFE6E5DF),
+                            width: 1,
                           ),
                         ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8ECEA),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.exit_to_app_outlined,
+                              color: Color(0xFFC65D47),
+                              size: 23,
+                            ),
+                          ),
+                          const SizedBox(width: 13),
+                          const Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Abandonar matrícula',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF333333),
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Confirmação necessária',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 12,
+                                    color: Color(0xFF667078),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: isLoading
+                                  ? null
+                                  : () => Navigator.pop(dialogContext),
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: const Color(0xFFE6E5DF),
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Color(0xFF667078),
+                                  size: 19,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: (isLoading || !isConfirmValid)
-                            ? null
-                            : () async {
-                                setState(() => isLoading = true);
-                                await _abandonarMatricula(enrollment);
-                                if (mounted) {
-                                  Navigator.pop(context);
-                                }
-                              },
-                        icon: isLoading
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        padding: EdgeInsets.all(isMobile ? 16 : 24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Tem certeza que deseja abandonar sua matrícula?',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF333333),
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Confira as informações abaixo antes de continuar.',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 13,
+                                color: Color(0xFF667078),
+                                height: 1.6,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFAF8F3),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFE6E5DF),
                                 ),
-                              )
-                            : const Icon(Icons.check, size: 18),
-                        label: Text(
-                          isLoading ? 'Processando...' : 'Confirmar',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: (isLoading || !isConfirmValid) ? Colors.grey.shade400 : _dangerColor,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Unidade de atendimento',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 11,
+                                      color: Color(0xFF667078),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    enrollment['upa_nome']?.toString() ??
+                                        'Não informado',
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF333333),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Turma',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 11,
+                                      color: Color(0xFF667078),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    enrollment['turma_horario']?.toString() ??
+                                        'Não informado',
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF333333),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8ECEA),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFEFD6D0),
+                                ),
+                              ),
+                              child: const Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    Icons.warning_amber_outlined,
+                                    color: Color(0xFFC65D47),
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'Esta ação não pode ser desfeita. Você perderá o acesso ao cronograma e às atividades.',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 12,
+                                        color: Color(0xFF9B4939),
+                                        height: 1.6,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'Confirmação de abandono',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF333333),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Para confirmar, digite exatamente a frase abaixo:',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12,
+                                color: Color(0xFF667078),
+                                height: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 13,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFAF8F3),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: const Color(0xFFE6E5DF),
+                                ),
+                              ),
+                              child: const Text(
+                                'CONFIRMAR ABANDONO',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFC65D47),
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: confirmController,
+                              enabled: !isLoading,
+                              textAlign: TextAlign.center,
+                              onChanged: (value) {
+                                setModalState(() {
+                                  isConfirmValid =
+                                      value.trim().toUpperCase() ==
+                                      'CONFIRMAR ABANDONO';
+                                });
+                              },
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 13,
+                                color: Color(0xFF333333),
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Digite a frase acima',
+                                hintStyle: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 12,
+                                  color: Color(0xFF667078),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 15,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFE6E5DF),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFC65D47),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                disabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFE6E5DF),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: isLoading
+                                        ? null
+                                        : () => Navigator.pop(dialogContext),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor:
+                                          const Color(0xFF667078),
+                                      side: const BorderSide(
+                                        color: Color(0xFFE6E5DF),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 15,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10),
+                                      ),
+                                      textStyle: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: (isLoading || !isConfirmValid)
+                                        ? null
+                                        : () async {
+                                            setModalState(() {
+                                              isLoading = true;
+                                            });
+
+                                            try {
+                                              await _abandonarMatricula(
+                                                enrollment,
+                                              );
+
+                                              if (dialogContext.mounted) {
+                                                Navigator.pop(dialogContext);
+                                              }
+                                            } catch (_) {
+                                              if (dialogContext.mounted) {
+                                                setModalState(() {
+                                                  isLoading = false;
+                                                });
+                                              }
+                                            }
+                                          },
+                                    icon: isLoading
+                                        ? const SizedBox(
+                                            width: 17,
+                                            height: 17,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.check,
+                                            size: 17,
+                                          ),
+                                    label: Text(
+                                      isLoading
+                                          ? 'Processando...'
+                                          : 'Confirmar',
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          const Color(0xFFC65D47),
+                                      foregroundColor: Colors.white,
+                                      disabledBackgroundColor:
+                                          const Color(0xFFE4E1DD),
+                                      disabledForegroundColor:
+                                          const Color(0xFF8A8A8A),
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 15,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10),
+                                      ),
+                                      textStyle: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
-    ),
-  );
+    );
+  } finally {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      confirmController.dispose();
+    });
+  }
 }
+
 
   Future<void> _abandonarMatricula(Map<String, dynamic> enrollment) async {
     setState(() => _isLoading = true);

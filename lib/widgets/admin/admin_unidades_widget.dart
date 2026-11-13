@@ -1,443 +1,782 @@
-import 'package:flutter/material.dart';
+
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter_masked_text2/flutter_masked_text2.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/services/cep_service.dart';
 import 'package:tabagismo_app/services/toast_service.dart';
 
 class AdminUPAsWidget extends StatefulWidget {
-  const AdminUPAsWidget({Key? key}) : super(key: key);
+  const AdminUPAsWidget({super.key});
 
   @override
-  _AdminUPAsWidgetState createState() => _AdminUPAsWidgetState();
+  State<AdminUPAsWidget> createState() => _AdminUPAsWidgetState();
 }
 
 class _AdminUPAsWidgetState extends State<AdminUPAsWidget> {
-  final Color _accentColor = const Color(0xFF1F4E6E);
-  final Color _successColor = const Color(0xFF2E8B6A);
-  final Color _dangerColor = const Color(0xFFC65D47);
-  final Color _warningColor = const Color(0xFFD97706);
+  static const Color _background = Color(0xFFFFFDF9);
+  static const Color _surface = Colors.white;
+  static const Color _border = Color(0xFFE6E5DF);
+  static const Color _primary = Color(0xFF30383E);
+  static const Color _secondary = Color(0xFF758087);
+  static const Color _accent = Color(0xFF426E8C);
+  static const Color _accentSoft = Color(0xFFEAF2F7);
+  static const Color _success = Color(0xFF397C69);
+  static const Color _danger = Color(0xFFC65D47);
+
+  final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _upas = [];
   List<Map<String, dynamic>> _enfermeiras = [];
+
   bool _carregando = true;
+  bool _atualizando = false;
+
   int _currentPage = 1;
   int _totalPages = 1;
   int _totalUPAs = 0;
+  int _requestVersion = 0;
+
   String _searchQuery = '';
-  TextEditingController _searchController = TextEditingController();
-  final ValueNotifier<bool> _carregandoLista = ValueNotifier(false);
+  Timer? _debounceTimer;
+
+  static const List<String> _horariosPadrao = [
+    '24 horas',
+    'Segunda a Sexta: 07h às 17h',
+    'Segunda a Sexta: 08h às 18h',
+    'Segunda a Sexta: 08h às 20h',
+    'Segunda a Sexta: 07h às 19h',
+    'Segunda a Sábado: 08h às 17h',
+    'Segunda a Sábado: 07h às 19h',
+    'Domingo a Domingo: 24 horas',
+    'Segunda, Quarta e Sexta: 08h às 12h',
+    'Terça e Quinta: 13h às 17h',
+  ];
+
+  static const List<String> _diasSemana = [
+    'Segunda-feira',
+    'Terça-feira',
+    'Quarta-feira',
+    'Quinta-feira',
+    'Sexta-feira',
+    'Sábado',
+    'Domingo',
+  ];
+
+  static const List<String> _horariosTurmas = [
+    '08:00 - 10:00',
+    '10:00 - 12:00',
+    '14:00 - 16:00',
+    '16:00 - 18:00',
+    '18:00 - 20:00',
+  ];
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
-    _carregarDados();
-  }
-
-  void _onSearchChanged() {
-    if (_searchController.text != _searchQuery) {
-      _searchQuery = _searchController.text;
-      _currentPage = 1;
-      _debounceSearch();
-    }
-  }
-
-  Timer? _debounceTimer;
-  void _debounceSearch() {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      _carregarDados();
-    });
+    _carregarDados(inicial: true);
   }
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
-    _debounceTimer?.cancel();
-    _carregandoLista.dispose();
     super.dispose();
   }
 
-  Future<void> _carregarDados() async {
-    _carregandoLista.value = true;
+  int _toInt(dynamic value) {
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  String _numeros(String value) {
+    return value.replaceAll(RegExp(r'\D'), '');
+  }
+
+  String _texto(dynamic value, [String fallback = 'Não informado']) {
+    final texto = value?.toString().trim() ?? '';
+    return texto.isEmpty ? fallback : texto;
+  }
+
+  void _onSearchChanged() {
+    _searchQuery = _searchController.text;
+    _currentPage = 1;
+
+    setState(() {});
+
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(
+      const Duration(milliseconds: 500),
+      () => _carregarDados(),
+    );
+  }
+
+  Future<void> _carregarDados({bool inicial = false}) async {
+    final request = ++_requestVersion;
+
+    if (mounted) {
+      setState(() {
+        if (inicial) {
+          _carregando = true;
+        } else {
+          _atualizando = true;
+        }
+      });
+    }
+
     try {
-      final authService = AuthService();
-      final response = await authService.getUPAs(
+      final auth = AuthService();
+
+      final response = await auth.getUPAs(
         page: _currentPage,
         limit: 8,
         search: _searchQuery,
       );
-      final enfermeiras = await authService.getEnfermeiras();
+
+      final enfermeiras = await auth.getEnfermeiras();
+
+      if (!mounted || request != _requestVersion) return;
+
       setState(() {
-        _upas = List<Map<String, dynamic>>.from(response['upas']);
-        _totalPages = response['totalPages'];
-        _totalUPAs = response['total'];
-        _enfermeiras = enfermeiras;
+        _upas = List<Map<String, dynamic>>.from(
+          response['upas'] ?? [],
+        );
+        _enfermeiras = List<Map<String, dynamic>>.from(enfermeiras);
+        _totalPages = _toInt(response['totalPages']);
+        _totalUPAs = _toInt(response['total']);
         _carregando = false;
+        _atualizando = false;
       });
-      _carregandoLista.value = false;
     } catch (e) {
-      _carregandoLista.value = false;
-      setState(() => _carregando = false);
-      ToastService.showError(context, 'Erro ao carregar dados: $e');
+      if (!mounted || request != _requestVersion) return;
+
+      setState(() {
+        _carregando = false;
+        _atualizando = false;
+      });
+
+      ToastService.showError(context, 'Erro ao carregar unidades: $e');
     }
   }
 
-  InputDecoration _buildInputDecoration(String label, IconData icon) {
+  String _formatarTelefone(dynamic telefone) {
+    final valor = _texto(telefone, '');
+    final numeros = _numeros(valor);
+
+    if (numeros.length == 10) {
+      return '(${numeros.substring(0, 2)}) ${numeros.substring(2, 6)}-${numeros.substring(6)}';
+    }
+
+    if (numeros.length == 11) {
+      return '(${numeros.substring(0, 2)}) ${numeros.substring(2, 7)}-${numeros.substring(7)}';
+    }
+
+    return valor.isEmpty ? 'Não informado' : valor;
+  }
+
+  String _formatarCep(dynamic cep) {
+    final valor = _texto(cep, '');
+    final numeros = _numeros(valor);
+
+    if (numeros.length == 8) {
+      return '${numeros.substring(0, 5)}-${numeros.substring(5)}';
+    }
+
+    return valor;
+  }
+
+  String _formatarCpf(dynamic cpf) {
+    final valor = _texto(cpf, '');
+    final numeros = _numeros(valor);
+
+    if (numeros.length == 11) {
+      return '${numeros.substring(0, 3)}.${numeros.substring(3, 6)}.${numeros.substring(6, 9)}-${numeros.substring(9)}';
+    }
+
+    return valor.isEmpty ? 'Não informado' : valor;
+  }
+
+  List<String> _getDiasPermitidos(String funcionamento) {
+    if (funcionamento.contains('Segunda a Sexta')) {
+      return _diasSemana.take(5).toList();
+    }
+
+    if (funcionamento.contains('Segunda a Sábado')) {
+      return _diasSemana.take(6).toList();
+    }
+
+    if (funcionamento.contains('Domingo a Domingo') ||
+        funcionamento == '24 horas') {
+      return List<String>.from(_diasSemana);
+    }
+
+    if (funcionamento.contains('Segunda, Quarta e Sexta')) {
+      return [
+        'Segunda-feira',
+        'Quarta-feira',
+        'Sexta-feira',
+      ];
+    }
+
+    if (funcionamento.contains('Terça e Quinta')) {
+      return [
+        'Terça-feira',
+        'Quinta-feira',
+      ];
+    }
+
+    return _diasSemana.take(6).toList();
+  }
+
+  List<String> _getHorariosPermitidos(String funcionamento) {
+    if (funcionamento.isEmpty) return [];
+
+    if (funcionamento.contains('24 horas')) {
+      return List<String>.from(_horariosTurmas);
+    }
+
+    final match = RegExp(
+      r'(\d{1,2})h\s*às\s*(\d{1,2})h',
+    ).firstMatch(funcionamento);
+
+    if (match == null) return [];
+
+    final abertura = int.parse(match.group(1)!);
+    final fechamento = int.parse(match.group(2)!);
+
+    return _horariosTurmas.where((horario) {
+      final partes = horario.split(' - ');
+      final inicio = int.parse(partes.first.split(':').first);
+      final fim = int.parse(partes.last.split(':').first);
+
+      return inicio >= abertura && fim <= fechamento;
+    }).toList();
+  }
+
+  InputDecoration _decoration(
+    String label,
+    IconData icon, {
+    String? hint,
+  }) {
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(
-        fontSize: 14,
-        color: Colors.grey.shade600,
+      hintText: hint,
+      labelStyle: const TextStyle(
+        fontFamily: 'Inter',
+        fontSize: 12,
+        color: _secondary,
       ),
-      floatingLabelStyle: TextStyle(
+      hintStyle: const TextStyle(
+        fontFamily: 'Inter',
+        fontSize: 12,
+        color: _secondary,
+      ),
+      floatingLabelStyle: const TextStyle(
+        fontFamily: 'Inter',
+        color: _accent,
         fontWeight: FontWeight.w600,
-        color: _accentColor,
       ),
-      prefixIcon: Icon(icon, color: _accentColor, size: 20),
+      prefixIcon: Icon(icon, color: _secondary, size: 19),
+      filled: true,
+      fillColor: _surface,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 16,
+      ),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _border),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: const Color(0xFFDBDBDB), width: 1),
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _border),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _accentColor, width: 1.5),
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _accent, width: 1.5),
       ),
-      filled: true,
-      fillColor: Colors.grey.shade50,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _border),
+      ),
     );
   }
 
-  String _formatarTelefone(String? telefone) {
-    if (telefone == null || telefone.isEmpty) return 'Não informado';
-    String apenasNumeros = telefone.replaceAll(RegExp(r'[^\d]'), '');
-    if (apenasNumeros.length == 10) {
-      return '(${apenasNumeros.substring(0, 2)}) ${apenasNumeros.substring(2, 6)}-${apenasNumeros.substring(6)}';
-    } else if (apenasNumeros.length == 11) {
-      return '(${apenasNumeros.substring(0, 2)}) ${apenasNumeros.substring(2, 7)}-${apenasNumeros.substring(7)}';
-    }
-    return telefone;
+  Widget _icone(
+    IconData icon, {
+    Color color = _accent,
+    Color background = _accentSoft,
+    double size = 42,
+  }) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Icon(icon, color: color, size: size * 0.49),
+    );
   }
 
-  String _formatarCep(String cep) {
-    if (cep.isEmpty) return '';
-    String limpo = cep.replaceAll(RegExp(r'[^\d]'), '');
-    if (limpo.length == 8) {
-      return '${limpo.substring(0, 5)}-${limpo.substring(5)}';
-    }
-    return cep;
-  }
-
-  String _formatarCpf(String cpf) {
-    if (cpf.isEmpty) return 'Não informado';
-    String apenasNumeros = cpf.replaceAll(RegExp(r'[^\d]'), '');
-    if (apenasNumeros.length == 11) {
-      return '${apenasNumeros.substring(0, 3)}.${apenasNumeros.substring(3, 6)}.${apenasNumeros.substring(6, 9)}-${apenasNumeros.substring(9)}';
-    }
-    return cpf;
-  }
-
-  List<String> _getDiasPermitidos(String horarioFuncionamento) {
-    if (horarioFuncionamento.contains('Segunda a Sexta')) {
-      return ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira'];
-    } else if (horarioFuncionamento.contains('Segunda a Sábado')) {
-      return ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
-    } else if (horarioFuncionamento.contains('Domingo a Domingo')) {
-      return ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
-    }
-    return ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
-  }
-
-  List<String> _getHorariosPermitidos(String horarioFuncionamento) {
-    RegExp regExp = RegExp(r'(\d{2})h');
-    List<String> horariosPermitidos = [];
-    
-    int horaFechamento = 24;
-    if (horarioFuncionamento.contains('às')) {
-      String parteFechamento = horarioFuncionamento.split('às').last.trim();
-      var match = regExp.firstMatch(parteFechamento);
-      if (match != null) {
-        horaFechamento = int.parse(match.group(1)!);
-      }
-    } else if (horarioFuncionamento.contains('24 horas')) {
-      horaFechamento = 24;
-    }
-    
-    if (horaFechamento >= 20) {
-      horariosPermitidos = ['08:00 - 10:00', '10:00 - 12:00', '14:00 - 16:00', '16:00 - 18:00', '18:00 - 20:00'];
-    } else if (horaFechamento >= 18) {
-      horariosPermitidos = ['08:00 - 10:00', '10:00 - 12:00', '14:00 - 16:00', '16:00 - 18:00'];
-    } else if (horaFechamento >= 17) {
-      horariosPermitidos = ['08:00 - 10:00', '10:00 - 12:00', '14:00 - 16:00'];
-    } else if (horaFechamento >= 12) {
-      horariosPermitidos = ['08:00 - 10:00', '10:00 - 12:00'];
-    } else {
-      horariosPermitidos = ['08:00 - 10:00'];
-    }
-    
-    return horariosPermitidos;
-  }
-
-  Future<bool?> _showConfirmDeleteDialog({required String title, required String message}) {
-    final isMobile = MediaQuery.of(context).size.width < 500;
-    final isSmallMobile = MediaQuery.of(context).size.width < 400;
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => Dialog(
-        insetPadding: EdgeInsets.only(
-          left: isSmallMobile ? 4 : (isMobile ? 6 : 20),
-          right: isSmallMobile ? 4 : (isMobile ? 6 : 20),
-          top: 20,
-          bottom: 20,
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Container(
-          width: isMobile ? MediaQuery.of(context).size.width * 0.96 : 420,
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: _dangerColor.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.warning_amber_rounded, color: _dangerColor, size: 40),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
-                  fontFamily: 'Poppins',
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF475569), height: 1.4),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        minimumSize: const Size(double.infinity, 44),
-                      ),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _dangerColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        minimumSize: const Size(double.infinity, 44),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.check, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            'Excluir',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+  Widget _tituloSecao(String titulo, {String? descricao}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          titulo,
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: _primary,
           ),
         ),
+        if (descricao != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            descricao,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 11,
+              color: _secondary,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _botaoPrincipal({
+    required String texto,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    bool loading = false,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: loading ? null : onPressed,
+      icon: loading
+          ? const SizedBox(
+              width: 17,
+              height: 17,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : Icon(icon, size: 18),
+      label: Text(texto),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _accent,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: _accent.withOpacity(0.35),
+        disabledForegroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 15,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        textStyle: const TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final horizontalPadding = isMobile ? 16.0 : 20.0;
-
-    return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.all(horizontalPadding),
-          child: isMobile
-              ? Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: _buildInputDecoration('Buscar por nome, endereço ou cidade...', Icons.search),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-SizedBox(
-  height: 56,
-  child: ElevatedButton(
-    onPressed: () => _abrirModalUPA(),
-    style: ElevatedButton.styleFrom(
-      backgroundColor: _successColor,
-      foregroundColor: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      minimumSize: const Size(0, 56),
-    ),
-    child: const Icon(Icons.add, color: Colors.white, size: 24),
-  ),
-),
-                  ],
-                )
-              : Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: _buildInputDecoration('Buscar por nome, endereço ou cidade...', Icons.search),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: () => _abrirModalUPA(),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Nova Unidade'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _successColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        minimumSize: const Size(0, 56),
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-Expanded(
-  child: ValueListenableBuilder(
-    valueListenable: _carregandoLista,
-    builder: (context, carregando, child) {
-      return Stack(
+  Widget _resumoItem({
+    required String titulo,
+    required String valor,
+    required IconData icon,
+    Color color = _accent,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: _border),
+      ),
+      child: Row(
         children: [
-          SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          _icone(
+            icon,
+            color: color,
+            background: color.withOpacity(0.09),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _searchQuery.isEmpty
-                      ? 'Todas as Unidades'
-                      : 'Resultados para: "$_searchQuery"',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                  valor,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: _primary,
+                  ),
                 ),
-                const SizedBox(height: 8),
                 Text(
-                  'Total: $_totalUPAs unidades',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  titulo,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: _secondary,
+                  ),
                 ),
-                const SizedBox(height: 16),
-                if (_upas.isEmpty && !carregando)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(40),
-                      child: Text(
-                        'Nenhuma unidade encontrada',
-                        style: TextStyle(fontSize: 16, color: Color(0xFF64748B)),
-                      ),
-                    ),
-                  )
-                else
-                  ..._upas.map((upa) => _buildUPACard(upa)),
-                const SizedBox(height: 16),
-                _buildPaginacao(),
-                const SizedBox(height: 20),
               ],
             ),
           ),
-          if (carregando)
-            Container(
-              color: Colors.black.withValues(alpha: 0.3),
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
-            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResumo() {
+    final items = [
+      _resumoItem(
+        titulo: 'Unidades cadastradas',
+        valor: '$_totalUPAs',
+        icon: Icons.local_hospital_outlined,
+      ),
+      _resumoItem(
+        titulo: 'Enfermeiras cadastradas',
+        valor: '${_enfermeiras.length}',
+        icon: Icons.medical_services_outlined,
+        color: _success,
+      ),
+      _resumoItem(
+        titulo: 'Página atual',
+        valor: '$_currentPage / ${_totalPages < 1 ? 1 : _totalPages}',
+        icon: Icons.layers_outlined,
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 600) {
+          return Column(
+            children: [
+              for (int i = 0; i < items.length; i++) ...[
+                if (i > 0) const SizedBox(height: 10),
+                items[i],
+              ],
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            for (int i = 0; i < items.length; i++) ...[
+              if (i > 0) const SizedBox(width: 12),
+              Expanded(child: items[i]),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCabecalho(bool mobile) {
+    final titulo = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Unidades de Saúde',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 25,
+            fontWeight: FontWeight.w600,
+            color: _primary,
+          ),
+        ),
+        const SizedBox(height: 5),
+        const Text(
+          'Gerencie unidades, horários de atendimento e turmas.',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 12,
+            color: _secondary,
+          ),
+        ),
+      ],
+    );
+
+    final botao = _botaoPrincipal(
+      texto: 'Nova unidade',
+      icon: Icons.add_rounded,
+      onPressed: () => _abrirModalUPA(),
+    );
+
+    if (mobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          titulo,
+          const SizedBox(height: 17),
+          botao,
         ],
       );
-    },
-  ),
-),
+    }
+
+    return Row(
+      children: [
+        Expanded(child: titulo),
+        const SizedBox(width: 15),
+        botao,
       ],
+    );
+  }
+
+  Widget _buildPesquisa() {
+    return TextField(
+      controller: _searchController,
+      decoration: _decoration(
+        'Pesquisar unidades',
+        Icons.search_rounded,
+        hint: 'Buscar por nome, endereço ou cidade...',
+      ).copyWith(
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                tooltip: 'Limpar pesquisa',
+                onPressed: _searchController.clear,
+                icon: const Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: _secondary,
+                ),
+              )
+            : null,
+      ),
+    );
+  }
+
+  Widget _buildUPACard(Map<String, dynamic> upa) {
+    final nome = _texto(upa['nome']);
+    final endereco = _texto(upa['endereco']);
+    final cidade = _texto(upa['cidade']);
+    final telefone = _formatarTelefone(upa['telefone']);
+    final horario = _texto(upa['horario']);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _border),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final mobile = constraints.maxWidth < 580;
+
+          final conteudo = Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _icone(
+                Icons.local_hospital_outlined,
+                size: mobile ? 40 : 46,
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nome,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: _primary,
+                      ),
+                    ),
+                    const SizedBox(height: 9),
+                    _linhaInformacao(
+                      Icons.location_on_outlined,
+                      endereco,
+                    ),
+                    const SizedBox(height: 6),
+                    _linhaInformacao(
+                      Icons.location_city_outlined,
+                      cidade,
+                    ),
+                    const SizedBox(height: 6),
+                    _linhaInformacao(
+                      Icons.phone_outlined,
+                      telefone,
+                    ),
+                    const SizedBox(height: 6),
+                    _linhaInformacao(
+                      Icons.schedule_outlined,
+                      horario,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+
+          final acoes = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _botaoAcao(
+                Icons.visibility_outlined,
+                'Visualizar unidade',
+                _accent,
+                _accentSoft,
+                () => _abrirModalVisualizarUPA(upa),
+              ),
+              const SizedBox(width: 6),
+              _botaoAcao(
+                Icons.edit_outlined,
+                'Editar unidade',
+                _success,
+                const Color(0xFFEAF4EF),
+                () => _abrirModalUPA(upa: upa),
+              ),
+              const SizedBox(width: 6),
+              _botaoAcao(
+                Icons.delete_outline_rounded,
+                'Excluir unidade',
+                _danger,
+                const Color(0xFFFBEDE9),
+                () => _confirmarDeletarUPA(upa),
+              ),
+            ],
+          );
+
+          if (mobile) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                conteudo,
+                const SizedBox(height: 15),
+                const Divider(height: 1, color: _border),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: acoes,
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: conteudo),
+              const SizedBox(width: 15),
+              acoes,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _linhaInformacao(IconData icon, String texto) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 15, color: _secondary),
+        const SizedBox(width: 7),
+        Expanded(
+          child: Text(
+            texto,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 11,
+              color: _secondary,
+              height: 1.5,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _botaoAcao(
+    IconData icon,
+    String tooltip,
+    Color color,
+    Color background,
+    VoidCallback onPressed,
+  ) {
+    return IconButton(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      icon: Icon(icon, size: 19),
+      color: color,
+      style: IconButton.styleFrom(
+        backgroundColor: background,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(9),
+        ),
+      ),
     );
   }
 
   Widget _buildPaginacao() {
     if (_totalPages <= 1) return const SizedBox.shrink();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 15),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left, size: 20),
-            onPressed: _currentPage > 1 ? () {
-              _currentPage--;
-              _carregarDados();
-            } : null,
+            onPressed: _currentPage > 1 && !_atualizando
+                ? () {
+                    _currentPage--;
+                    _carregarDados();
+                  }
+                : null,
+            icon: const Icon(Icons.chevron_left_rounded),
             style: IconButton.styleFrom(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              side: const BorderSide(color: Color(0xFFE2E8F0)),
+              backgroundColor: _surface,
+              side: const BorderSide(color: _border),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 13),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 10,
+            ),
             decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
-              borderRadius: BorderRadius.circular(8),
+              color: _accentSoft,
+              borderRadius: BorderRadius.circular(9),
             ),
             child: Text(
-              '$_currentPage / $_totalPages',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: _accentColor),
+              '$_currentPage de $_totalPages',
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: _accent,
+              ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 13),
           IconButton(
-            icon: const Icon(Icons.chevron_right, size: 20),
-            onPressed: _currentPage < _totalPages ? () {
-              _currentPage++;
-              _carregarDados();
-            } : null,
+            onPressed: _currentPage < _totalPages && !_atualizando
+                ? () {
+                    _currentPage++;
+                    _carregarDados();
+                  }
+                : null,
+            icon: const Icon(Icons.chevron_right_rounded),
             style: IconButton.styleFrom(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              side: const BorderSide(color: Color(0xFFE2E8F0)),
+              backgroundColor: _surface,
+              side: const BorderSide(color: _border),
             ),
           ),
         ],
@@ -445,1293 +784,1310 @@ Expanded(
     );
   }
 
-Widget _buildUPACard(Map<String, dynamic> upa) {
-  final isMobile = MediaQuery.of(context).size.width < 600;
-  final telefoneFormatado = _formatarTelefone(upa['telefone']);
-
-  return Container(
-    margin: const EdgeInsets.only(bottom: 12),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.06),
-          blurRadius: 12,
-          offset: const Offset(0, 3),
-        ),
-      ],
-    ),
-    child: isMobile
-        ? Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: _accentColor.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.local_hospital, color: _accentColor, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        upa['nome'],
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F172A),
-                          fontSize: 14,
-                          fontFamily: 'Poppins',
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.location_on, size: 13, color: const Color(0xFF94A3B8)),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              '${upa['endereco'] ?? 'Endereço não informado'}${upa['cep'] != null && upa['cep'].toString().isNotEmpty ? ' - CEP: ${_formatarCep(upa['cep'].toString())}' : ''}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF64748B),
-                                fontFamily: 'Inter',
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Icon(Icons.phone, size: 13, color: const Color(0xFF94A3B8)),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              telefoneFormatado,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF64748B),
-                                fontFamily: 'Inter',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.visibility, color: const Color(0xFF3B82F6), size: 18),
-                      onPressed: () => _abrirModalVisualizarUPA(upa),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.edit, color: _warningColor, size: 18),
-                      onPressed: () => _abrirModalUPA(upa: upa),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: _dangerColor, size: 18),
-                      onPressed: () => _confirmarDeletarUPA(upa),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          )
-        : Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: _accentColor.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(Icons.local_hospital, color: _accentColor, size: 28),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        upa['nome'],
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F172A),
-                          fontSize: 16,
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.location_on, size: 15, color: const Color(0xFF94A3B8)),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              '${upa['endereco'] ?? 'Endereço não informado'}${upa['cep'] != null && upa['cep'].toString().isNotEmpty ? ' - CEP: ${_formatarCep(upa['cep'].toString())}' : ''}',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF64748B),
-                                fontFamily: 'Inter',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Icon(Icons.phone, size: 15, color: const Color(0xFF94A3B8)),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              telefoneFormatado,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF64748B),
-                                fontFamily: 'Inter',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.visibility, color: const Color(0xFF3B82F6), size: 22),
-                      onPressed: () => _abrirModalVisualizarUPA(upa),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.edit, color: _warningColor, size: 22),
-                      onPressed: () => _abrirModalUPA(upa: upa),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: _dangerColor, size: 22),
-                      onPressed: () => _confirmarDeletarUPA(upa),
-                    ),
-                  ],
-                ),
-              ],
+  Widget _buildVazio() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 45,
+      ),
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        children: [
+          _icone(Icons.location_off_outlined, size: 56),
+          const SizedBox(height: 15),
+          const Text(
+            'Nenhuma unidade encontrada',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: _primary,
             ),
           ),
-  );
-}
-  void _abrirModalVisualizarUPA(Map<String, dynamic> upa) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final isSmallMobile = MediaQuery.of(context).size.width < 400;
+          const SizedBox(height: 6),
+          const Text(
+            'Tente outra pesquisa ou cadastre uma nova unidade.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              color: _secondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    List<Map<String, dynamic>> enfermeirasDaUPA = _enfermeiras.where((e) => e['upa_id'] == upa['id']).toList();
-    List<Map<String, dynamic>> turmasDaUPA = [];
-
-    showDialog(
+  Future<bool> _confirmarExclusao(String nome) async {
+    final resultado = await showDialog<bool>(
       context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            if (turmasDaUPA.isEmpty) {
-              try {
-                final authService = AuthService();
-                authService.getTurmasPorUPA(upa['id']).then((turmas) {
-                  setState(() {
-                    turmasDaUPA = List<Map<String, dynamic>>.from(turmas);
-                  });
-                });
-              } catch (e) {
-                print('Erro ao carregar turmas: $e');
-              }
-            }
-
-            Map<String, List<String>> turmasAgrupadas = {};
-            for (var turma in turmasDaUPA) {
-              String dia = turma['dia_semana'] ?? '';
-              String horario = turma['horario'] ?? '';
-              if (!turmasAgrupadas.containsKey(dia)) {
-                turmasAgrupadas[dia] = [];
-              }
-              turmasAgrupadas[dia]!.add(horario);
-            }
-
-            return Dialog(
-              insetPadding: EdgeInsets.only(
-                left: isSmallMobile ? 4 : (isMobile ? 6 : 20),
-                right: isSmallMobile ? 4 : (isMobile ? 6 : 20),
-                top: 20,
-                bottom: 20,
-              ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              child: Container(
-                padding: EdgeInsets.all(isSmallMobile ? 16 : 24),
-                width: isMobile ? MediaQuery.of(context).size.width * 0.96 : 500,
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.85,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: _surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: _border),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _icone(
+                    Icons.delete_outline_rounded,
+                    color: _danger,
+                    background: const Color(0xFFFBEDE9),
+                    size: 54,
+                  ),
+                  const SizedBox(height: 17),
+                  const Text(
+                    'Excluir unidade',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: _primary,
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  Text(
+                    'Deseja excluir a unidade "$nome"? Esta ação não pode ser desfeita.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      color: _secondary,
+                      height: 1.6,
+                    ),
+                  ),
+                  const SizedBox(height: 23),
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: _accentColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              Navigator.pop(dialogContext, false),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _secondary,
+                            side: const BorderSide(color: _border),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 13,
                             ),
-                            child: const Icon(Icons.local_hospital, color: Color(0xFF1F4E6E), size: 20),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              upa['nome'],
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF0F172A),
-                                fontFamily: 'Poppins',
+                          child: const Text('Cancelar'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              Navigator.pop(dialogContext, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _danger,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 13,
+                            ),
+                          ),
+                          child: const Text('Excluir'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    return resultado == true;
+  }
+
+  Future<void> _confirmarDeletarUPA(
+    Map<String, dynamic> upa,
+  ) async {
+    final confirmado = await _confirmarExclusao(
+      _texto(upa['nome']),
+    );
+
+    if (!confirmado || !mounted) return;
+
+    try {
+      await AuthService().deletarUPA(upa['id']);
+
+      if (!mounted) return;
+
+      ToastService.showSuccess(
+        context,
+        'Unidade excluída com sucesso!',
+      );
+
+      await _carregarDados();
+    } catch (e) {
+      if (!mounted) return;
+
+      ToastService.showError(
+        context,
+        'Erro ao excluir unidade: $e',
+      );
+    }
+  }
+
+  Future<void> _abrirModalVisualizarUPA(
+    Map<String, dynamic> upa,
+  ) async {
+    final upaId = _toInt(upa['id']);
+
+    final enfermeiras = _enfermeiras.where(
+      (e) => _toInt(e['upa_id']) == upaId,
+    ).toList();
+
+    final turmasFuture = AuthService().getTurmasPorUPA(upa['id']);
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: _surface,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 20,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: _border),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 580,
+              maxHeight: MediaQuery.of(dialogContext).size.height * 0.9,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 12, 16),
+                  child: Row(
+                    children: [
+                      _icone(Icons.local_hospital_outlined),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _texto(upa['nome']),
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            color: _primary,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        icon: const Icon(Icons.close_rounded),
+                        color: _secondary,
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: _border),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _tituloSecao('Informações da unidade'),
+                        const SizedBox(height: 13),
+                        Container(
+                          padding: const EdgeInsets.all(15),
+                          decoration: BoxDecoration(
+                            color: _background,
+                            borderRadius: BorderRadius.circular(11),
+                            border: Border.all(color: _border),
+                          ),
+                          child: Column(
+                            children: [
+                              _detalheLinha(
+                                'Endereço',
+                                _texto(upa['endereco']),
                               ),
-                            ),
+                              _detalheLinha(
+                                'CEP',
+                                _formatarCep(upa['cep']),
+                              ),
+                              _detalheLinha(
+                                'Cidade',
+                                _texto(upa['cidade']),
+                              ),
+                              _detalheLinha(
+                                'Telefone',
+                                _formatarTelefone(upa['telefone']),
+                              ),
+                              _detalheLinha(
+                                'Funcionamento',
+                                _texto(upa['horario']),
+                                ultimo: true,
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 18),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.location_on, size: 16, color: const Color(0xFF64748B)),
-                                const SizedBox(width: 10),
-                                SizedBox(
-                                  width: 70,
-                                  child: Text(
-                                    'Endereço',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF64748B),
-                                      fontFamily: 'Inter',
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    upa['endereco'] ?? 'Não informado',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF0F172A),
-                                      fontFamily: 'Inter',
-                                    ),
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Icon(Icons.place, size: 16, color: const Color(0xFF64748B)),
-                                const SizedBox(width: 10),
-                                SizedBox(
-                                  width: 70,
-                                  child: Text(
-                                    'CEP',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF64748B),
-                                      fontFamily: 'Inter',
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    _formatarCep(upa['cep']?.toString() ?? ''),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF0F172A),
-                                      fontFamily: 'Inter',
-                                    ),
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Icon(Icons.location_city, size: 16, color: const Color(0xFF64748B)),
-                                const SizedBox(width: 10),
-                                SizedBox(
-                                  width: 70,
-                                  child: Text(
-                                    'Cidade',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF64748B),
-                                      fontFamily: 'Inter',
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    upa['cidade'] ?? 'Não informado',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF0F172A),
-                                      fontFamily: 'Inter',
-                                    ),
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Icon(Icons.phone, size: 16, color: const Color(0xFF64748B)),
-                                const SizedBox(width: 10),
-                                SizedBox(
-                                  width: 70,
-                                  child: Text(
-                                    'Telefone',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF64748B),
-                                      fontFamily: 'Inter',
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    _formatarTelefone(upa['telefone']),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF0F172A),
-                                      fontFamily: 'Inter',
-                                    ),
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Icon(Icons.schedule, size: 16, color: const Color(0xFF64748B)),
-                                const SizedBox(width: 10),
-                                SizedBox(
-                                  width: 70,
-                                  child: Text(
-                                    'Horário',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF64748B),
-                                      fontFamily: 'Inter',
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    upa['horario'] ?? 'Não informado',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF0F172A),
-                                      fontFamily: 'Inter',
-                                    ),
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                        const SizedBox(height: 23),
+                        _tituloSecao(
+                          'Turmas disponíveis',
+                          descricao:
+                              'Dias e horários oferecidos pela unidade.',
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Dias e Horários de Funcionamento',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F172A),
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: turmasDaUPA.isEmpty
-                            ? const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(16),
-                                  child: Text(
-                                    'Carregando turmas...',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF94A3B8),
-                                    ),
+                        const SizedBox(height: 12),
+                        FutureBuilder<dynamic>(
+                          future: turmasFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState !=
+                                ConnectionState.done) {
+                              return const Padding(
+                                padding: EdgeInsets.all(25),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: _accent,
+                                    strokeWidth: 2,
                                   ),
                                 ),
-                              )
-                            : Column(
-                                children: turmasAgrupadas.entries.map((entry) {
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 4),
-                                    decoration: BoxDecoration(
-                                      border: Border(
-                                        bottom: BorderSide(
-                                          color: Colors.grey.shade200,
-                                          width: entry.key == turmasAgrupadas.keys.last ? 0 : 1,
-                                        ),
-                                      ),
+                              );
+                            }
+
+                            if (snapshot.hasError) {
+                              return const Text(
+                                'Não foi possível carregar as turmas.',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 12,
+                                  color: _secondary,
+                                ),
+                              );
+                            }
+
+                            final turmas =
+                                List<Map<String, dynamic>>.from(
+                              snapshot.data ?? [],
+                            );
+
+                            if (turmas.isEmpty) {
+                              return const Text(
+                                'Nenhuma turma cadastrada.',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 12,
+                                  color: _secondary,
+                                ),
+                              );
+                            }
+
+                            final agrupadas = <String, List<String>>{};
+
+                            for (final turma in turmas) {
+                              final dia = _texto(
+                                turma['dia_semana'],
+                                '',
+                              );
+                              final horario = _texto(
+                                turma['horario'],
+                                '',
+                              );
+
+                              agrupadas.putIfAbsent(dia, () => []);
+
+                              if (!agrupadas[dia]!.contains(horario)) {
+                                agrupadas[dia]!.add(horario);
+                              }
+                            }
+
+                            return Container(
+                              padding: const EdgeInsets.all(13),
+                              decoration: BoxDecoration(
+                                color: _background,
+                                borderRadius: BorderRadius.circular(11),
+                                border: Border.all(color: _border),
+                              ),
+                              child: Column(
+                                children: agrupadas.entries.map((entry) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 9,
                                     ),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: BoxDecoration(
-                                            color: _accentColor.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(6),
-                                          ),
-                                          child: Icon(Icons.calendar_today, color: _accentColor, size: 14),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        SizedBox(
-                                          width: 100,
-                                          child: Text(
-                                            entry.key,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              color: const Color(0xFF0F172A),
-                                            ),
+                                        Text(
+                                          entry.key,
+                                          style: const TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: _primary,
                                           ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Wrap(
-                                            spacing: 6,
-                                            runSpacing: 4,
-                                            children: entry.value.map((horario) {
-                                              return Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: _accentColor.withValues(alpha: 0.08),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color: _accentColor.withValues(alpha: 0.15),
-                                                  ),
-                                                ),
-                                                child: Text(
-                                                  horario,
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: _accentColor,
-                                                  ),
-                                                ),
-                                              );
-                                            }).toList(),
-                                          ),
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 7,
+                                          runSpacing: 7,
+                                          children: entry.value.map((hora) {
+                                            return _horarioChip(
+                                              hora,
+                                              selecionado: true,
+                                              onTap: null,
+                                            );
+                                          }).toList(),
                                         ),
                                       ],
                                     ),
                                   );
                                 }).toList(),
                               ),
-                      ),
-                      if (enfermeirasDaUPA.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Enfermeiras Vinculadas',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF0F172A),
-                            fontFamily: 'Poppins',
-                          ),
+                            );
+                          },
                         ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            children: enfermeirasDaUPA.map((e) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(vertical: 6),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: Colors.grey.shade200,
-                                      width: enfermeirasDaUPA.indexOf(e) == enfermeirasDaUPA.length - 1 ? 0 : 1,
+                        const SizedBox(height: 23),
+                        _tituloSecao(
+                          'Enfermeiras vinculadas',
+                          descricao:
+                              '${enfermeiras.length} profissionais nesta unidade.',
+                        ),
+                        const SizedBox(height: 12),
+                        if (enfermeiras.isEmpty)
+                          const Text(
+                            'Nenhuma enfermeira vinculada.',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 12,
+                              color: _secondary,
+                            ),
+                          )
+                        else
+                          ...enfermeiras.map(
+                            (e) => Container(
+                              margin: const EdgeInsets.only(bottom: 9),
+                              padding: const EdgeInsets.all(13),
+                              decoration: BoxDecoration(
+                                color: _background,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: _border),
+                              ),
+                              child: Row(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  _icone(
+                                    Icons.medical_services_outlined,
+                                    size: 36,
+                                  ),
+                                  const SizedBox(width: 11),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _texto(e['nome_completo']),
+                                          style: const TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: _primary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          _texto(e['email']),
+                                          style: const TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 11,
+                                            color: _secondary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'CPF: ${_formatarCpf(e['cpf'])}',
+                                          style: const TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 10,
+                                            color: _secondary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Telefone: ${_formatarTelefone(e['telefone'])}',
+                                          style: const TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 10,
+                                            color: _secondary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: _accentColor.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Icon(Icons.medical_services, color: _accentColor, size: 16),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            e['nome_completo'],
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w500,
-                                              color: Color(0xFF0F172A),
-                                            ),
-                                          ),
-                                          Text(
-                                            e['email'],
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: Color(0xFF64748B),
-                                            ),
-                                          ),
-                                          Text(
-                                            'CPF: ${_formatarCpf(e['cpf'] ?? '')}',
-                                            style: const TextStyle(
-                                              fontSize: 10,
-                                              color: Color(0xFF94A3B8),
-                                            ),
-                                          ),
-                                          Text(
-                                            'Telefone: ${_formatarTelefone(e['telefone'])}',
-                                            style: const TextStyle(
-                                              fontSize: 10,
-                                              color: Color(0xFF94A3B8),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
                       ],
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFE2E8F0)),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: const Text(
-                            'Fechar',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
+                const Divider(height: 1, color: _border),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _secondary,
+                        side: const BorderSide(color: _border),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                      ),
+                      child: const Text('Fechar'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
   }
 
-  void _abrirModalUPA({Map<String, dynamic>? upa}) async {
-    final isEditing = upa != null;
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final isSmallMobile = MediaQuery.of(context).size.width < 400;
+  Widget _detalheLinha(
+    String titulo,
+    String valor, {
+    bool ultimo = false,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: ultimo ? 0 : 13),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              titulo,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                color: _secondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              valor,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: _primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    final nomeController = TextEditingController(text: upa?['nome'] ?? '');
-    final cepController = TextEditingController(text: upa?['cep']?.toString() ?? '');
+  Widget _horarioChip(
+    String horario, {
+    required bool selecionado,
+    required VoidCallback? onTap,
+    bool permitido = true,
+  }) {
+    final cor = !permitido
+        ? _secondary
+        : selecionado
+            ? _accent
+            : _primary;
+
+    return InkWell(
+      onTap: permitido ? onTap : null,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: !permitido
+              ? const Color(0xFFF2F2EF)
+              : selecionado
+                  ? _accentSoft
+                  : _surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selecionado && permitido ? _accent : _border,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (selecionado && permitido) ...[
+              const Icon(
+                Icons.check_rounded,
+                size: 13,
+                color: _accent,
+              ),
+              const SizedBox(width: 5),
+            ],
+            Text(
+              horario,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 10,
+                fontWeight:
+                    selecionado ? FontWeight.w600 : FontWeight.w400,
+                color: cor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _abrirModalUPA({
+    Map<String, dynamic>? upa,
+  }) async {
+    final editando = upa != null;
+
+    final nomeController = TextEditingController(
+      text: upa?['nome']?.toString() ?? '',
+    );
+
+    final cepController = TextEditingController(
+      text: _formatarCep(upa?['cep']),
+    );
+
     final ruaController = TextEditingController();
     final numeroController = TextEditingController();
     final bairroController = TextEditingController();
-    final cidadeController = TextEditingController(text: upa?['cidade'] ?? 'Mogi das Cruzes');
-    final telefoneController = MaskedTextController(
-      mask: '(00) 0000-0000',
-      text: upa?['telefone'] ?? '',
+
+    final cidadeController = TextEditingController(
+      text: upa?['cidade']?.toString() ?? 'Mogi das Cruzes',
     );
 
-    String nomeOriginal = upa?['nome'] ?? '';
-    String cepOriginal = upa?['cep']?.toString() ?? '';
-    String ruaOriginal = '';
-    String numeroOriginal = '';
-    String bairroOriginal = '';
-    String cidadeOriginal = upa?['cidade'] ?? 'Mogi das Cruzes';
-    String telefoneOriginal = upa?['telefone'] ?? '';
-    String horarioOriginal = upa?['horario'] ?? '';
+    final telefoneController = MaskedTextController(
+      mask: '(00) 0000-0000',
+      text: upa?['telefone']?.toString() ?? '',
+    );
 
-    if (upa != null && upa['endereco'] != null) {
-      final enderecoStr = upa['endereco'].toString();
-      if (enderecoStr.contains(' - ')) {
-        final partes = enderecoStr.split(' - ');
-        final ruaNumero = partes[0];
-        bairroOriginal = partes[1];
-        if (ruaNumero.contains(',')) {
-          final ruaNumeroParts = ruaNumero.split(',');
-          ruaOriginal = ruaNumeroParts[0].trim();
-          if (ruaNumeroParts.length > 1) {
-            numeroOriginal = ruaNumeroParts[1].trim();
-          }
-        } else {
-          ruaOriginal = ruaNumero;
-        }
+    final enderecoOriginal = upa?['endereco']?.toString() ?? '';
+
+    if (enderecoOriginal.isNotEmpty) {
+      final partes = enderecoOriginal.split(' - ');
+
+      if (partes.length > 1) {
+        bairroController.text = partes.sublist(1).join(' - ').trim();
+      }
+
+      final ruaNumero = partes.first;
+      final separador = ruaNumero.lastIndexOf(',');
+
+      if (separador >= 0) {
+        ruaController.text = ruaNumero.substring(0, separador).trim();
+        numeroController.text =
+            ruaNumero.substring(separador + 1).trim();
       } else {
-        final partes = enderecoStr.split(',');
-        if (partes.isNotEmpty) ruaOriginal = partes[0].trim();
-        if (partes.length > 1) {
-          if (partes[1].contains('-')) {
-            final numeroBairro = partes[1].split('-');
-            numeroOriginal = numeroBairro[0].trim();
-            if (numeroBairro.length > 1) bairroOriginal = numeroBairro[1].trim();
-          } else {
-            numeroOriginal = partes[1].trim();
-            if (partes.length > 2) bairroOriginal = partes[2].trim();
-          }
-        }
+        ruaController.text = ruaNumero.trim();
       }
     }
 
-    ruaController.text = ruaOriginal;
-    numeroController.text = numeroOriginal;
-    bairroController.text = bairroOriginal;
+    String? horarioSelecionado = upa?['horario']?.toString();
 
-    final List<String> horariosPadrao = [
-      '24 horas',
-      'Segunda a Sexta: 07h às 17h',
-      'Segunda a Sexta: 08h às 18h',
-      'Segunda a Sexta: 08h às 20h',
-      'Segunda a Sexta: 07h às 19h',
-      'Segunda a Sábado: 08h às 17h',
-      'Segunda a Sábado: 07h às 19h',
-      'Domingo a Domingo: 24 horas',
-      'Segunda, Quarta e Sexta: 08h às 12h',
-      'Terça e Quinta: 13h às 17h',
-    ];
-
-    String horarioAtual = upa?['horario'] ?? '';
-    String? horarioSelecionado = horariosPadrao.contains(horarioAtual) ? horarioAtual : null;
-
-    bool isLoading = false;
-    bool buscandoCep = false;
-
-    final List<String> diasSemana = [
-      'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'
-    ];
-
-    final List<String> horariosTurmas = [
-      '08:00 - 10:00', '10:00 - 12:00', '14:00 - 16:00', '16:00 - 18:00', '18:00 - 20:00'
-    ];
+    if (horarioSelecionado != null &&
+        horarioSelecionado.isNotEmpty &&
+        !_horariosPadrao.contains(horarioSelecionado)) {
+      horarioSelecionado = null;
+    }
 
     List<Map<String, dynamic>> turmasSelecionadas = [];
 
-    if (isEditing) {
+    if (editando) {
       try {
-        final authService = AuthService();
-        final turmas = await authService.getTurmasPorUPA(upa!['id']);
-        turmasSelecionadas = List<Map<String, dynamic>>.from(turmas);
+        final turmas = await AuthService().getTurmasPorUPA(upa['id']);
+
+        turmasSelecionadas = List<Map<String, dynamic>>.from(
+          turmas.map((t) => Map<String, dynamic>.from(t)),
+        );
       } catch (e) {
-        print('Erro ao carregar turmas: $e');
+        if (!mounted) return;
+
+        ToastService.showError(
+          context,
+          'Não foi possível carregar as turmas: $e',
+        );
+
+        return;
       }
     }
 
-    showDialog(
+    if (!mounted) return;
+
+    final nomeOriginal = nomeController.text.trim();
+    final cepOriginal = _numeros(cepController.text);
+    final cidadeOriginal = cidadeController.text.trim();
+    final telefoneOriginal = _numeros(telefoneController.text);
+    final horarioOriginal = horarioSelecionado;
+
+    final turmasOriginais = turmasSelecionadas
+        .map(
+          (t) => '${t['dia_semana']}|${t['horario']}|${t['vagas_totais']}',
+        )
+        .toSet();
+
+    bool carregando = false;
+    bool buscandoCep = false;
+    int cepRequest = 0;
+
+    bool formularioValido() {
+      final telefone = _numeros(telefoneController.text);
+
+      return nomeController.text.trim().isNotEmpty &&
+          ruaController.text.trim().isNotEmpty &&
+          numeroController.text.trim().isNotEmpty &&
+          bairroController.text.trim().isNotEmpty &&
+          cidadeController.text.trim().isNotEmpty &&
+          (telefone.length == 10 || telefone.length == 11) &&
+          horarioSelecionado != null &&
+          turmasSelecionadas.isNotEmpty;
+    }
+
+    bool houveAlteracoes() {
+      final turmasAtuais = turmasSelecionadas
+          .map(
+            (t) => '${t['dia_semana']}|${t['horario']}|${t['vagas_totais']}',
+          )
+          .toSet();
+
+      return nomeController.text.trim() != nomeOriginal ||
+          _numeros(cepController.text) != cepOriginal ||
+          '${ruaController.text.trim()}, ${numeroController.text.trim()} - ${bairroController.text.trim()}' !=
+              enderecoOriginal ||
+          cidadeController.text.trim() != cidadeOriginal ||
+          _numeros(telefoneController.text) != telefoneOriginal ||
+          horarioSelecionado != horarioOriginal ||
+          turmasAtuais.length != turmasOriginais.length ||
+          !turmasAtuais.containsAll(turmasOriginais);
+    }
+
+    await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setState) {
-            bool isFormValid() {
-              if (nomeController.text.trim().isEmpty) return false;
-              if (ruaController.text.trim().isEmpty) return false;
-              if (numeroController.text.trim().isEmpty) return false;
-              if (bairroController.text.trim().isEmpty) return false;
-              if (cidadeController.text.trim().isEmpty) return false;
-              String telefoneLimpo = telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
-              if (telefoneLimpo.length != 10 && telefoneLimpo.length != 11) return false;
-              if (horarioSelecionado == null) return false;
-              if (turmasSelecionadas.isEmpty) return false;
-              return true;
+          builder: (dialogContext, atualizarModal) {
+            Future<void> buscarCep(String valor) async {
+              final cep = _numeros(valor);
+
+              if (cep.length != 8) return;
+
+              final request = ++cepRequest;
+
+              atualizarModal(() {
+                buscandoCep = true;
+              });
+
+              try {
+                final endereco = await CepService.buscarEndereco(cep);
+
+                if (!dialogContext.mounted || request != cepRequest) {
+                  return;
+                }
+
+                atualizarModal(() {
+                  ruaController.text =
+                      endereco['logradouro']?.toString() ?? '';
+                  bairroController.text =
+                      endereco['bairro']?.toString() ?? '';
+                  cidadeController.text =
+                      endereco['cidade']?.toString() ?? '';
+                  buscandoCep = false;
+                });
+
+                ToastService.showSuccess(
+                  dialogContext,
+                  'Endereço encontrado com sucesso!',
+                );
+              } catch (e) {
+                if (!dialogContext.mounted || request != cepRequest) {
+                  return;
+                }
+
+                atualizarModal(() {
+                  buscandoCep = false;
+                });
+
+                ToastService.showError(
+                  dialogContext,
+                  'Erro ao buscar CEP: $e',
+                );
+              }
             }
 
-            bool hasChanges() {
-              if (nomeController.text.trim() != nomeOriginal) return true;
-              String cepLimpo = cepController.text.replaceAll(RegExp(r'[^\d]'), '');
-              if (cepLimpo != cepOriginal) return true;
-              if (ruaController.text.trim() != ruaOriginal) return true;
-              if (numeroController.text.trim() != numeroOriginal) return true;
-              if (bairroController.text.trim() != bairroOriginal) return true;
-              if (cidadeController.text.trim() != cidadeOriginal) return true;
-              String telefoneLimpo = telefoneController.text.replaceAll(RegExp(r'[^\d]'), '');
-              if (telefoneLimpo != telefoneOriginal) return true;
-              if (horarioSelecionado != horarioOriginal) return true;
-              return false;
+            Future<void> salvar() async {
+              if (!formularioValido() || carregando) return;
+
+              atualizarModal(() {
+                carregando = true;
+              });
+
+              try {
+                final endereco =
+                    '${ruaController.text.trim()}, ${numeroController.text.trim()} - ${bairroController.text.trim()}';
+
+                final dados = <String, dynamic>{
+                  'nome': nomeController.text.trim(),
+                  'endereco': endereco,
+                  'cep': _numeros(cepController.text),
+                  'cidade': cidadeController.text.trim(),
+                  'telefone': _numeros(telefoneController.text),
+                  'horario': horarioSelecionado,
+                  'turmas': turmasSelecionadas.map((turma) {
+                    return {
+                      'dia_semana': turma['dia_semana'],
+                      'horario': turma['horario'],
+                      'vagas_totais': turma['vagas_totais'] ?? 4,
+                    };
+                  }).toList(),
+                };
+
+                if (editando) {
+                  await AuthService().atualizarUPAComTurmas(
+                    upa['id'],
+                    dados,
+                  );
+                } else {
+                  await AuthService().criarUPAComTurmas(dados);
+                }
+
+                if (!dialogContext.mounted) return;
+
+                Navigator.pop(dialogContext);
+
+                if (!mounted) return;
+
+                ToastService.showSuccess(
+                  context,
+                  editando
+                      ? 'Unidade atualizada com sucesso!'
+                      : 'Unidade cadastrada com sucesso!',
+                );
+
+                await _carregarDados();
+              } catch (e) {
+                if (!dialogContext.mounted) return;
+
+                ToastService.showError(
+                  dialogContext,
+                  'Erro ao salvar unidade: $e',
+                );
+              } finally {
+                if (dialogContext.mounted) {
+                  atualizarModal(() {
+                    carregando = false;
+                  });
+                }
+              }
             }
 
-            bool canSave() {
-              if (!isFormValid()) return false;
-              if (isEditing && !hasChanges()) return false;
-              return true;
-            }
+            final diasPermitidos = _getDiasPermitidos(
+              horarioSelecionado ?? '',
+            );
 
-            List<String> diasPermitidos = _getDiasPermitidos(horarioSelecionado ?? '');
-            List<String> horariosPermitidos = _getHorariosPermitidos(horarioSelecionado ?? '');
+            final horariosPermitidos = _getHorariosPermitidos(
+              horarioSelecionado ?? '',
+            );
+
+            final podeSalvar = formularioValido() &&
+                (!editando || houveAlteracoes()) &&
+                !carregando &&
+                !buscandoCep;
 
             return Dialog(
-              insetPadding: EdgeInsets.only(
-                left: isSmallMobile ? 4 : (isMobile ? 6 : 20),
-                right: isSmallMobile ? 4 : (isMobile ? 6 : 20),
-                top: 20,
-                bottom: 20,
+              backgroundColor: _surface,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
               ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              child: Container(
-                padding: EdgeInsets.all(isSmallMobile ? 12 : 20),
-                width: isMobile ? MediaQuery.of(context).size.width * 0.96 : 700,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(17),
+                side: const BorderSide(color: _border),
+              ),
+              child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.95,
+                  maxWidth: 740,
+                  maxHeight:
+                      MediaQuery.of(dialogContext).size.height * 0.94,
                 ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 12, 17),
+                      child: Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: _successColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(isEditing ? Icons.edit : Icons.add, color: _successColor, size: 20),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            isEditing ? 'Editar Unidade' : 'Nova Unidade',
-                            style: TextStyle(
-                              fontSize: isSmallMobile ? 16 : 20,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 18),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: nomeController,
-                        onChanged: (_) => setState(() {}),
-                        decoration: _buildInputDecoration('Nome da Unidade', Icons.local_hospital),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: cepController,
-                              keyboardType: TextInputType.number,
-                              maxLength: 9,
-                              onChanged: (value) async {
-                                if (value.replaceAll(RegExp(r'[^\d]'), '').length == 8) {
-                                  setState(() => buscandoCep = true);
-                                  try {
-                                    final endereco = await CepService.buscarEndereco(value);
-                                    setState(() {
-                                      ruaController.text = endereco['logradouro'];
-                                      bairroController.text = endereco['bairro'];
-                                      cidadeController.text = endereco['cidade'];
-                                      buscandoCep = false;
-                                    });
-                                    ToastService.showSuccess(context, 'Endereço encontrado com sucesso!');
-                                  } catch (e) {
-                                    setState(() => buscandoCep = false);
-                                    ToastService.showError(context, 'Erro ao buscar CEP: $e');
-                                  }
-                                }
-                              },
-                              decoration: _buildInputDecoration('CEP', Icons.location_on).copyWith(
-                                counterText: '',
-                                border: InputBorder.none,
-                              ),
-                            ),
-                          ),
-                          if (buscandoCep)
-                            const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: TextField(
-                              controller: ruaController,
-                              onChanged: (_) => setState(() {}),
-                              decoration: _buildInputDecoration('Rua', Icons.location_on),
-                            ),
+                          _icone(
+                            editando
+                                ? Icons.edit_outlined
+                                : Icons.add_business_outlined,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            flex: 1,
-                            child: TextField(
-                              controller: numeroController,
-                              keyboardType: TextInputType.number,
-                              onChanged: (_) => setState(() {}),
-                              decoration: _buildInputDecoration('Número', Icons.numbers),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: bairroController,
-                        onChanged: (_) => setState(() {}),
-                        decoration: _buildInputDecoration('Bairro', Icons.location_city),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: cidadeController,
-                        enabled: false,
-                        style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w500),
-                        decoration: _buildInputDecoration('Cidade', Icons.location_city).copyWith(
-                          filled: true,
-                          fillColor: const Color(0xFFF1F5F9),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: telefoneController,
-                        keyboardType: TextInputType.phone,
-                        onChanged: (_) => setState(() {}),
-                        decoration: _buildInputDecoration('Telefone', Icons.phone),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: DropdownButtonFormField<String>(
-                          value: horarioSelecionado,
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                            hintText: 'Selecione o horário de funcionamento',
-                          ),
-                          hint: Text(
-                            'Selecione o horário de funcionamento',
-                            style: TextStyle(
-                              fontSize: isSmallMobile ? 12 : 13,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
-                          icon: Icon(Icons.arrow_drop_down, color: _accentColor),
-                          dropdownColor: Colors.white,
-                          style: TextStyle(
-                            fontSize: isSmallMobile ? 13 : 14,
-                            color: const Color(0xFF0F172A),
-                          ),
-                          onChanged: (value) {
-                            setState(() {
-                              horarioSelecionado = value;
-                            });
-                          },
-                          items: horariosPadrao.map((horario) {
-                            return DropdownMenuItem<String>(
-                              value: horario,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    horario.contains('24 horas') ? Icons.nightlight_round :
-                                    horario.contains('Segunda') ? Icons.today :
-                                    Icons.schedule,
-                                    size: 16,
-                                    color: _accentColor,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      horario,
-                                      style: TextStyle(
-                                        fontSize: isSmallMobile ? 12 : 13,
-                                        color: const Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: EdgeInsets.all(isSmallMobile ? 12 : 16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.schedule, color: _accentColor, size: isSmallMobile ? 16 : 20),
-                                const SizedBox(width: 8),
                                 Text(
-                                  'Turmas Disponíveis para Matrícula',
-                                  style: TextStyle(
-                                    fontSize: isSmallMobile ? 13 : 16,
+                                  editando
+                                      ? 'Editar unidade'
+                                      : 'Nova unidade',
+                                  style: const TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 17,
                                     fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF0F172A),
+                                    color: _primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  editando
+                                      ? 'Atualize os dados e as turmas.'
+                                      : 'Cadastre uma unidade e seus horários.',
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 11,
+                                    color: _secondary,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Selecione os dias e horários que esta unidade oferecerá turmas',
-                              style: TextStyle(fontSize: isSmallMobile ? 10 : 12, color: Colors.grey.shade600),
+                          ),
+                          IconButton(
+                            onPressed: carregando
+                                ? null
+                                : () => Navigator.pop(dialogContext),
+                            icon: const Icon(Icons.close_rounded),
+                            color: _secondary,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1, color: _border),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            _tituloSecao('Identificação da unidade'),
+                            const SizedBox(height: 15),
+                            TextField(
+                              controller: nomeController,
+                              enabled: !carregando,
+                              onChanged: (_) => atualizarModal(() {}),
+                              decoration: _decoration(
+                                'Nome da unidade',
+                                Icons.local_hospital_outlined,
+                              ),
+                            ),
+                            const SizedBox(height: 23),
+                            _tituloSecao(
+                              'Endereço e contato',
+                              descricao:
+                                  'Informe o CEP para preencher o endereço automaticamente.',
+                            ),
+                            const SizedBox(height: 15),
+                            TextField(
+                              controller: cepController,
+                              enabled: !carregando,
+                              keyboardType: TextInputType.number,
+                              maxLength: 9,
+                              onChanged: (valor) {
+                                atualizarModal(() {});
+                                buscarCep(valor);
+                              },
+                              decoration: _decoration(
+                                'CEP',
+                                Icons.pin_drop_outlined,
+                              ).copyWith(
+                                counterText: '',
+                                suffixIcon: buscandoCep
+                                    ? const Padding(
+                                        padding: EdgeInsets.all(14),
+                                        child: SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: _accent,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
+                              ),
                             ),
                             const SizedBox(height: 12),
-                            ...diasSemana.map((dia) {
-                              bool diaPermitido = diasPermitidos.contains(dia);
-                              int qtdHorariosSelecionados = turmasSelecionadas.where((t) => t['dia_semana'] == dia).length;
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final rua = TextField(
+                                  controller: ruaController,
+                                  enabled: !carregando,
+                                  onChanged: (_) =>
+                                      atualizarModal(() {}),
+                                  decoration: _decoration(
+                                    'Rua',
+                                    Icons.location_on_outlined,
+                                  ),
+                                );
 
-                              return Column(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 4),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          flex: 2,
-                                          child: Row(
-                                            children: [
-                                              if (!diaPermitido)
-                                                Icon(Icons.block, size: isSmallMobile ? 14 : 16, color: Colors.grey.shade400),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                dia,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: isSmallMobile ? 11 : 13,
-                                                  color: diaPermitido ? const Color(0xFF0F172A) : Colors.grey.shade400,
-                                                ),
-                                              ),
-                                              if (diaPermitido && qtdHorariosSelecionados > 0) ...[
-                                                const SizedBox(width: 6),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: _accentColor.withValues(alpha: 0.1),
-                                                    borderRadius: BorderRadius.circular(10),
-                                                  ),
-                                                  child: Text(
-                                                    '$qtdHorariosSelecionados',
-                                                    style: TextStyle(
-                                                      fontSize: 10,
-                                                      fontWeight: FontWeight.w600,
-                                                      color: _accentColor,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                        ),
-                                        Expanded(
-                                          flex: 3,
-                                          child: Wrap(
-                                            spacing: 6,
-                                            runSpacing: 6,
-                                            alignment: WrapAlignment.start,
-                                            children: horariosTurmas.map((horario) {
-                                              bool horarioPermitido = horariosPermitidos.contains(horario);
-                                              bool isSelected = turmasSelecionadas.any((t) => t['dia_semana'] == dia && t['horario'] == horario);
+                                final numero = TextField(
+                                  controller: numeroController,
+                                  enabled: !carregando,
+                                  keyboardType: TextInputType.number,
+                                  onChanged: (_) =>
+                                      atualizarModal(() {}),
+                                  decoration: _decoration(
+                                    'Número',
+                                    Icons.numbers_rounded,
+                                  ),
+                                );
 
-                                              if (!diaPermitido || !horarioPermitido) {
-                                                return Tooltip(
-                                                  message: !diaPermitido
-                                                      ? 'Unidade não funciona neste dia'
-                                                      : 'Unidade não atende neste horário',
-                                                  child: Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.grey.shade100,
-                                                      borderRadius: BorderRadius.circular(8),
-                                                      border: Border.all(color: Colors.grey.shade300),
-                                                    ),
-                                                    child: Text(
-                                                      horario,
-                                                      style: TextStyle(
-                                                        fontSize: isSmallMobile ? 8 : 10,
-                                                        color: Colors.grey.shade400,
-                                                        fontWeight: FontWeight.w400,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                );
-                                              }
+                                if (constraints.maxWidth < 450) {
+                                  return Column(
+                                    children: [
+                                      rua,
+                                      const SizedBox(height: 12),
+                                      numero,
+                                    ],
+                                  );
+                                }
 
-                                              return GestureDetector(
-                                                onTap: () {
-                                                  setState(() {
-                                                    if (isSelected) {
-                                                      turmasSelecionadas.removeWhere((t) => t['dia_semana'] == dia && t['horario'] == horario);
-                                                    } else {
-                                                      turmasSelecionadas.add({
-                                                        'dia_semana': dia,
-                                                        'horario': horario,
-                                                        'vagas_totais': 4,
-                                                        'vagas_ocupadas': 0,
-                                                      });
-                                                    }
-                                                  });
-                                                },
-                                                child: Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                  decoration: BoxDecoration(
-                                                    color: isSelected ? _accentColor : Colors.white,
-                                                    borderRadius: BorderRadius.circular(8),
-                                                    border: Border.all(
-                                                      color: isSelected ? _accentColor : Colors.grey.shade300,
-                                                      width: 1,
-                                                    ),
-                                                    boxShadow: isSelected ? [
-                                                      BoxShadow(
-                                                        color: _accentColor.withValues(alpha: 0.2),
-                                                        blurRadius: 4,
-                                                        offset: const Offset(0, 2),
-                                                      ),
-                                                    ] : [],
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      if (isSelected)
-                                                        const Icon(Icons.check_circle, size: 12, color: Colors.white),
-                                                      if (isSelected) const SizedBox(width: 4),
-                                                      Text(
-                                                        horario,
-                                                        style: TextStyle(
-                                                          fontSize: isSmallMobile ? 9 : 11,
-                                                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                                          color: isSelected ? Colors.white : const Color(0xFF0F172A),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
-                                            }).toList(),
-                                          ),
-                                        ),
-                                      ],
+                                return Row(
+                                  children: [
+                                    Expanded(flex: 3, child: rua),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: numero),
+                                  ],
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: bairroController,
+                              enabled: !carregando,
+                              onChanged: (_) => atualizarModal(() {}),
+                              decoration: _decoration(
+                                'Bairro',
+                                Icons.map_outlined,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: cidadeController,
+                              enabled: false,
+                              decoration: _decoration(
+                                'Cidade',
+                                Icons.location_city_outlined,
+                              ).copyWith(
+                                fillColor: const Color(0xFFF4F4F1),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: telefoneController,
+                              enabled: !carregando,
+                              keyboardType: TextInputType.phone,
+                              onChanged: (_) => atualizarModal(() {}),
+                              decoration: _decoration(
+                                'Telefone',
+                                Icons.phone_outlined,
+                              ),
+                            ),
+                            const SizedBox(height: 23),
+                            _tituloSecao(
+                              'Horário de funcionamento',
+                              descricao:
+                                  'O horário determina os dias e períodos disponíveis para turmas.',
+                            ),
+                            const SizedBox(height: 14),
+                            DropdownButtonFormField<String>(
+                              value: horarioSelecionado,
+                              isExpanded: true,
+                              decoration: _decoration(
+                                'Funcionamento',
+                                Icons.schedule_outlined,
+                              ),
+                              items: _horariosPadrao.map((horario) {
+                                return DropdownMenuItem(
+                                  value: horario,
+                                  child: Text(
+                                    horario,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 12,
+                                      color: _primary,
                                     ),
                                   ),
-                                  Divider(height: 2, color: Colors.grey.shade200),
+                                );
+                              }).toList(),
+                              onChanged: carregando
+                                  ? null
+                                  : (value) {
+                                      atualizarModal(() {
+                                        horarioSelecionado = value;
+                                      });
+                                    },
+                            ),
+                            const SizedBox(height: 24),
+                            _tituloSecao(
+                              'Turmas disponíveis para matrícula',
+                              descricao:
+                                  'Selecione os dias e horários oferecidos pela unidade.',
+                            ),
+                            const SizedBox(height: 14),
+                            Container(
+                              padding: const EdgeInsets.all(13),
+                              decoration: BoxDecoration(
+                                color: _background,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: _border),
+                              ),
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  for (final dia in _diasSemana) ...[
+                                    Builder(
+                                      builder: (context) {
+                                        final permitido =
+                                            diasPermitidos.contains(dia);
+
+                                        final quantidade =
+                                            turmasSelecionadas.where(
+                                          (t) => t['dia_semana'] == dia,
+                                        ).length;
+
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.symmetric(
+                                            vertical: 10,
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    permitido
+                                                        ? Icons
+                                                            .calendar_today_outlined
+                                                        : Icons
+                                                            .block_outlined,
+                                                    size: 15,
+                                                    color: permitido
+                                                        ? _accent
+                                                        : _secondary,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text(
+                                                      dia,
+                                                      style: TextStyle(
+                                                        fontFamily: 'Inter',
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: permitido
+                                                            ? _primary
+                                                            : _secondary,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  if (quantidade > 0)
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets
+                                                              .symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4,
+                                                      ),
+                                                      decoration:
+                                                          BoxDecoration(
+                                                        color: _accentSoft,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(7),
+                                                      ),
+                                                      child: Text(
+                                                        '$quantidade',
+                                                        style:
+                                                            const TextStyle(
+                                                          fontFamily:
+                                                              'Inter',
+                                                          fontSize: 10,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: _accent,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 10),
+                                              Wrap(
+                                                spacing: 7,
+                                                runSpacing: 7,
+                                                children: _horariosTurmas.map(
+                                                  (horario) {
+                                                    final habilitado =
+                                                        permitido &&
+                                                            horariosPermitidos
+                                                                .contains(
+                                                              horario,
+                                                            );
+
+                                                    final selecionado =
+                                                        turmasSelecionadas
+                                                            .any(
+                                                      (t) =>
+                                                          t['dia_semana'] ==
+                                                              dia &&
+                                                          t['horario'] ==
+                                                              horario,
+                                                    );
+
+                                                    return _horarioChip(
+                                                      horario,
+                                                      selecionado:
+                                                          selecionado,
+                                                      permitido: habilitado,
+                                                      onTap: carregando ||
+                                                              !habilitado
+                                                          ? null
+                                                          : () {
+                                                              atualizarModal(
+                                                                () {
+                                                                  if (selecionado) {
+                                                                    turmasSelecionadas
+                                                                        .removeWhere(
+                                                                      (t) =>
+                                                                          t['dia_semana'] ==
+                                                                              dia &&
+                                                                          t['horario'] ==
+                                                                              horario,
+                                                                    );
+                                                                  } else {
+                                                                    turmasSelecionadas
+                                                                        .add({
+                                                                      'dia_semana':
+                                                                          dia,
+                                                                      'horario':
+                                                                          horario,
+                                                                      'vagas_totais':
+                                                                          4,
+                                                                      'vagas_ocupadas':
+                                                                          0,
+                                                                    });
+                                                                  }
+                                                                },
+                                                              );
+                                                            },
+                                                    );
+                                                  },
+                                                ).toList(),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    if (dia != _diasSemana.last)
+                                      const Divider(
+                                        height: 1,
+                                        color: _border,
+                                      ),
+                                  ],
                                 ],
-                              );
-                            }).toList(),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              '${turmasSelecionadas.length} horários selecionados',
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11,
+                                color: _secondary,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      Row(
+                    ),
+                    const Divider(height: 1, color: _border),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () => Navigator.pop(context),
+                              onPressed: carregando
+                                  ? null
+                                  : () =>
+                                      Navigator.pop(dialogContext),
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFFE2E8F0)),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                minimumSize: const Size(double.infinity, 40),
+                                foregroundColor: _secondary,
+                                side: const BorderSide(color: _border),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
-                              child: const Text(
-                                'Cancelar',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                              ),
+                              child: const Text('Cancelar'),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 11),
                           Expanded(
-                            child: ElevatedButton(
-                              onPressed: (isLoading || !canSave()) ? null : () async {
-                                if (nomeController.text.isEmpty) {
-                                  ToastService.showError(context, 'Nome da unidade é obrigatório');
-                                  return;
-                                }
-                                if (ruaController.text.isEmpty) {
-                                  ToastService.showError(context, 'Rua é obrigatória');
-                                  return;
-                                }
-                                if (numeroController.text.isEmpty) {
-                                  ToastService.showError(context, 'Número é obrigatório');
-                                  return;
-                                }
-                                if (bairroController.text.isEmpty) {
-                                  ToastService.showError(context, 'Bairro é obrigatório');
-                                  return;
-                                }
-                                if (telefoneController.text.isEmpty) {
-                                  ToastService.showError(context, 'Telefone é obrigatório');
-                                  return;
-                                }
-
-                                if (horarioSelecionado == null) {
-                                  ToastService.showError(context, 'Selecione um horário de funcionamento');
-                                  return;
-                                }
-                                String horarioFinal = horarioSelecionado!;
-
-                                if (turmasSelecionadas.isEmpty) {
-                                  ToastService.showError(context, 'Selecione pelo menos uma turma');
-                                  return;
-                                }
-
-                                String enderecoCompleto = '${ruaController.text}, ${numeroController.text} - ${bairroController.text}';
-
-                                setState(() => isLoading = true);
-
-                                try {
-                                  final authService = AuthService();
-                                  final data = {
-                                    'nome': nomeController.text,
-                                    'endereco': enderecoCompleto,
-                                    'cep': cepController.text.replaceAll(RegExp(r'[^\d]'), ''),
-                                    'cidade': cidadeController.text,
-                                    'telefone': telefoneController.text.replaceAll(RegExp(r'[^\d]'), ''),
-                                    'horario': horarioFinal,
-                                    'turmas': turmasSelecionadas.map((t) => ({
-                                      'dia_semana': t['dia_semana'],
-                                      'horario': t['horario'],
-                                      'vagas_totais': t['vagas_totais'],
-                                    })).toList(),
-                                  };
-
-                                  if (isEditing) {
-                                    await authService.atualizarUPAComTurmas(upa!['id'], data);
-                                    ToastService.showSuccess(context, 'Unidade "${nomeController.text}" atualizada com sucesso!');
-                                  } else {
-                                    await authService.criarUPAComTurmas(data);
-                                    ToastService.showSuccess(context, 'Unidade "${nomeController.text}" criada com sucesso!');
-                                  }
-
-                                  Navigator.pop(context);
-                                  _carregarDados();
-                                } catch (e) {
-                                  ToastService.showError(context, 'Erro ao ${isEditing ? "atualizar" : "criar"} Unidade: $e');
-                                } finally {
-                                  setState(() => isLoading = false);
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: canSave() ? _successColor : Colors.grey.shade400,
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                minimumSize: const Size(double.infinity, 40),
-                              ),
-                              child: isLoading
-                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                  : Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          isEditing ? Icons.save : Icons.add,
-                                          size: 16,
-                                          color: canSave() ? Colors.white : Colors.grey.shade500,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          isEditing ? 'Salvar' : 'Criar',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: canSave() ? Colors.white : Colors.grey.shade500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                            child: _botaoPrincipal(
+                              texto: editando
+                                  ? 'Salvar alterações'
+                                  : 'Cadastrar',
+                              icon: editando
+                                  ? Icons.check_rounded
+                                  : Icons.add_rounded,
+                              onPressed: podeSalvar ? salvar : null,
+                              loading: carregando,
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             );
@@ -1739,23 +2095,103 @@ Widget _buildUPACard(Map<String, dynamic> upa) {
         );
       },
     );
+
+    nomeController.dispose();
+    cepController.dispose();
+    ruaController.dispose();
+    numeroController.dispose();
+    bairroController.dispose();
+    cidadeController.dispose();
+    telefoneController.dispose();
   }
 
-  Future<void> _confirmarDeletarUPA(Map<String, dynamic> upa) async {
-    final confirm = await _showConfirmDeleteDialog(
-      title: 'Excluir Unidade',
-      message: 'Tem certeza que deseja excluir a unidade "${upa['nome']}"?\n\nEsta ação não pode ser desfeita.',
-    );
-
-    if (confirm == true) {
-      try {
-        final authService = AuthService();
-        await authService.deletarUPA(upa['id']);
-        ToastService.showSuccess(context, 'Unidade "${upa['nome']}" excluída com sucesso!');
-        _carregarDados();
-      } catch (e) {
-        ToastService.showError(context, 'Erro ao excluir unidade: $e');
-      }
+  @override
+  Widget build(BuildContext context) {
+    if (_carregando) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: _accent,
+          strokeWidth: 2.5,
+        ),
+      );
     }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mobile = constraints.maxWidth < 768;
+
+        return RefreshIndicator(
+          color: _accent,
+          onRefresh: () => _carregarDados(),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(
+              horizontal: mobile ? 15 : 30,
+              vertical: mobile ? 22 : 30,
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1360),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildCabecalho(mobile),
+                    const SizedBox(height: 23),
+                    _buildResumo(),
+                    const SizedBox(height: 22),
+                    _buildPesquisa(),
+                    const SizedBox(height: 22),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _searchQuery.isEmpty
+                                ? 'Unidades cadastradas'
+                                : 'Resultados da pesquisa',
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: _primary,
+                            ),
+                          ),
+                        ),
+                        if (_atualizando)
+                          const Padding(
+                            padding: EdgeInsets.only(right: 12),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                color: _accent,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          ),
+                        Text(
+                          '$_totalUPAs unidades',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            color: _secondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 15),
+                    if (_upas.isEmpty)
+                      _buildVazio()
+                    else
+                      ..._upas.map(_buildUPACard),
+                    _buildPaginacao(),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

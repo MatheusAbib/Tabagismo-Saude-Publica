@@ -1,34 +1,57 @@
-import 'package:flutter/material.dart';
+
+import 'dart:convert';
+
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:tabagismo_app/services/auth_service.dart';
 import 'package:tabagismo_app/services/toast_service.dart';
-import 'dart:convert';
 
 class AdminUsuarioDetalhesScreen extends StatefulWidget {
   final int usuarioId;
   final String usuarioNome;
 
   const AdminUsuarioDetalhesScreen({
-    Key? key,
+    super.key,
     required this.usuarioId,
     required this.usuarioNome,
-  }) : super(key: key);
+  });
 
   @override
-  _AdminUsuarioDetalhesScreenState createState() => _AdminUsuarioDetalhesScreenState();
+  State<AdminUsuarioDetalhesScreen> createState() =>
+      _AdminUsuarioDetalhesScreenState();
 }
 
-class _AdminUsuarioDetalhesScreenState extends State<AdminUsuarioDetalhesScreen> {
-  bool _isLoading = true;
-  Map<String, dynamic>? _usuario;
-  List<Map<String, dynamic>> _sintomas = [];
-  Map<String, dynamic>? _matricula;
-  bool _atualizandoMatricula = false;
+class _AdminUsuarioDetalhesScreenState
+    extends State<AdminUsuarioDetalhesScreen> {
+  static const Color _background = Color(0xFFFFFDF9);
+  static const Color _surface = Colors.white;
+  static const Color _surfaceSoft = Color(0xFFFAF8F3);
+  static const Color _border = Color(0xFFE6E5DF);
+  static const Color _accent = Color(0xFF426E8C);
+  static const Color _accentSoft = Color(0xFFEAF2F7);
+  static const Color _primary = Color(0xFF30383E);
+  static const Color _secondary = Color(0xFF758087);
+  static const Color _success = Color(0xFF34866D);
+  static const Color _warning = Color(0xFFC58A3C);
+  static const Color _danger = Color(0xFFC76A62);
+  static const Color _purple = Color(0xFF8564A7);
 
-  final Color _accentColor = const Color(0xFF1F4E6E);
-  final Color _successColor = const Color(0xFF2E8B6A);
-  final Color _warningColor = const Color(0xFFD97706);
-  final Color _dangerColor = const Color(0xFFC65D47);
+  bool _isLoading = true;
+  bool _atualizandoMatricula = false;
+  String? _erro;
+
+  Map<String, dynamic>? _usuario;
+  Map<String, dynamic>? _matricula;
+  List<Map<String, dynamic>> _sintomas = [];
+
+  final Map<String, bool> _seriesVisiveis = {
+    'Ansiedade': true,
+    'Irritabilidade': true,
+    'Insônia': true,
+    'Fome': true,
+    'Concentração': true,
+    'Vontade de fumar': true,
+  };
 
   @override
   void initState() {
@@ -37,181 +60,1529 @@ class _AdminUsuarioDetalhesScreenState extends State<AdminUsuarioDetalhesScreen>
   }
 
   Future<void> _carregarDados() async {
-    setState(() => _isLoading = true);
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+      _erro = null;
+    });
+
     try {
-      final authService = AuthService();
-      final response = await authService.getUsuarioDetalhes(widget.usuarioId);
+      final response =
+          await AuthService().getUsuarioDetalhes(widget.usuarioId);
+
+      if (!mounted) return;
+
       setState(() {
-        _usuario = response['usuario'];
-        _sintomas = List<Map<String, dynamic>>.from(response['sintomas']);
-        _matricula = response['matricula'];
+        _usuario = response['usuario'] is Map
+            ? Map<String, dynamic>.from(response['usuario'])
+            : null;
+
+        _matricula = response['matricula'] is Map
+            ? Map<String, dynamic>.from(response['matricula'])
+            : null;
+
+        _sintomas = response['sintomas'] is List
+            ? (response['sintomas'] as List)
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList()
+            : [];
+
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
-      ToastService.showError(context, 'Erro ao carregar dados do usuário: $e');
+      if (!mounted) return;
+
+      setState(() {
+        _erro = 'Não foi possível carregar os dados do paciente.';
+        _isLoading = false;
+      });
+
+      ToastService.showError(
+        context,
+        'Erro ao carregar dados do usuário: $e',
+      );
     }
   }
 
+  String _valor(dynamic value) {
+    if (value == null) return 'Não informado';
+
+    final text = value.toString().trim();
+
+    if (text.isEmpty || text.toLowerCase() == 'null') {
+      return 'Não informado';
+    }
+
+    return text;
+  }
+
+  String _formatarData(dynamic data) {
+    if (data == null) return 'Não informado';
+
+    final text = data.toString().trim();
+
+    if (text.isEmpty) return 'Não informado';
+
+    final date = DateTime.tryParse(text);
+
+    if (date == null) return text;
+
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year}';
+  }
+
+  String _formatarTelefone(dynamic telefone) {
+    final original = _valor(telefone);
+
+    if (original == 'Não informado') return original;
+
+    final limpo = original.replaceAll(RegExp(r'[^\d]'), '');
+
+    if (limpo.length == 11) {
+      return '(${limpo.substring(0, 2)}) '
+          '${limpo.substring(2, 7)}-${limpo.substring(7)}';
+    }
+
+    if (limpo.length == 10) {
+      return '(${limpo.substring(0, 2)}) '
+          '${limpo.substring(2, 6)}-${limpo.substring(6)}';
+    }
+
+    return original;
+  }
+
+  String _formatarCpf(dynamic cpf) {
+    final original = _valor(cpf);
+
+    if (original == 'Não informado') return original;
+
+    final limpo = original.replaceAll(RegExp(r'[^\d]'), '');
+
+    if (limpo.length != 11) return original;
+
+    return '${limpo.substring(0, 3)}.'
+        '${limpo.substring(3, 6)}.'
+        '${limpo.substring(6, 9)}-${limpo.substring(9)}';
+  }
+
+  double _numero(dynamic value) {
+    if (value is num) return value.toDouble();
+
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  int? _inteiro(dynamic value) {
+    if (value is int) return value;
+
+    return int.tryParse(value?.toString() ?? '');
+  }
+
   Future<void> _alocarTurma(String opcao) async {
-    if (_matricula == null) return;
-    
-    String turmaEscolhida;
-    if (opcao == 'primeira') {
-      turmaEscolhida = _matricula!['turma_horario'];
-    } else {
-      turmaEscolhida = _matricula!['segunda_opcao_turma'];
-    }
-    
-    setState(() => _atualizandoMatricula = true);
-    try {
-      final authService = AuthService();
-      await authService.atualizarMatricula(
-        _matricula!['id'],
-        'matriculado',
-        turmaEscolhida,
+    if (_matricula == null || _atualizandoMatricula) return;
+
+    final turmaEscolhida = opcao == 'primeira'
+        ? _matricula!['turma_horario']
+        : _matricula!['segunda_opcao_turma'];
+
+    final matriculaId = _inteiro(_matricula!['id']);
+
+    if (matriculaId == null ||
+        turmaEscolhida == null ||
+        turmaEscolhida.toString().trim().isEmpty) {
+      ToastService.showError(
+        context,
+        'Não foi possível identificar a matrícula ou a turma.',
       );
-      
-      await _carregarDados();
-      
-      ToastService.showSuccess(context, 'Usuário matriculado com sucesso na turma: $turmaEscolhida');
-    } catch (e) {
-      ToastService.showError(context, 'Erro ao alocar turma: $e');
-    } finally {
-      setState(() => _atualizandoMatricula = false);
+      return;
     }
+
+    setState(() {
+      _atualizandoMatricula = true;
+    });
+
+    try {
+      await AuthService().atualizarMatricula(
+        matriculaId,
+        'matriculado',
+        turmaEscolhida.toString(),
+      );
+
+      await _carregarDados();
+
+      if (!mounted) return;
+
+      ToastService.showSuccess(
+        context,
+        'Usuário matriculado com sucesso na turma: $turmaEscolhida',
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ToastService.showError(
+        context,
+        'Erro ao alocar turma: $e',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _atualizandoMatricula = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _confirmarMatricula(String opcao) async {
+    if (_matricula == null) return;
+
+    final turma = opcao == 'primeira'
+        ? _matricula!['turma_horario']
+        : _matricula!['segunda_opcao_turma'];
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: _surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Confirmar matrícula',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: _primary,
+            ),
+          ),
+          content: Text(
+            'Deseja matricular ${widget.usuarioNome} na turma '
+            '"${_valor(turma)}"?',
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              height: 1.6,
+              color: _secondary,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: _accent,
+              ),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmar == true && mounted) {
+      await _alocarTurma(opcao);
+    }
+  }
+
+  Map<String, List<String>> _obterComorbidades() {
+    if (_matricula == null) return {};
+
+    final raw = _matricula!['comorbidades'];
+
+    if (raw == null) return {};
+
+    Map<String, dynamic> dados;
+
+    try {
+      if (raw is String) {
+        final decoded = jsonDecode(raw);
+
+        if (decoded is! Map) return {};
+
+        dados = Map<String, dynamic>.from(decoded);
+      } else if (raw is Map) {
+        dados = Map<String, dynamic>.from(raw);
+      } else {
+        return {};
+      }
+    } catch (_) {
+      return {};
+    }
+
+    const categorias = {
+      'cancer': 'Câncer',
+      'cardiovascular': 'Cardiovascular',
+      'metabolico': 'Metabólico',
+      'psiquiatrico': 'Psiquiátrico',
+      'respiratorio': 'Respiratório',
+    };
+
+    final resultado = <String, List<String>>{};
+
+    for (final entry in categorias.entries) {
+      final lista = dados[entry.key];
+
+      if (lista is! List) continue;
+
+      final valores = <String>[];
+
+      for (final item in lista) {
+        dynamic valor;
+
+        if (item is Map) {
+          valor = item['valor'];
+        } else {
+          valor = item;
+        }
+
+        final texto = valor?.toString().trim() ?? '';
+
+        if (texto.isNotEmpty &&
+            texto.toLowerCase() != 'nenhum' &&
+            texto.toLowerCase() != 'null') {
+          valores.add(texto);
+        }
+      }
+
+      if (valores.isNotEmpty) {
+        resultado[entry.value] = valores;
+      }
+    }
+
+    return resultado;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildTopBar(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: _accent,
+                        strokeWidth: 2.5,
+                      ),
+                    )
+                  : _erro != null
+                      ? _buildErro()
+                      : RefreshIndicator(
+                          color: _accent,
+                          onRefresh: _carregarDados,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isMobile =
+                                  constraints.maxWidth < 760;
+
+                              final padding = isMobile ? 16.0 : 28.0;
+
+                              return SingleChildScrollView(
+                                physics:
+                                    const AlwaysScrollableScrollPhysics(),
+                                padding: EdgeInsets.fromLTRB(
+                                  padding,
+                                  24,
+                                  padding,
+                                  40,
+                                ),
+                                child: Center(
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 1320,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _buildPatientHeader(isMobile),
+                                        const SizedBox(height: 22),
+                                        _buildOverview(isMobile),
+                                        const SizedBox(height: 20),
+                                        if (isMobile) ...[
+                                          _buildDadosPessoais(),
+                                          const SizedBox(height: 16),
+                                          _buildMatricula(),
+                                          const SizedBox(height: 16),
+                                          _buildObjetivos(),
+                                        ] else ...[
+                                          Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Expanded(
+                                                flex: 5,
+                                                child: _buildDadosPessoais(),
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Expanded(
+                                                flex: 4,
+                                                child: _buildMatricula(),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 16),
+                                          _buildObjetivos(),
+                                        ],
+                                        const SizedBox(height: 20),
+                                        _buildEvolucao(),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopBar() {
+    return Container(
+      height: 68,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: const BoxDecoration(
+        color: _surface,
+        border: Border(
+          bottom: BorderSide(color: _border),
+        ),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: 'Voltar',
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(
+              Icons.arrow_back_rounded,
+              color: _primary,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: _accentSoft,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.person_outline_rounded,
+              color: _accent,
+              size: 21,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Ficha do paciente',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: _primary,
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Atualizar informações',
+            onPressed: _isLoading ? null : _carregarDados,
+            icon: const Icon(
+              Icons.refresh_rounded,
+              color: _accent,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPatientHeader(bool isMobile) {
+    final nome = _valor(
+      _usuario?['nome_completo'] ?? widget.usuarioNome,
+    );
+
+    final idade = _valor(_usuario?['idade']);
+    final sexo = _valor(_usuario?['sexo']);
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 18 : 24),
+      decoration: BoxDecoration(
+        color: _surface,
+        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildAvatar(54),
+                const SizedBox(height: 14),
+                _buildPatientIdentity(nome, idade, sexo),
+              ],
+            )
+          : Row(
+              children: [
+                _buildAvatar(64),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: _buildPatientIdentity(nome, idade, sexo),
+                ),
+                const SizedBox(width: 12),
+                _buildStatusBadge(),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildAvatar(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: _accentSoft,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Icon(
+        Icons.person_rounded,
+        size: size * 0.52,
+        color: _accent,
+      ),
+    );
+  }
+
+  Widget _buildPatientIdentity(
+    String nome,
+    String idade,
+    String sexo,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'PRONTUÁRIO DO PACIENTE',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.3,
+            color: _accent,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          nome,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: _primary,
+            height: 1.3,
+          ),
+        ),
+        const SizedBox(height: 9),
+        Wrap(
+          spacing: 14,
+          runSpacing: 7,
+          children: [
+            _buildInlineInfo(
+              Icons.badge_outlined,
+              'ID ${widget.usuarioId}',
+            ),
+            if (idade != 'Não informado')
+              _buildInlineInfo(
+                Icons.cake_outlined,
+                '$idade anos',
+              ),
+            if (sexo != 'Não informado')
+              _buildInlineInfo(
+                Icons.person_outline,
+                sexo,
+              ),
+          ],
+        ),
+        if (MediaQuery.of(context).size.width < 760) ...[
+          const SizedBox(height: 16),
+          _buildStatusBadge(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildInlineInfo(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: _secondary),
+        const SizedBox(width: 5),
+        Text(
+          text,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 12,
+            color: _secondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusBadge() {
+    final status = _matricula?['status']?.toString();
+
+    String label;
+    Color color;
+
+    switch (status) {
+      case 'matriculado':
+        label = 'Matriculado';
+        color = _success;
+        break;
+      case 'em_espera':
+        label = 'Em espera';
+        color = _warning;
+        break;
+      case 'cancelado':
+        label = 'Cancelado';
+        color = _danger;
+        break;
+      default:
+        label = status == null
+            ? 'Sem matrícula'
+            : status.replaceAll('_', ' ');
+        color = _secondary;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 9,
+      ),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.09),
+        border: Border.all(color: color.withOpacity(0.22)),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverview(bool isMobile) {
+    final score = _matricula?['score_fagestrom'];
+    final sintomas = _sintomas.length;
+    final turma = _valor(_matricula?['turma_horario']);
+
+    final items = [
+      _OverviewItem(
+        'Fagerström',
+        _valor(score),
+        Icons.monitor_heart_outlined,
+        _accent,
+      ),
+      _OverviewItem(
+        'Registros de sintomas',
+        sintomas.toString(),
+        Icons.show_chart_rounded,
+        _purple,
+      ),
+      _OverviewItem(
+        'Turma',
+        turma,
+        Icons.groups_outlined,
+        _success,
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth < 550
+            ? 1
+            : constraints.maxWidth < 900
+                ? 2
+                : 3;
+
+        final spacing = 12.0;
+        final itemWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: items.map((item) {
+            return SizedBox(
+              width: itemWidth,
+              child: Container(
+                padding: const EdgeInsets.all(17),
+                decoration: BoxDecoration(
+                  color: _surface,
+                  border: Border.all(color: _border),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: item.color.withOpacity(0.09),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        item.icon,
+                        color: item.color,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.label,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              color: _secondary,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            item.value,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: _primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildSection({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Widget child,
+    Widget? trailing,
+  }) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: _surface,
+        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(19, 19, 19, 17),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: _accentSoft,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: _accent,
+                    size: 19,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: _primary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          color: _secondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (trailing != null) trailing,
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: _border),
+          Padding(
+            padding: const EdgeInsets.all(19),
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDadosPessoais() {
+    return _buildSection(
+      title: 'Dados pessoais',
+      subtitle: 'Informações cadastrais do paciente',
+      icon: Icons.person_outline_rounded,
+      child: Column(
+        children: [
+          _buildDetail(
+            'Nome completo',
+            _valor(_usuario?['nome_completo']),
+            Icons.badge_outlined,
+          ),
+          _buildDetail(
+            'E-mail',
+            _valor(_usuario?['email']),
+            Icons.mail_outline_rounded,
+          ),
+          _buildDetail(
+            'Telefone',
+            _formatarTelefone(_usuario?['telefone']),
+            Icons.phone_outlined,
+          ),
+          _buildDetail(
+            'CPF',
+            _formatarCpf(_usuario?['cpf']),
+            Icons.assignment_ind_outlined,
+          ),
+          _buildDetail(
+            'Sexo',
+            _valor(_usuario?['sexo']),
+            Icons.person_outline,
+          ),
+          _buildDetail(
+            'Data de nascimento',
+            _formatarData(_usuario?['data_nascimento']),
+            Icons.calendar_today_outlined,
+          ),
+          _buildDetail(
+            'Idade',
+            _usuario?['idade'] == null
+                ? 'Não informado'
+                : '${_usuario!['idade']} anos',
+            Icons.cake_outlined,
+            last: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetail(
+    String label,
+    String value,
+    IconData icon, {
+    bool last = false,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: last ? 0 : 15),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 360;
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: _secondary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: compact
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            label,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              color: _secondary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            value,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: _primary,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 4,
+                            child: Text(
+                              label,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11,
+                                color: _secondary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 5,
+                            child: SelectableText(
+                              value,
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: _primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMatricula() {
+    if (_matricula == null) {
+      return _buildSection(
+        title: 'Matrícula',
+        subtitle: 'Vínculo com o programa',
+        icon: Icons.school_outlined,
+        child: _buildEmpty(
+          Icons.school_outlined,
+          'Sem matrícula ativa',
+          'Não há informações de matrícula para este paciente.',
+        ),
+      );
+    }
+
+    final emEspera = _matricula!['status'] == 'em_espera';
+    final segundaOpcao = _matricula!['segunda_opcao_turma'];
+
+    return _buildSection(
+      title: 'Matrícula',
+      subtitle: 'Informações de participação no programa',
+      icon: Icons.school_outlined,
+      trailing: IconButton(
+        tooltip: 'Ver detalhes da matrícula',
+        onPressed: _mostrarDetalhesMatricula,
+        icon: const Icon(
+          Icons.open_in_new_rounded,
+          size: 19,
+          color: _accent,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDetail(
+            'Unidade de atendimento',
+            _valor(_matricula!['upa_nome']),
+            Icons.local_hospital_outlined,
+          ),
+          _buildDetail(
+            'Score Fagerström',
+            _valor(_matricula!['score_fagestrom']),
+            Icons.monitor_heart_outlined,
+          ),
+          _buildDetail(
+            'Medicamento',
+            _valor(_matricula!['medicamento']),
+            Icons.medication_outlined,
+          ),
+          _buildDetail(
+            'Turma',
+            _valor(_matricula!['turma_horario']),
+            Icons.groups_outlined,
+          ),
+          if (segundaOpcao != null)
+            _buildDetail(
+              'Segunda opção',
+              _valor(segundaOpcao),
+              Icons.swap_horiz_rounded,
+              last: !emEspera,
+            ),
+          if (emEspera) ...[
+            const SizedBox(height: 6),
+            const Divider(color: _border),
+            const SizedBox(height: 12),
+            const Text(
+              'Alocação de turma',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: _primary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Selecione uma das opções escolhidas pelo paciente.',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                height: 1.5,
+                color: _secondary,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _buildMatriculaActions(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMatriculaActions() {
+    final temSegunda = _matricula?['segunda_opcao_turma'] != null;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 400;
+
+        final primeira = FilledButton.icon(
+          onPressed: _atualizandoMatricula
+              ? null
+              : () => _confirmarMatricula('primeira'),
+          icon: const Icon(Icons.check_rounded, size: 17),
+          label: const Text('Matricular 1ª opção'),
+          style: FilledButton.styleFrom(
+            backgroundColor: _accent,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 15,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(9),
+            ),
+          ),
+        );
+
+        final segunda = OutlinedButton(
+          onPressed: _atualizandoMatricula
+              ? null
+              : () => _confirmarMatricula('segunda'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _accent,
+            side: const BorderSide(color: _border),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 15,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(9),
+            ),
+          ),
+          child: const Text('2ª opção'),
+        );
+
+        if (!temSegunda) {
+          return SizedBox(
+            width: double.infinity,
+            child: primeira,
+          );
+        }
+
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              primeira,
+              const SizedBox(height: 9),
+              segunda,
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(flex: 3, child: primeira),
+            const SizedBox(width: 9),
+            Expanded(flex: 2, child: segunda),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildObjetivos() {
+    final stopDate = DateTime.tryParse(
+      _usuario?['stop_date']?.toString() ?? '',
+    );
+
+    return _buildSection(
+      title: 'Objetivos e acompanhamento',
+      subtitle: 'Metas registradas pelo paciente',
+      icon: Icons.flag_outlined,
+      child: stopDate == null
+          ? _buildEmpty(
+              Icons.flag_outlined,
+              'Nenhuma meta definida',
+              'O paciente ainda não registrou uma data para parar de fumar.',
+            )
+          : _buildObjetivosContent(stopDate),
+    );
+  }
+
+  Widget _buildObjetivosContent(DateTime stopDate) {
+    final hoje = DateTime.now();
+
+    final inicio = DateTime(
+      stopDate.year,
+      stopDate.month,
+      stopDate.day,
+    );
+
+    final atual = DateTime(
+      hoje.year,
+      hoje.month,
+      hoje.day,
+    );
+
+    final dias = atual.difference(inicio).inDays;
+    final meta = _inteiro(_usuario?['target_days']);
+    final progresso = meta != null && meta > 0 && dias >= 0
+        ? (dias / meta).clamp(0.0, 1.0)
+        : 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: _accentSoft,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _accent.withOpacity(0.12),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.event_available_outlined,
+                    color: _accent,
+                    size: 18,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Tempo desde a data de parada',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _accent,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                dias < 0
+                    ? 'Início em ${-dias} dias'
+                    : '$dias ${dias == 1 ? 'dia' : 'dias'}',
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  color: _primary,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                'Data registrada: ${_formatarData(stopDate)}',
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 11,
+                  color: _secondary,
+                ),
+              ),
+              if (meta != null && meta > 0) ...[
+                const SizedBox(height: 17),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(5),
+                  child: LinearProgressIndicator(
+                    value: progresso,
+                    minHeight: 7,
+                    backgroundColor: Colors.white,
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(_accent),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Progresso em relação à meta de $meta dias',
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: _secondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth < 560 ? 1 : 3;
+            final gap = 10.0;
+            final width =
+                (constraints.maxWidth - gap * (columns - 1)) / columns;
+
+            return Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                _buildGoalMetric(
+                  width,
+                  'Meta',
+                  meta == null ? 'Não informada' : '$meta dias',
+                  Icons.flag_outlined,
+                ),
+                _buildGoalMetric(
+                  width,
+                  'Cigarros por dia',
+                  _valor(_usuario?['cigarros_por_dia']),
+                  Icons.smoke_free_outlined,
+                ),
+                _buildGoalMetric(
+                  width,
+                  'Valor da carteira',
+                  _usuario?['valor_carteira'] == null
+                      ? 'Não informado'
+                      : 'R\$ ${_valor(_usuario?['valor_carteira'])}',
+                  Icons.payments_outlined,
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 11),
+        const Text(
+          'O período exibido é calculado a partir da data informada pelo paciente e não confirma, por si só, a abstinência.',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 10,
+            height: 1.6,
+            color: _secondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGoalMetric(
+    double width,
+    String label,
+    String value,
+    IconData icon,
+  ) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _surfaceSoft,
+        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: _accent, size: 20),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10,
+                    color: _secondary,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: _primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmpty(
+    IconData icon,
+    String title,
+    String description,
+  ) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 20,
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: _surfaceSoft,
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(
+                icon,
+                color: _secondary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: _primary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                height: 1.5,
+                color: _secondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _mostrarDetalhesMatricula() {
     if (_matricula == null) return;
-    
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final isSmallMobile = MediaQuery.of(context).size.width < 400;
-    
+
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         return Dialog(
-          insetPadding: EdgeInsets.only(
-            left: isSmallMobile ? 4 : (isMobile ? 6 : 20),
-            right: isSmallMobile ? 4 : (isMobile ? 6 : 20),
-            top: 20,
-            bottom: 20,
+          backgroundColor: _surface,
+          insetPadding: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          child: Container(
-            padding: EdgeInsets.all(isSmallMobile ? 16 : 20),
-            width: isMobile ? MediaQuery.of(context).size.width * 0.96 : 480,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 560,
+              maxHeight: 650,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6B21A8).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.school, color: Color(0xFF6B21A8), size: 20),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'Detalhes da Matrícula',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 18),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    20,
+                    16,
+                    12,
+                    14,
                   ),
-                  child: Column(
+                  child: Row(
                     children: [
-                      _buildDetalheRow('UPA', _matricula!['upa_nome'] ?? '-'),
-                      _buildDetalheRow('Escolaridade', _matricula!['escolaridade'] ?? '-'),
-                      _buildDetalheRow('Score Fagerström', _matricula!['score_fagestrom']?.toString() ?? '-'),
-                      _buildDetalheRow('Medicamento', _matricula!['medicamento'] ?? '-'),
-                      _buildDetalheRow('Turma', _matricula!['turma_horario'] ?? '-'),
-                      if (_matricula!['segunda_opcao_turma'] != null)
-                        _buildDetalheRow('2ª opção', _matricula!['segunda_opcao_turma']),
+                      const Icon(
+                        Icons.assignment_outlined,
+                        color: _accent,
+                        size: 21,
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'Detalhes da matrícula',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: _primary,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Fechar',
+                        onPressed: () =>
+                            Navigator.pop(dialogContext),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                const Text('Comorbidades', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: _buildComorbidadesWidget(),
-                ),
-                const SizedBox(height: 20),
-                if (_matricula!['status'] == 'em_espera') ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _atualizandoMatricula ? null : () {
-                            Navigator.pop(context);
-                            _alocarTurma('primeira');
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _successColor,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: const Text('Alocar 1ª opção', style: TextStyle(fontWeight: FontWeight.w600)),
+                const Divider(height: 1, color: _border),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildDialogDetail(
+                          'UPA',
+                          _valor(_matricula?['upa_nome']),
                         ),
-                      ),
-                      if (_matricula!['segunda_opcao_turma'] != null) ...[
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _atualizandoMatricula ? null : () {
-                              Navigator.pop(context);
-                              _alocarTurma('segunda');
-                            },
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: _successColor),
-                              foregroundColor: _successColor,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        _buildDialogDetail(
+                          'Escolaridade',
+                          _valor(_matricula?['escolaridade']),
+                        ),
+                        _buildDialogDetail(
+                          'Score Fagerström',
+                          _valor(_matricula?['score_fagestrom']),
+                        ),
+                        _buildDialogDetail(
+                          'Medicamento',
+                          _valor(_matricula?['medicamento']),
+                        ),
+                        _buildDialogDetail(
+                          'Turma',
+                          _valor(_matricula?['turma_horario']),
+                        ),
+                        if (_matricula?['segunda_opcao_turma'] != null)
+                          _buildDialogDetail(
+                            'Segunda opção',
+                            _valor(
+                              _matricula?['segunda_opcao_turma'],
                             ),
-                            child: const Text('2ª opção', style: TextStyle(fontWeight: FontWeight.w600)),
+                          ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Comorbidades',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: _primary,
                           ),
                         ),
+                        const SizedBox(height: 12),
+                        _buildComorbidades(),
                       ],
-                    ],
-                  ),
-                ],
-                if (_matricula!['status'] != 'em_espera')
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text('Fechar', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
                     ),
                   ),
-                const SizedBox(height: 4),
+                ),
+                const Divider(height: 1, color: _border),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.stretch,
+                    children: [
+                      if (_matricula?['status'] == 'em_espera') ...[
+                        _buildDialogMatriculaActions(dialogContext),
+                        const SizedBox(height: 9),
+                      ],
+                      OutlinedButton(
+                        onPressed: () =>
+                            Navigator.pop(dialogContext),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _primary,
+                          side: const BorderSide(color: _border),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                          ),
+                        ),
+                        child: const Text('Fechar'),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -220,806 +1591,479 @@ class _AdminUsuarioDetalhesScreenState extends State<AdminUsuarioDetalhesScreen>
     );
   }
 
-  Widget _buildDetalheRow(String label, String value) {
+  Widget _buildDialogMatriculaActions(BuildContext dialogContext) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final segunda = _matricula?['segunda_opcao_turma'] != null;
+
+        final primeira = FilledButton(
+          onPressed: _atualizandoMatricula
+              ? null
+              : () {
+                  Navigator.pop(dialogContext);
+                  _confirmarMatricula('primeira');
+                },
+          style: FilledButton.styleFrom(
+            backgroundColor: _accent,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+          ),
+          child: const Text('Alocar 1ª opção'),
+        );
+
+        if (!segunda) return primeira;
+
+        final segundaAcao = OutlinedButton(
+          onPressed: _atualizandoMatricula
+              ? null
+              : () {
+                  Navigator.pop(dialogContext);
+                  _confirmarMatricula('segunda');
+                },
+          child: const Text('2ª opção'),
+        );
+
+        if (constraints.maxWidth < 380) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              primeira,
+              const SizedBox(height: 8),
+              segundaAcao,
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(flex: 3, child: primeira),
+            const SizedBox(width: 9),
+            Expanded(flex: 2, child: segundaAcao),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDialogDetail(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 13),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 100,
-            child: Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-          ),
           Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                color: _secondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 3,
             child: Text(
               value,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF0F172A)),
               textAlign: TextAlign.right,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildComorbidadesWidget() {
-    final comorbidadesStr = _matricula!['comorbidades'];
-    if (comorbidadesStr == null) return const Text('Nenhuma comorbidade registrada', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)));
-    
-    Map<String, dynamic> comorbidades;
-    try {
-      comorbidades = Map<String, dynamic>.from(json.decode(comorbidadesStr));
-    } catch (e) {
-      return const Text('Nenhuma comorbidade registrada', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)));
-    }
-    
-    final List<Widget> itens = [];
-    final Map<String, String> categorias = {
-      'cancer': 'Câncer',
-      'cardiovascular': 'Cardiovascular',
-      'metabolico': 'Metabólico',
-      'psiquiatrico': 'Psiquiátrico',
-      'respiratorio': 'Respiratório',
-    };
-    
-    for (var entry in categorias.entries) {
-      final lista = comorbidades[entry.key];
-      if (lista != null && lista is List && lista.isNotEmpty) {
-        final valores = lista.where((item) => item['valor'] != 'nenhum').map((item) => item['valor']).toList();
-        if (valores.isNotEmpty) {
-          itens.add(
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 100,
-                    child: Text(entry.value, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
-                  ),
-                  Expanded(
-                    child: Text(
-                      valores.join(', '),
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF0F172A)),
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
-                ],
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: _primary,
               ),
             ),
-          );
-        }
-      }
-    }
-    
-    if (itens.isEmpty) {
-      return const Text('Nenhuma comorbidade registrada', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)));
-    }
-    
-    return Column(children: itens);
-  }
-
- @override
-Widget build(BuildContext context) {
-  final isMobile = MediaQuery.of(context).size.width < 900;
-  
-  return Scaffold(
-    backgroundColor: const Color(0xFFF8FAFC),
-    appBar: AppBar(
-      title: Row(
-        children: [
-          const Icon(Icons.person, color: Colors.white, size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              widget.usuarioNome,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-      backgroundColor: const Color(0xFF334155),
-      foregroundColor: Colors.white,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => Navigator.pop(context),
-      ),
-    ),
-    body: _isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                isMobile
-                    ? Column(
-                        children: [
-                          _buildInfoPessoalCard(),
-                          const SizedBox(height: 12),
-                          _buildObjetivosCard(),
-                          const SizedBox(height: 12),
-                          _buildMatriculaCard(),
-                        ],
-                      )
-                    : Column(
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                flex: 4,
-                                child: _buildInfoPessoalCard(),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                flex: 3,
-                                child: _buildMatriculaCard(),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          _buildObjetivosCard(),
-                        ],
-                      ),
-                const SizedBox(height: 12),
-                _buildSintomasCard(),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
-  );
-}
-
-  Widget _buildInfoPessoalCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: _accentColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.person_outline, color: Color(0xFF1F4E6E), size: 18),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Dados Pessoais',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                _buildInfoRow(Icons.badge, 'Nome', _usuario?['nome_completo'] ?? '-'),
-                _buildInfoRow(Icons.email, 'Email', _usuario?['email'] ?? '-'),
-                _buildInfoRow(Icons.phone, 'Telefone', _formatarTelefone(_usuario?['telefone'])),
-                _buildInfoRow(Icons.assignment_ind, 'CPF', _formatarCpf(_usuario?['cpf'])),
-                _buildInfoRow(Icons.wc, 'Sexo', _usuario?['sexo'] ?? '-'),
-                _buildInfoRow(Icons.cake, 'Nascimento', _formatarData(_usuario?['data_nascimento'])),
-                _buildInfoRow(Icons.numbers, 'Idade', _usuario?['idade']?.toString() ?? '-'),
-              ],
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildObjetivosCard() {
-    if (_usuario?['stop_date'] == null) {
+  Widget _buildComorbidades() {
+    final dados = _obterComorbidades();
+
+    if (dados.isEmpty) {
       return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-          ],
+          color: _surfaceSoft,
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: _successColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.flag, color: Color(0xFF2E8B6A), size: 18),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Objetivos',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                  ),
-                ],
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(
-                child: Text('Nenhuma meta definida', style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8))),
-              ),
-            ),
-          ],
+        child: const Text(
+          'Nenhuma comorbidade registrada',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 12,
+            color: _secondary,
+          ),
         ),
       );
     }
 
-    final stopDate = _usuario!['stop_date'].toString();
-    final diasSemFumar = DateTime.now().difference(DateTime.parse(_usuario!['stop_date'])).inDays;
+    return Column(
+      children: dados.entries.map((entry) {
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 9),
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            color: _surfaceSoft,
+            border: Border.all(color: _border),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                entry.key,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: _accent,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                entry.value.join(', '),
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  height: 1.5,
+                  color: _primary,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
+  Widget _buildEvolucao() {
+    if (_sintomas.isEmpty) {
+      return _buildSection(
+        title: 'Evolução dos sintomas',
+        subtitle: 'Histórico de acompanhamento',
+        icon: Icons.show_chart_rounded,
+        child: _buildEmpty(
+          Icons.monitor_heart_outlined,
+          'Sem registros de sintomas',
+          'O paciente ainda não possui registros para exibir no gráfico.',
+        ),
+      );
+    }
+
+    final registros = _sintomas.reversed.toList();
+
+    final series = [
+      _SymptomSeries(
+        'Ansiedade',
+        'ansiedade',
+        _accent,
       ),
+      _SymptomSeries(
+        'Irritabilidade',
+        'irritabilidade',
+        _danger,
+      ),
+      _SymptomSeries(
+        'Insônia',
+        'insonia',
+        _purple,
+      ),
+      _SymptomSeries(
+        'Fome',
+        'fome',
+        const Color(0xFFE39A55),
+      ),
+      _SymptomSeries(
+        'Concentração',
+        'dificuldade_concentracao',
+        _success,
+      ),
+      _SymptomSeries(
+        'Vontade de fumar',
+        'vontade_fumar',
+        _warning,
+      ),
+    ];
+
+    final ativos = series
+        .where((item) => _seriesVisiveis[item.label] == true)
+        .toList();
+
+    final labels = registros.map((registro) {
+      final data = DateTime.tryParse(
+        registro['data']?.toString() ?? '',
+      );
+
+      if (data == null) {
+        return _valor(registro['data']);
+      }
+
+      return '${data.day.toString().padLeft(2, '0')}/'
+          '${data.month.toString().padLeft(2, '0')}';
+    }).toList();
+
+    return _buildSection(
+      title: 'Evolução dos sintomas',
+      subtitle:
+          '${registros.length} ${registros.length == 1 ? 'registro' : 'registros'} de acompanhamento',
+      icon: Icons.show_chart_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: _successColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.flag, color: Color(0xFF2E8B6A), size: 18),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Objetivos',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                ),
-              ],
+          const Text(
+            'Intensidade dos sintomas',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: _primary,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFF2E8B6A), Color(0xFF257A5C)]),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text('Tempo sem fumar', style: TextStyle(fontSize: 11, color: Colors.white70)),
-                      const SizedBox(height: 2),
-                      Text('$diasSemFumar dias', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
-                        child: Text('Parou em: ${_formatarData(stopDate)}', style: const TextStyle(fontSize: 10, color: Colors.white70)),
-                      ),
-                    ],
-                  ),
+          const SizedBox(height: 5),
+          const Text(
+            'Selecione os indicadores para mostrar ou ocultar suas linhas.',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 11,
+              color: _secondary,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: series.map((item) {
+              final selected =
+                  _seriesVisiveis[item.label] ?? false;
+
+              return FilterChip(
+                selected: selected,
+                showCheckmark: false,
+                backgroundColor: _surface,
+                selectedColor: item.color.withOpacity(0.1),
+                side: BorderSide(
+                  color: selected
+                      ? item.color.withOpacity(0.4)
+                      : _border,
                 ),
-                const SizedBox(height: 12),
-                Row(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: _buildStatItem('Meta', '${_usuario?['target_days']} dias', _successColor),
+                    Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? item.color
+                            : _secondary.withOpacity(0.35),
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildStatItem('Cigarros/dia', '${_usuario?['cigarros_por_dia']}', _dangerColor),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildStatItem('Economia', 'R\$${_usuario?['valor_carteira']?.toString() ?? '0'}', _warningColor),
+                    const SizedBox(width: 7),
+                    Text(
+                      item.label,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                        fontWeight: selected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: selected
+                            ? _primary
+                            : _secondary,
+                      ),
                     ),
                   ],
                 ),
-              ],
-            ),
+                onSelected: (value) {
+                  setState(() {
+                    _seriesVisiveis[item.label] = value;
+                  });
+                },
+              );
+            }).toList(),
           ),
-        ],
-      ),
-    );
-  }
-
-  String _formatarData(String? data) {
-    if (data == null || data.isEmpty) return '-';
-    
-    String dataLimpa = data.split(' ')[0];
-    String dataLimpa2 = dataLimpa.split('T')[0];
-    
-    final partes = dataLimpa2.split('-');
-    if (partes.length != 3) return dataLimpa2;
-    
-    return '${partes[2]}/${partes[1]}/${partes[0]}';
-  }
-
-  Widget _buildStatItem(String label, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        children: [
-          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color)),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMatriculaCard() {
-    if (_matricula == null) {
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF6B21A8).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.school, color: Color(0xFF6B21A8), size: 18),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Matrícula',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                  ),
-                ],
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(
-                child: Text('Sem matrícula ativa', style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8))),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final status = _matricula!['status'];
-    final isEmEspera = status == 'em_espera';
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          const SizedBox(height: 24),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.fromLTRB(
+              10,
+              20,
+              20,
+              10,
+            ),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              color: _surfaceSoft,
+              border: Border.all(color: _border),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF6B21A8).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.school, color: Color(0xFF6B21A8), size: 18),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Matrícula',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: isEmEspera ? _warningColor.withOpacity(0.1) : _successColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    isEmEspera ? 'Em espera' : 'Matriculado',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: isEmEspera ? _warningColor : _successColor,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _mostrarDetalhesMatricula,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE2E8F0),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Icon(Icons.visibility, color: Color(0xFF64748B), size: 16),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                _buildInfoRow(Icons.local_hospital, 'UPA', _matricula!['upa_nome'] ?? '-'),
-                _buildInfoRow(Icons.assessment, 'Fagerström', _matricula!['score_fagestrom']?.toString() ?? '-'),
-                _buildInfoRow(Icons.medication, 'Medicamento', _matricula!['medicamento'] ?? '-'),
-                _buildInfoRow(Icons.schedule, 'Turma', _matricula!['turma_horario'] ?? '-'),
-                if (_matricula!['segunda_opcao_turma'] != null)
-                  _buildInfoRow(Icons.swap_horiz, '2ª opção', _matricula!['segunda_opcao_turma'] ?? '-'),
-                if (isEmEspera) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _atualizandoMatricula ? null : () => _alocarTurma('primeira'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _successColor,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          child: const Text('Matricular 1ª opção', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                        ),
-                      ),
-                      if (_matricula!['segunda_opcao_turma'] != null) ...[
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _atualizandoMatricula ? null : () => _alocarTurma('segunda'),
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: _successColor),
-                              foregroundColor: _successColor,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            child: const Text('2ª opção', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+            child: SizedBox(
+              height: 310,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final chartWidth = [
+                    constraints.maxWidth,
+                    registros.length * 65.0 + 60,
+                    320.0,
+                  ].reduce((a, b) => a > b ? a : b);
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 14, color: const Color(0xFF94A3B8)),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 90,
-            child: Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF0F172A)),
-              textAlign: TextAlign.right,
-              softWrap: true,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSintomasCard() {
-    if (_sintomas.isEmpty) {
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: _accentColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.show_chart, color: Color(0xFF1F4E6E), size: 18),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Evolução',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                  ),
-                ],
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(
-                child: Text('Sem registros de sintomas', style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8))),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final sintomasReverso = _sintomas.reversed.toList();
-    
-    List<double> ansiedade = [];
-    List<double> irritabilidade = [];
-    List<double> insonia = [];
-    List<double> fome = [];
-    List<double> dificuldadeConcentracao = [];
-    List<double> vontadeFumar = [];
-    List<String> labels = [];
-
-    for (var s in sintomasReverso) {
-      ansiedade.add((s['ansiedade'] ?? 0).toDouble());
-      irritabilidade.add((s['irritabilidade'] ?? 0).toDouble());
-      insonia.add((s['insonia'] ?? 0).toDouble());
-      fome.add((s['fome'] ?? 0).toDouble());
-      dificuldadeConcentracao.add((s['dificuldade_concentracao'] ?? 0).toDouble());
-      vontadeFumar.add((s['vontade_fumar'] ?? 0).toDouble());
-      
-      String dataStr = s['data'].toString();
-      String dataFormatada = '';
-      
-      if (dataStr.contains('T')) {
-        dataStr = dataStr.split('T')[0];
-      }
-      
-      final dataParts = dataStr.split('-');
-      if (dataParts.length >= 3) {
-        dataFormatada = '${dataParts[2]}/${dataParts[1]}';
-      } else {
-        dataFormatada = dataStr;
-      }
-      
-      labels.add(dataFormatada);
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: _accentColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.show_chart, color: Color(0xFF1F4E6E), size: 18),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Evolução dos Sintomas',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 300,
-                  child: SingleChildScrollView(
+                  return SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: SizedBox(
-                      width: labels.length * 55 + 80,
+                      width: chartWidth,
                       child: LineChart(
                         LineChartData(
+                          minX: 0,
+                          maxX: registros.length > 1
+                              ? (registros.length - 1).toDouble()
+                              : 1,
+                          minY: 0,
+                          maxY: 10,
                           clipData: const FlClipData.all(),
-                          gridData: const FlGridData(show: true),
+                          gridData: FlGridData(
+                            show: true,
+                            horizontalInterval: 2,
+                            drawVerticalLine: false,
+                            getDrawingHorizontalLine: (value) {
+                              return const FlLine(
+                                color: _border,
+                                strokeWidth: 1,
+                              );
+                            },
+                          ),
+                          borderData: FlBorderData(
+                            show: true,
+                            border: const Border(
+                              bottom: BorderSide(color: _border),
+                              left: BorderSide(color: _border),
+                            ),
+                          ),
                           titlesData: FlTitlesData(
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                interval: 1,
-                                getTitlesWidget: (value, meta) {
-                                  final index = value.toInt();
-                                  if (index >= 0 && index < labels.length) {
-                                    return Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Transform.rotate(
-                                        angle: -0.5,
-                                        child: Text(
-                                          labels[index],
-                                          style: const TextStyle(fontSize: 8, color: Color(0xFF64748B)),
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                  return const Text('');
-                                },
-                                reservedSize: 40,
-                              ),
+                            topTitles: const AxisTitles(
+                              sideTitles:
+                                  SideTitles(showTitles: false),
+                            ),
+                            rightTitles: const AxisTitles(
+                              sideTitles:
+                                  SideTitles(showTitles: false),
                             ),
                             leftTitles: AxisTitles(
                               sideTitles: SideTitles(
                                 showTitles: true,
-                                reservedSize: 30,
-                                getTitlesWidget: _leftTitleWidgets,
+                                reservedSize: 32,
+                                interval: 2,
+                                getTitlesWidget: (value, meta) {
+                                  return Text(
+                                    value.toInt().toString(),
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 10,
+                                      color: _secondary,
+                                    ),
+                                  );
+                                },
                               ),
                             ),
-                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 30,
+                                interval: 1,
+                                getTitlesWidget: (value, meta) {
+                                  final index = value.toInt();
+
+                                  if (index < 0 ||
+                                      index >= labels.length ||
+                                      value != index.toDouble()) {
+                                    return const SizedBox.shrink();
+                                  }
+
+                                  return Padding(
+                                    padding:
+                                        const EdgeInsets.only(top: 9),
+                                    child: Text(
+                                      labels[index],
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 10,
+                                        color: _secondary,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                           ),
-                          borderData: FlBorderData(show: true),
-                          minX: 0,
-                          maxX: (sintomasReverso.length - 1).toDouble(),
-                          minY: 0,
-                          maxY: 10,
-                          lineBarsData: [
-                            LineChartBarData(
-                              spots: List.generate(ansiedade.length, (i) => FlSpot(i.toDouble(), ansiedade[i])),
-                              isCurved: true,
-                              color: _accentColor,
-                              barWidth: 2,
-                              dotData: const FlDotData(show: false),
+                          lineTouchData: LineTouchData(
+                            enabled: true,
+                            touchTooltipData:
+                                LineTouchTooltipData(
+                              getTooltipItems: (spots) {
+                                return spots.map((spot) {
+                                  final serie =
+                                      ativos[spot.barIndex];
+
+                                  return LineTooltipItem(
+                                    '${serie.label}: '
+                                    '${spot.y.toStringAsFixed(0)}',
+                                    TextStyle(
+                                      color: serie.color,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  );
+                                }).toList();
+                              },
                             ),
-                            LineChartBarData(
-                              spots: List.generate(irritabilidade.length, (i) => FlSpot(i.toDouble(), irritabilidade[i])),
-                              isCurved: true,
-                              color: _dangerColor,
-                              barWidth: 2,
-                              dotData: const FlDotData(show: false),
-                            ),
-                            LineChartBarData(
-                              spots: List.generate(insonia.length, (i) => FlSpot(i.toDouble(), insonia[i])),
-                              isCurved: true,
-                              color: const Color(0xFF6B21A8),
-                              barWidth: 2,
-                              dotData: const FlDotData(show: false),
-                            ),
-                            LineChartBarData(
-                              spots: List.generate(fome.length, (i) => FlSpot(i.toDouble(), fome[i])),
-                              isCurved: true,
-                              color: const Color(0xFFF97316),
-                              barWidth: 2,
-                              dotData: const FlDotData(show: false),
-                            ),
-                            LineChartBarData(
-                              spots: List.generate(dificuldadeConcentracao.length, (i) => FlSpot(i.toDouble(), dificuldadeConcentracao[i])),
-                              isCurved: true,
-                              color: _successColor,
-                              barWidth: 2,
-                              dotData: const FlDotData(show: false),
-                            ),
-                            LineChartBarData(
-                              spots: List.generate(vontadeFumar.length, (i) => FlSpot(i.toDouble(), vontadeFumar[i])),
-                              isCurved: true,
-                              color: _warningColor,
-                              barWidth: 2,
-                              dotData: const FlDotData(show: false),
-                            ),
-                          ],
+                          ),
+                          lineBarsData: ativos.map((serie) {
+                            return LineChartBarData(
+                              spots: List.generate(
+                                registros.length,
+                                (index) => FlSpot(
+                                  index.toDouble(),
+                                  _numero(
+                                    registros[index][serie.key],
+                                  ),
+                                ),
+                              ),
+                              isCurved: registros.length > 2,
+                              curveSmoothness: 0.2,
+                              preventCurveOverShooting: true,
+                              color: serie.color,
+                              barWidth: 2.5,
+                              isStrokeCapRound: true,
+                              dotData: FlDotData(
+                                show: registros.length <= 8,
+                              ),
+                              belowBarData:
+                                  BarAreaData(show: false),
+                            );
+                          }).toList(),
                         ),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 6,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _buildLegenda(_accentColor, 'Ansiedade'),
-                    _buildLegenda(_dangerColor, 'Irritabilidade'),
-                    _buildLegenda(const Color(0xFF6B21A8), 'Insônia'),
-                    _buildLegenda(const Color(0xFFF97316), 'Fome'),
-                    _buildLegenda(_successColor, 'Concentração'),
-                    _buildLegenda(_warningColor, 'Vontade fumar'),
-                  ],
-                ),
-              ],
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Escala de intensidade de 0 a 10. Os dados representam os registros informados pelo paciente.',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 10,
+              height: 1.6,
+              color: _secondary,
             ),
           ),
         ],
@@ -1027,37 +2071,63 @@ Widget build(BuildContext context) {
     );
   }
 
-  Widget _leftTitleWidgets(double value, TitleMeta meta) {
-    const style = TextStyle(fontSize: 9, color: Color(0xFF94A3B8));
-    return Text(value.toInt().toString(), style: style);
-  }
-
-  Widget _buildLegenda(Color cor, String texto) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: cor, borderRadius: BorderRadius.circular(3))),
-        const SizedBox(width: 4),
-        Text(texto, style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-      ],
+  Widget _buildErro() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: _danger,
+              size: 42,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              _erro ?? 'Erro ao carregar informações.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 13,
+                color: _primary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: _carregarDados,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      ),
     );
   }
+}
 
-  String _formatarTelefone(String? telefone) {
-    if (telefone == null || telefone.isEmpty) return '-';
-    String limpo = telefone.replaceAll(RegExp(r'[^\d]'), '');
-    if (limpo.length == 11) {
-      return '(${limpo.substring(0, 2)}) ${limpo.substring(2, 7)}-${limpo.substring(7)}';
-    }
-    return telefone;
-  }
+class _OverviewItem {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
 
-  String _formatarCpf(String? cpf) {
-    if (cpf == null || cpf.isEmpty) return '-';
-    String limpo = cpf.replaceAll(RegExp(r'[^\d]'), '');
-    if (limpo.length == 11) {
-      return '${limpo.substring(0, 3)}.${limpo.substring(3, 6)}.${limpo.substring(6, 9)}-${limpo.substring(9)}';
-    }
-    return cpf;
-  }
+  const _OverviewItem(
+    this.label,
+    this.value,
+    this.icon,
+    this.color,
+  );
+}
+
+class _SymptomSeries {
+  final String label;
+  final String key;
+  final Color color;
+
+  const _SymptomSeries(
+    this.label,
+    this.key,
+    this.color,
+  );
 }
