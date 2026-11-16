@@ -290,122 +290,118 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
-  Widget _buildIntroduction(BoxConstraints constraints) {
-    final width = constraints.maxWidth;
-    final isMobile = width < 768;
-    final isTablet = width < 1200;
-    final padding = _horizontalPadding(width);
-    final firstName = _getFirstName();
-return Container(
-  width: double.infinity,
-  clipBehavior: Clip.hardEdge,
-  decoration: const BoxDecoration(
-    color: _heroBackground,
-  ),
-  child: Stack(
-    children: [
-      Positioned.fill(
-        child: IgnorePointer(
-          child: ImageFiltered(
-            imageFilter: ImageFilter.blur(
-              sigmaX: 4,
-              sigmaY: 4,
-            ),
-            child: Image.asset(
-              'assets/images/Viva-Mais.png',
-              fit: BoxFit.cover,
-              alignment: const Alignment(0, -0.75),
+  
+Widget _buildIntroduction(BoxConstraints constraints) {
+  final width = constraints.maxWidth;
+  final isMobile = width < 768;
+  final isTablet = width < 1200;
+  final padding = _horizontalPadding(width);
+  final firstName = _getFirstName();
+
+  return Container(
+    width: double.infinity,
+    clipBehavior: Clip.hardEdge,
+    decoration: const BoxDecoration(
+      color: _heroBackground,
+    ),
+    child: Stack(
+      children: [
+        Positioned.fill(
+          child: IgnorePointer(
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(
+                sigmaX: 4,
+                sigmaY: 4,
+              ),
+              child: Image.asset(
+                'assets/images/Viva-Mais.png',
+                fit: BoxFit.cover,
+                alignment: const Alignment(0, -0.75),
+              ),
             ),
           ),
         ),
-      ),
-      Positioned.fill(
-        child: IgnorePointer(
-          child: Container(
-           color: const Color(0xFFEAF3F9).withValues(alpha: 0.55),
-          ),
-        ),
-      ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              padding,
-              isMobile ? 58 : 92,
-              padding,
-              isMobile ? 66 : 100,
-            ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 1320,
-                ),
-child: isMobile
-    ? Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.94),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.85),
-              ),
-            ),
-            child: _buildIntroContent(
-              true,
-              firstName,
-            ),
-          ),
-          const SizedBox(height: 64),
-          _buildIntroVisual(true),
-        ],
-      )
-    : Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-        Expanded(
-          flex: 5,
-          child: Container(
-            padding: EdgeInsets.all(isTablet ? 24 : 30),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.93),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.85),
-                ),
-              ),
-              child: _buildIntroContent(
-                false,
-                firstName,
-              ),
-            ),
-          ),
-            SizedBox(
-              width: isTablet ? 40 : 80,
-            ),
-            Expanded(
-              flex: 5,
-              child: _buildIntroVisual(false),
-            ),
-        ],
-      ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            bottom: 0,
-            right: 0,
+        Positioned.fill(
+          child: IgnorePointer(
             child: Container(
-              height: 1,
-              color: const Color(0xFFCADDEB),
+              color: const Color(0xFFEAF3F9).withValues(alpha: 0.55),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            padding,
+            isMobile ? 38 : 92,
+            padding,
+            isMobile ? 42 : 100,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 1320,
+              ),
+              child: isMobile
+                  ? Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.94),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.85),
+                        ),
+                      ),
+                      child: _buildIntroContent(
+                        true,
+                        firstName,
+                      ),
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          flex: 5,
+                          child: Container(
+                            padding: EdgeInsets.all(isTablet ? 24 : 30),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.93),
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.85),
+                              ),
+                            ),
+                            child: _buildIntroContent(
+                              false,
+                              firstName,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: isTablet ? 40 : 80,
+                        ),
+                        Expanded(
+                          flex: 5,
+                          child: _buildIntroVisual(false),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          bottom: 0,
+          right: 0,
+          child: Container(
+            height: 1,
+            color: const Color(0xFFCADDEB),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
   Widget _buildIntroContent(
     bool isMobile,
     String firstName,
@@ -1430,69 +1426,79 @@ child: isMobile
       ),
     );
   }
-  Widget _buildGuestHeader(BoxConstraints constraints) {
-    final isMobile = constraints.maxWidth < 768;
-    final isTablet =
-        constraints.maxWidth >= 768 &&
-        constraints.maxWidth < 1200;
-    final horizontalPadding =
-        isMobile ? 16.0 : (isTablet ? 32.0 : 50.0);
-    return Container(
-      color: _bgBase,
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 12,
-        left: horizontalPadding,
-        right: horizontalPadding,
-        bottom: 12,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _menta50,
-                  borderRadius: BorderRadius.circular(35),
-                ),
-                child: const Icon(
-                  Icons.smoke_free_outlined,
-                  color: _menta900,
-                  size: 28,
-                ),
+
+
+Widget _buildGuestHeader(BoxConstraints constraints) {
+  final isMobile = constraints.maxWidth < 768;
+  final isTablet =
+      constraints.maxWidth >= 768 && constraints.maxWidth < 1200;
+
+  final horizontalPadding =
+      isMobile ? 12.0 : (isTablet ? 32.0 : 50.0);
+
+  return Container(
+    color: _bgBase,
+    padding: EdgeInsets.only(
+      top: MediaQuery.of(context).padding.top + (isMobile ? 6 : 12),
+      left: horizontalPadding,
+      right: horizontalPadding,
+      bottom: isMobile ? 6 : 12,
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(isMobile ? 6 : 8),
+              decoration: BoxDecoration(
+                color: _menta50,
+                borderRadius: BorderRadius.circular(35),
               ),
-              const SizedBox(width: 12),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'DESFUMO',
-                    style: TextStyle(
-                      fontFamily: 'BebasNeue',
-                      fontSize: 26,
-                      fontWeight: FontWeight.w400,
-                      letterSpacing: 1,
-                      color: _textPrimary,
-                    ),
-                  ),
-                  Text(
-                    'Apoio ao Tabagismo',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      color: _textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+              child: Icon(
+                Icons.smoke_free_outlined,
+                color: _menta900,
+                size: isMobile ? 21 : 28,
               ),
-            ],
-          ),
-          _buildGuestMenu(),
-        ],
-      ),
-    );
-  }
+            ),
+            SizedBox(width: isMobile ? 8 : 12),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'DESFUMO',
+                  style: TextStyle(
+                    fontFamily: 'BebasNeue',
+                    fontSize: isMobile ? 21 : 26,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: isMobile ? 0.6 : 1,
+                    height: 1,
+                    color: _textPrimary,
+                  ),
+                ),
+                Text(
+                  'Apoio ao Tabagismo',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: _textSecondary,
+                    fontSize: isMobile ? 9 : 12,
+                    letterSpacing: isMobile ? 0.3 : 0,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        _buildGuestMenu(),
+      ],
+    ),
+  );
+}
+
+
   Widget _buildGuestMenu() {
     final isMobile =
         MediaQuery.of(context).size.width < 768;

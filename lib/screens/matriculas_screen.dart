@@ -1816,88 +1816,221 @@ Widget _buildInfoSection({
     );
   }
 
-  Widget _buildEnrollmentHero() {
-    final compact = MediaQuery.sizeOf(context).width < 720;
-    return Container(
-      padding: EdgeInsets.all(compact ? 24 : 44),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE1EDF6),
-        border: Border.all(color: const Color(0xFFC9DEED)),
-        borderRadius: BorderRadius.circular(26),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.assignment_outlined, color: Color(0xFF426E8C), size: 18),
-              SizedBox(width: 9),
-              Text('ACOMPANHAMENTO', style: TextStyle(fontFamily: 'Inter', fontSize: 11, letterSpacing: 1.3, fontWeight: FontWeight.w700, color: Color(0xFF426E8C))),
-            ],
+
+Widget _buildEnrollmentHero() {
+  final compact = MediaQuery.sizeOf(context).width < 768;
+
+  return Container(
+    padding: EdgeInsets.all(compact ? 24 : 44),
+    decoration: BoxDecoration(
+      color: const Color(0xFFE1EDF6),
+      border: Border.all(color: const Color(0xFFC9DEED)),
+      borderRadius: BorderRadius.circular(26),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(
+              Icons.assignment_outlined,
+              color: Color(0xFF426E8C),
+              size: 18,
+            ),
+            SizedBox(width: 9),
+            Text(
+              'ACOMPANHAMENTO',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                letterSpacing: 1.3,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF426E8C),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Text(
+          'Minhas matrículas.',
+          style: TextStyle(
+            fontFamily: 'DMSerifDisplay',
+            fontSize: compact ? 37 : 49,
+            height: 1.15,
+            color: const Color(0xFF333333),
           ),
-          const SizedBox(height: 18),
-          Text('Minhas matrículas.', style: TextStyle(fontFamily: 'DMSerifDisplay', fontSize: compact ? 37 : 49, height: 1.15, color: const Color(0xFF333333))),
-          const SizedBox(height: 12),
-           ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 610),
-            child: Text('Consulte suas turmas, acompanhe suas matrículas e acesse os registros dos encontros.', style: TextStyle(fontFamily: 'Inter', fontSize: 14, height: 1.7, color: Color(0xFF4E4E4E))),
-          ),
-          const SizedBox(height: 20),
-          OutlinedButton.icon(
-            onPressed: _mostrarInformacoesGrupos,
-            icon: const Icon(Icons.info_outline, size: 18),
-            label: const Text('Como funcionam as turmas?'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF426E8C),
-              side: const BorderSide(color: Color(0xFFB7D2E4)),
-              backgroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        const SizedBox(height: 12),
+         ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 610),
+          child: Text(
+            'Consulte suas turmas, acompanhe suas matrículas e acesse os registros dos encontros.',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              height: 1.7,
+              color: Color(0xFF4E4E4E),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+        const SizedBox(height: 20),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final vertical = constraints.maxWidth < 768;
 
-  Widget _buildEnrollmentSummary() {
-    final items = [
-      ('Ativas', _ativas.length, Icons.event_available_outlined),
-      ('Concluídas', _concluidas.length, Icons.task_alt_outlined),
-      ('Canceladas', _canceladas.length, Icons.event_busy_outlined),
-    ];
-    return LayoutBuilder(builder: (context, constraints) {
-      final compact = constraints.maxWidth < 580;
+            final infoButton = OutlinedButton.icon(
+              onPressed: _mostrarInformacoesGrupos,
+              icon: const Icon(Icons.info_outline, size: 18),
+              label: const Text('Como funcionam as turmas?'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF426E8C),
+                side: const BorderSide(color: Color(0xFFB7D2E4)),
+                backgroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            );
+
+            final searchButton = ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => UPAScreen(
+                      userData: widget.userData,
+                      onNameUpdated: widget.onNameUpdated,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.search_outlined, size: 18),
+              label: const Text(
+                'Consultar turmas de apoio disponíveis',
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF426E8C),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            );
+
+            if (vertical) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  infoButton,
+                  const SizedBox(height: 12),
+                  searchButton,
+                ],
+              );
+            }
+
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                infoButton,
+                searchButton,
+              ],
+            );
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+
+Widget _buildEnrollmentSummary() {
+  final items = [
+    ('Ativas', _ativas.length, Icons.event_available_outlined),
+    ('Concluídas', _concluidas.length, Icons.task_alt_outlined),
+    ('Canceladas', _canceladas.length, Icons.event_busy_outlined),
+  ];
+
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final isMobile = MediaQuery.sizeOf(context).width < 768;
+      final spacing = 12.0;
+
+      final cardWidth = isMobile
+          ? constraints.maxWidth
+          : (constraints.maxWidth - spacing * 2) / 3;
+
       return Wrap(
-        spacing: 12,
-        runSpacing: 12,
+        spacing: spacing,
+        runSpacing: spacing,
         children: items.map((item) {
-          final w = compact ? (constraints.maxWidth - 24) / 3 : (constraints.maxWidth - 24) / 3;
           return SizedBox(
-            width: w,
+            width: cardWidth,
             child: Container(
-              padding: EdgeInsets.all(compact ? 12 : 20),
+              padding: EdgeInsets.all(isMobile ? 18 : 20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                border: Border.all(color: const Color(0xFFDCE5EB)),
+                border: Border.all(
+                  color: const Color(0xFFDCE5EB),
+                ),
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(item.$3, color: const Color(0xFF426E8C), size: compact ? 20 : 25),
+                  Icon(
+                    item.$3,
+                    color: const Color(0xFF426E8C),
+                    size: isMobile ? 23 : 25,
+                  ),
                   const SizedBox(height: 13),
-                  Text('${item.$2}', style: TextStyle(fontFamily: 'Inter', fontSize: compact ? 24 : 30, fontWeight: FontWeight.w700, color: const Color(0xFF333333))),
+                  Text(
+                    '${item.$2}',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: isMobile ? 27 : 30,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF333333),
+                    ),
+                  ),
                   const SizedBox(height: 3),
-                  Text(item.$1, style: TextStyle(fontFamily: 'Inter', fontSize: compact ? 11 : 13, color: const Color(0xFF737A80))),
+                  Text(
+                    item.$1,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: isMobile ? 12 : 13,
+                      color: const Color(0xFF737A80),
+                    ),
+                  ),
                 ],
               ),
             ),
           );
         }).toList(),
       );
-    });
-  }
+    },
+  );
+}
 
 
 Widget _buildTabsContent() {

@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -5,225 +6,302 @@ import 'package:flutter/material.dart';
 class ToastService {
   static OverlayEntry? _overlayEntry;
   static Timer? _timer;
-  static double _progress = 1.0;
-  static bool _isHovered = false;
+  static GlobalKey<_ToastContentState>? _toastKey;
 
- static void showToast(BuildContext context, String message, {Color backgroundColor = const Color(0xFFC65D47), IconData icon = Icons.error_outline}) {
-  _hideToast();
+  static const Color _success = Color(0xFF2E8B6A);
+  static const Color _error = Color(0xFFC65D47);
+  static const Color _warning = Color(0xFFD97706);
+  static const Color _info = Color(0xFF426E8C);
 
-  final isSuccess = backgroundColor == const Color(0xFF2E8B6A);
-  final isWarning = backgroundColor == const Color(0xFFD97706);
-  final isError = backgroundColor == const Color(0xFFC65D47);
-  
-  Color borderColor = backgroundColor;
-  Color iconColor = Colors.white;
-  
-  if (isSuccess) {
-    icon = Icons.check_circle_outline;
-    iconColor = const Color(0xFF2E8B6A);
-    backgroundColor = Colors.white;
-    borderColor = const Color(0xFF2E8B6A);
-  } else if (isWarning) {
-    icon = Icons.warning_amber_outlined;
-    iconColor = const Color(0xFFD97706);
-    backgroundColor = Colors.white;
-    borderColor = const Color(0xFFD97706);
-  } else if (isError) {
-    icon = Icons.error_outline;
-    iconColor = const Color(0xFFC65D47);
-    backgroundColor = Colors.white;
-    borderColor = const Color(0xFFC65D47);
+  static void showToast(
+    BuildContext context,
+    String message, {
+    Color backgroundColor = _error,
+    IconData icon = Icons.error_outline,
+  }) {
+    _removeToast();
+
+    final isSuccess = backgroundColor == _success;
+    final isWarning = backgroundColor == _warning;
+    final isError = backgroundColor == _error;
+
+    final Color accentColor;
+    final String title;
+    final IconData toastIcon;
+    final Duration duration;
+
+    if (isSuccess) {
+      accentColor = _success;
+      title = 'Sucesso';
+      toastIcon = Icons.check_circle_outline_rounded;
+      duration = const Duration(seconds: 3);
+    } else if (isWarning) {
+      accentColor = _warning;
+      title = 'Atenção';
+      toastIcon = Icons.warning_amber_rounded;
+      duration = const Duration(seconds: 3);
+    } else if (isError) {
+      accentColor = _error;
+      title = 'Erro';
+      toastIcon = Icons.error_outline_rounded;
+      duration = const Duration(seconds: 4);
+    } else {
+      accentColor = backgroundColor;
+      title = 'Informação';
+      toastIcon = icon;
+      duration = const Duration(seconds: 3);
+    }
+
+    final key = GlobalKey<_ToastContentState>();
+    _toastKey = key;
+
+    _overlayEntry = OverlayEntry(
+      builder: (overlayContext) {
+        final screenWidth = MediaQuery.sizeOf(overlayContext).width;
+        final isMobile = screenWidth < 768;
+        final horizontalPadding = isMobile ? 12.0 : 24.0;
+
+        return Positioned(
+          top: MediaQuery.paddingOf(overlayContext).top +
+              (isMobile ? 12 : 20),
+          left: isMobile ? horizontalPadding : null,
+          right: horizontalPadding,
+          child: Material(
+            color: Colors.transparent,
+            child: SizedBox(
+              width: isMobile ? null : 360,
+              child: _ToastContent(
+                key: key,
+                title: title,
+                message: message,
+                color: accentColor,
+                icon: toastIcon,
+                onClose: _hideToast,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+
+    _timer = Timer(duration, _hideToast);
+  }
+static void _hideToast() {
+  _timer?.cancel();
+  _timer = null;
+
+  final key = _toastKey;
+
+  if (key?.currentState != null) {
+    key!.currentState!._dismiss();
+  } else {
+    _removeToast();
+  }
+}
+  static void _removeToast() {
+    _timer?.cancel();
+    _timer = null;
+
+    _overlayEntry?.remove();
+    _overlayEntry?.dispose();
+    _overlayEntry = null;
+    _toastKey = null;
   }
 
-  _progress = 1.0;
-  _isHovered = false;
+  static void showSuccess(BuildContext context, String message) {
+    showToast(
+      context,
+      message,
+      backgroundColor: _success,
+    );
+  }
 
-  final screenWidth = MediaQuery.of(context).size.width;
-  final isMobile = screenWidth < 600;
-  final isSmallMobile = screenWidth < 400;
+  static void showError(BuildContext context, String message) {
+    showToast(
+      context,
+      message,
+      backgroundColor: _error,
+    );
+  }
 
-  _overlayEntry = OverlayEntry(
-    builder: (context) => Positioned(
-      top: MediaQuery.of(context).padding.top + (isSmallMobile ? 10 : 20),
-      left: isMobile ? 10 : null,
-      right: isMobile ? 10 : 20,
-      child: Material(
-        color: Colors.transparent,
-        child: MouseRegion(
-          onEnter: (_) {
-            _isHovered = true;
-            _updateOverlay();
-          },
-          onExit: (_) {
-            _isHovered = false;
-            _updateOverlay();
-            _startProgressTimer(context);
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            child: Container(
-              width: isSmallMobile ? double.infinity : (isMobile ? 340 : 380),
-              decoration: BoxDecoration(
-                color: backgroundColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: borderColor,
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
+  static void showWarning(BuildContext context, String message) {
+    showToast(
+      context,
+      message,
+      backgroundColor: _warning,
+    );
+  }
+
+  static void showInfo(BuildContext context, String message) {
+    showToast(
+      context,
+      message,
+      backgroundColor: _info,
+      icon: Icons.info_outline_rounded,
+    );
+  }
+}
+
+class _ToastContent extends StatefulWidget {
+  final String title;
+  final String message;
+  final Color color;
+  final IconData icon;
+  final VoidCallback onClose;
+
+  const _ToastContent({
+    super.key,
+    required this.title,
+    required this.message,
+    required this.color,
+    required this.icon,
+    required this.onClose,
+  });
+
+  @override
+  State<_ToastContent> createState() => _ToastContentState();
+}
+
+class _ToastContentState extends State<_ToastContent>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+  late final Animation<Offset> _slide;
+
+  bool _isDismissing = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+      reverseDuration: const Duration(milliseconds: 160),
+    );
+
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+      reverseCurve: Curves.easeIn,
+    );
+
+    _slide = Tween<Offset>(
+      begin: const Offset(0.12, -0.08),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeIn,
+      ),
+    );
+
+    _controller.forward();
+  }
+
+Future<void> _dismiss() async {
+  if (_isDismissing) return;
+
+  _isDismissing = true;
+
+  await _controller.reverse();
+
+  if (mounted) {
+    ToastService._removeToast();
+  }
+}
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacity,
+      child: SlideTransition(
+        position: _slide,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(
+              color: const Color(0xFFE6E5DF),
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 13,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: widget.color.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: borderColor.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            icon,
-                            color: iconColor,
-                            size: isSmallMobile ? 16 : 20,
-                          ),
+                  child: Icon(
+                    widget.icon,
+                    size: 20,
+                    color: widget.color,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          color: widget.color,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          fontFamily: 'Inter',
+                          height: 1.3,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                isSuccess ? 'Sucesso' : (isWarning ? 'Aviso' : 'Erro'),
-                                style: TextStyle(
-                                  color: borderColor,
-                                  fontSize: isSmallMobile ? 11 : 13,
-                                  fontWeight: FontWeight.w700,
-                                  fontFamily: 'Poppins',
-                                  height: 1.2,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                message,
-                                style: TextStyle(
-                                  color: const Color(0xFF1E293B),
-                                  fontSize: isSmallMobile ? 11 : 13,
-                                  fontFamily: 'Inter',
-                                  height: 1.4,
-                                ),
-                              ),
-                            ],
-                          ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        widget.message,
+                        style: const TextStyle(
+                          color: Color(0xFF333333),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          fontFamily: 'Inter',
+                          height: 1.5,
                         ),
-                        GestureDetector(
-                          onTap: _hideToast,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            child: Icon(
-                              Icons.close,
-                              color: Colors.grey.shade400,
-                              size: isSmallMobile ? 14 : 16,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: _dismiss,
+                  borderRadius: BorderRadius.circular(7),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 17,
+                      color: Color(0xFF667078),
                     ),
                   ),
-                  AnimatedBuilder(
-                    animation: AlwaysStoppedAnimation(_progress),
-                    builder: (context, child) {
-                      final barWidth = isSmallMobile 
-                          ? MediaQuery.of(context).size.width - 20
-                          : (isMobile ? 340 : 380);
-                      return Container(
-                        height: 3,
-                        width: barWidth * _progress,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              borderColor,
-                              borderColor.withValues(alpha: 0.3),
-                            ],
-                          ),
-                          borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(12),
-                            bottomRight: Radius.circular(12),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
       ),
-    ),
-  );
-
-  final overlay = Overlay.of(context);
-  overlay.insert(_overlayEntry!);
-
-  _startProgressTimer(context);
-}
-  static void _updateOverlay() {
-    if (_overlayEntry != null) {
-      _overlayEntry!.markNeedsBuild();
-    }
-  }
-
-  static void _startProgressTimer(BuildContext context) {
-    _timer?.cancel();
-    const duration = Duration(seconds: 5);
-    const interval = Duration(milliseconds: 30);
-    final steps = duration.inMilliseconds ~/ interval.inMilliseconds;
-    int currentStep = 0;
-
-    _timer = Timer.periodic(interval, (timer) {
-      if (_isHovered) {
-        return;
-      }
-      currentStep++;
-      _progress = 1.0 - (currentStep / steps);
-      _updateOverlay();
-
-      if (_progress <= 0) {
-        _hideToast();
-      }
-    });
-  }
-
-  static void _hideToast() {
-    _timer?.cancel();
-    _timer = null;
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    _progress = 1.0;
-  }
-
-  static void showSuccess(BuildContext context, String message) {
-    showToast(context, message, backgroundColor: const Color(0xFF2E8B6A));
-  }
-
-  static void showError(BuildContext context, String message) {
-    showToast(context, message, backgroundColor: const Color(0xFFC65D47));
-  }
-
-  static void showWarning(BuildContext context, String message) {
-    showToast(context, message, backgroundColor: const Color(0xFFD97706));
+    );
   }
 }

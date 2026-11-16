@@ -320,77 +320,208 @@ void _abrirModalMatricula(Map<String, dynamic> upa) async {
     );
   }
 
-  Widget _buildSearchSection() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 36, 20, 32),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1250),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE1EDF6),
-              border: Border.all(color: const Color(0xFFC9DEED)),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final compact = constraints.maxWidth < 780;
-                final introduction = Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.location_on_outlined, color: Color(0xFF426E8C), size: 18),
-                        SizedBox(width: 8),
-                        Flexible(child: Text('UNIDADES DE ATENDIMENTO', style: TextStyle(fontFamily: 'Inter', fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1, color: Color(0xFF426E8C)))),
-                      ],
+
+Widget _buildSearchSection() {
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(20, 36, 20, 32),
+    child: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1250),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE1EDF6),
+            border: Border.all(color: const Color(0xFFC9DEED)),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = MediaQuery.sizeOf(context).width < 768;
+
+              final introduction = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        color: Color(0xFF426E8C),
+                        size: 18,
+                      ),
+                      SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'UNIDADES DE ATENDIMENTO',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1,
+                            color: Color(0xFF426E8C),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Encontre uma unidade de saúde.',
+                    style: TextStyle(
+                      fontFamily: 'DMSerifDisplay',
+                      fontSize: compact ? 36 : 46,
+                      height: 1.12,
+                      color: const Color(0xFF333333),
                     ),
-                    const SizedBox(height: 16),
-                    Text('Encontre uma unidade de saúde.', style: TextStyle(fontFamily: 'DMSerifDisplay', fontSize: compact ? 36 : 46, height: 1.12, color: const Color(0xFF333333))),
-                    const SizedBox(height: 12),
-                    const Text('Busque pelo bairro e consulte as unidades cadastradas para realizar sua matrícula.', style: TextStyle(fontFamily: 'Inter', fontSize: 14, height: 1.7, color: Color(0xFF4E4E4E))),
-                  ],
-                );
-                final search = Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('BUSCAR POR BAIRRO', style: TextStyle(fontFamily: 'Inter', fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1, color: Color(0xFF426E8C))),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _bairroController,
-                      onChanged: (value) {
-                        setState(() {});
-                        _onSearchChanged(value);
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Busque pelo bairro e consulte as unidades cadastradas para realizar sua matrícula.',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      height: 1.7,
+                      color: Color(0xFF4E4E4E),
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    width: compact ? double.infinity : null,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MyEnrollmentsScreen(
+                              userData: widget.userData,
+                              onNameUpdated: widget.onNameUpdated,
+                            ),
+                          ),
+                        );
                       },
-                      decoration: InputDecoration(
-                        hintText: 'Digite o nome do bairro...',
-                        hintStyle: const TextStyle(fontFamily: 'Inter', fontSize: 13, color: Color(0xFF8A8A85)),
-                        prefixIcon: const Icon(Icons.search, color: Color(0xFF426E8C)),
-                        suffixIcon: _bairroController.text.isNotEmpty
-                            ? IconButton(onPressed: _limparBusca, icon: const Icon(Icons.close, color: Color(0xFF426E8C)))
-                            : null,
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFC9DEED))),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF426E8C), width: 1.5)),
+                      icon: const Icon(
+                        Icons.list_alt_outlined,
+                        size: 18,
+                      ),
+                      label: const Text('Ver minhas matrículas'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF426E8C),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        textStyle: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ],
-                );
-                return compact
-                    ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [introduction, const SizedBox(height: 26), search])
-                    : Row(crossAxisAlignment: CrossAxisAlignment.center, children: [Expanded(flex: 6, child: introduction), const SizedBox(width: 48), Expanded(flex: 5, child: search)]);
-              },
-            ),
+                  ),
+                ],
+              );
+
+              final search = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'BUSCAR POR BAIRRO',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                      color: Color(0xFF426E8C),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _bairroController,
+                    onChanged: (value) {
+                      setState(() {});
+                      _onSearchChanged(value);
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Digite o nome do bairro...',
+                      hintStyle: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        color: Color(0xFF8A8A85),
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Color(0xFF426E8C),
+                      ),
+                      suffixIcon: _bairroController.text.isNotEmpty
+                          ? IconButton(
+                              onPressed: _limparBusca,
+                              icon: const Icon(
+                                Icons.close,
+                                color: Color(0xFF426E8C),
+                              ),
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 18,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFC9DEED),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF426E8C),
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+
+              return compact
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        introduction,
+                        const SizedBox(height: 26),
+                        search,
+                      ],
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          flex: 6,
+                          child: introduction,
+                        ),
+                        const SizedBox(width: 48),
+                        Expanded(
+                          flex: 5,
+                          child: search,
+                        ),
+                      ],
+                    );
+            },
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildEmptyWidget() {
     return Padding(

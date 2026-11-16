@@ -657,89 +657,104 @@ class _SintomasModalContentState extends State<_SintomasModalContent> {
     );
   }
 
-  Widget _buildSintomaSlider(_SintomaInfo sintoma) {
-    final valor = _valores[sintoma.campo] ?? 0;
+  
+Widget _buildSintomaSlider(_SintomaInfo sintoma) {
+  final valor = _valores[sintoma.campo] ?? 0;
+  final cor = sintoma.cor;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Icon(
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+    child: Column(
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: cor.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Icon(
                 sintoma.icone,
-                size: 19,
-                color: _secondary,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  sintoma.titulo,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: _foreground,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ),
-              Container(
-                width: 36,
-                height: 30,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: valor == 0 ? _pageBackground : _softBlue,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '$valor',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: valor == 0 ? _secondary : _primary,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 7),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 4,
-              activeTrackColor: _primary,
-              inactiveTrackColor: _border,
-              thumbColor: _primary,
-              overlayColor: _softBlue,
-              valueIndicatorColor: _primary,
-              valueIndicatorTextStyle: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontFamily: 'Inter',
-              ),
-              thumbShape: const RoundSliderThumbShape(
-                enabledThumbRadius: 7,
+                size: 18,
+                color: cor,
               ),
             ),
-            child: Slider(
-              value: valor.toDouble(),
-              min: 0,
-              max: 10,
-              divisions: 10,
-              label: '$valor',
-              onChanged: _isSaving
-                  ? null
-                  : (novoValor) {
-                      setState(() {
-                        _valores[sintoma.campo] = novoValor.round();
-                      });
-                    },
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                sintoma.titulo,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _foreground,
+                  fontFamily: 'Inter',
+                ),
+              ),
+            ),
+            Container(
+              width: 36,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: cor.withValues(alpha: 0.10),
+                border: Border.all(
+                  color: cor.withValues(alpha: 0.18),
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '$valor',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: cor,
+                  fontFamily: 'Inter',
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 7),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 4,
+            activeTrackColor: cor,
+            inactiveTrackColor: cor.withValues(alpha: 0.14),
+            thumbColor: cor,
+            overlayColor: cor.withValues(alpha: 0.12),
+            valueIndicatorColor: cor,
+            valueIndicatorTextStyle: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontFamily: 'Inter',
+            ),
+            thumbShape: const RoundSliderThumbShape(
+              enabledThumbRadius: 7,
             ),
           ),
-        ],
-      ),
-    );
-  }
+          child: Slider(
+            value: valor.toDouble(),
+            min: 0,
+            max: 10,
+            divisions: 10,
+            label: '$valor',
+            onChanged: _isSaving
+                ? null
+                : (novoValor) {
+                    setState(() {
+                      _valores[sintoma.campo] = novoValor.round();
+                    });
+                  },
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 
   Widget _buildEvolucao() {
     return Column(

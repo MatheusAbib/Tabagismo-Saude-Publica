@@ -254,328 +254,458 @@ class _HomeMetasWidgetState extends State<HomeMetasWidget> {
     );
   }
 
-  void _showGoalModal() {
-    final stopDate = _getStopDate();
-    final targetDays = _getTargetDays();
-    final cigarettes = _getCigarettesPerDay();
-    final packPrice = _getPackPrice();
 
-    final dateController = TextEditingController(
-      text: stopDate != null ? _formatDate(stopDate) : '',
-    );
-    final targetController = TextEditingController(
-      text: targetDays?.toString() ?? '',
-    );
-    final cigarettesController = TextEditingController(
-      text: cigarettes?.toString() ?? '',
-    );
-    final priceController = TextEditingController(
-      text: packPrice?.toStringAsFixed(2).replaceAll('.', ',') ?? '',
-    );
+void _showGoalModal() {
+  final stopDate = _getStopDate();
+  final targetDays = _getTargetDays();
+  final cigarettes = _getCigarettesPerDay();
+  final packPrice = _getPackPrice();
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        final isMobile = MediaQuery.of(dialogContext).size.width < 600;
+  final dateController = TextEditingController(
+    text: stopDate != null ? _formatDate(stopDate) : '',
+  );
 
-        return Dialog(
-          backgroundColor: surface,
-          insetPadding: EdgeInsets.all(isMobile ? 12 : 24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
+  final targetController = TextEditingController(
+    text: targetDays?.toString() ?? '',
+  );
+
+  final cigarettesController = TextEditingController(
+    text: cigarettes?.toString() ?? '',
+  );
+
+  final priceController = TextEditingController(
+    text: packPrice?.toStringAsFixed(2).replaceAll('.', ',') ?? '',
+  );
+
+  const modalBackground = Color(0xFFFFFDF9);
+  const modalSurface = Colors.white;
+  const modalPrimary = Color(0xFF426E8C);
+  const modalPrimaryLight = Color(0xFFE1EDF6);
+  const modalText = Color(0xFF333333);
+  const modalSecondary = Color(0xFF667078);
+  const modalBorder = Color(0xFFE6E5DF);
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) {
+      final screenSize = MediaQuery.sizeOf(dialogContext);
+      final isMobile = screenSize.width < 768;
+      final keyboardHeight = MediaQuery.viewInsetsOf(dialogContext).bottom;
+
+      void saveGoal() {
+        final parsedDate = _parseDate(dateController.text);
+        final parsedTarget = int.tryParse(targetController.text);
+        final parsedCigarettes = int.tryParse(cigarettesController.text);
+        final parsedPrice = double.tryParse(
+          priceController.text.replaceAll(',', '.'),
+        );
+
+        if (parsedDate == null ||
+            parsedTarget == null ||
+            parsedTarget <= 0) {
+          ToastService.showWarning(
+            context,
+            'Preencha a data (DD/MM/AAAA) e a meta corretamente',
+          );
+          return;
+        }
+
+        Navigator.pop(dialogContext);
+
+        _saveGoal(
+          parsedDate,
+          parsedTarget,
+          cigarrosPorDia: parsedCigarettes,
+          valorCarteira: parsedPrice,
+        );
+      }
+
+      return Dialog(
+        backgroundColor: modalBackground,
+        elevation: 0,
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 12 : 24,
+          vertical: isMobile ? 16 : 24,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: modalBorder),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 580,
+            maxHeight: screenSize.height -
+                keyboardHeight -
+                (isMobile ? 32 : 48),
           ),
-          clipBehavior: Clip.antiAlias,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(isMobile ? 20 : 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      _iconBox(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 18 : 24,
+                  vertical: isMobile ? 16 : 20,
+                ),
+                decoration: const BoxDecoration(
+                  color: modalBackground,
+                  border: Border(
+                    bottom: BorderSide(color: modalBorder),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: isMobile ? 40 : 44,
+                      height: isMobile ? 40 : 44,
+                      decoration: BoxDecoration(
+                        color: modalPrimaryLight,
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: const Icon(
                         Icons.flag_outlined,
-                        mintLight,
-                        mintDark,
-                        size: 46,
-                      ),
-                      const SizedBox(width: 14),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Definir meta',
-                              style: TextStyle(
-                                fontFamily: 'DMSerifDisplay',
-                                fontSize: 27,
-                                color: primary,
-                              ),
-                            ),
-                            SizedBox(height: 3),
-                            Text(
-                              'Configure seu acompanhamento',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 12,
-                                color: secondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        icon: const Icon(Icons.close, color: secondary),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-                  _buildFormField(
-                    label: 'Data que parou de fumar',
-                    description: 'Informe a data de início',
-                    icon: Icons.calendar_today_outlined,
-                    iconColor: mintDark,
-                    controller: dateController,
-                    hint: 'DD/MM/AAAA',
-                    keyboardType: TextInputType.datetime,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9/]')),
-                      LengthLimitingTextInputFormatter(10),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  _buildFormField(
-                    label: 'Meta em dias',
-                    description: 'Quantos dias deseja alcançar?',
-                    icon: Icons.flag_outlined,
-                    iconColor: lavenderDark,
-                    controller: targetController,
-                    hint: 'Ex.: 30, 60, 90',
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
-                  ),
-                  const SizedBox(height: 27),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: blueLight,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: blueDark.withOpacity(0.12),
+                        color: modalPrimary,
+                        size: 22,
                       ),
                     ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: blueDark,
-                          size: 20,
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Informações opcionais para calcular sua economia.',
+                    const SizedBox(width: 13),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Definir meta',
+                            style: TextStyle(
+                              fontFamily: 'DMSerifDisplay',
+                              fontSize: isMobile ? 23 : 26,
+                              color: modalText,
+                              height: 1.15,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Configure seu acompanhamento',
                             style: TextStyle(
                               fontFamily: 'Inter',
-                              fontSize: 13,
-                              color: secondary,
-                              height: 1.5,
+                              fontSize: isMobile ? 11 : 12,
+                              color: modalSecondary,
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildFormField(
-                    label: 'Cigarros por dia',
-                    description: 'Quantidade que costumava fumar',
-                    icon: Icons.smoke_free_outlined,
-                    iconColor: blueDark,
-                    controller: cigarettesController,
-                    hint: 'Ex.: 20',
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
+                    IconButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      tooltip: 'Fechar',
+                      style: IconButton.styleFrom(
+                        side: const BorderSide(color: modalBorder),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons.close,
+                        size: 19,
+                        color: modalSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(isMobile ? 18 : 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'INFORMAÇÕES DA META',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.1,
+                          color: modalPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Defina quando iniciou sua jornada e por quantos dias deseja manter sua meta.',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          height: 1.55,
+                          color: modalSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      _buildFormField(
+                        label: 'Data que parou de fumar',
+                        description: 'Informe a data de início',
+                        icon: Icons.calendar_today_outlined,
+                        iconColor: modalPrimary,
+                        controller: dateController,
+                        hint: 'DD/MM/AAAA',
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[0-9/]'),
+                          ),
+                          LengthLimitingTextInputFormatter(10),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      _buildFormField(
+                        label: 'Meta em dias',
+                        description: 'Quantos dias deseja alcançar?',
+                        icon: Icons.flag_outlined,
+                        iconColor: modalPrimary,
+                        controller: targetController,
+                        hint: 'Ex.: 30, 60, 90',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                      ),
+                      const SizedBox(height: 28),
+                      const Divider(
+                        height: 1,
+                        color: modalBorder,
+                      ),
+                      const SizedBox(height: 26),
+                      const Text(
+                        'CÁLCULO DE ECONOMIA',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.1,
+                          color: modalPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Preencha os dados abaixo para acompanhar quanto você está economizando. Essas informações são opcionais.',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          height: 1.55,
+                          color: modalSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      _buildFormField(
+                        label: 'Cigarros por dia',
+                        description: 'Quantidade que costumava fumar',
+                        icon: Icons.smoke_free_outlined,
+                        iconColor: modalPrimary,
+                        controller: cigarettesController,
+                        hint: 'Ex.: 20',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      _buildFormField(
+                        label: 'Valor da carteira',
+                        description: 'Preço médio em reais',
+                        icon: Icons.payments_outlined,
+                        iconColor: modalPrimary,
+                        controller: priceController,
+                        hint: 'Ex.: 10,00',
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: modalSecondary,
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'O cálculo considera 20 cigarros por carteira.',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11,
+                                height: 1.5,
+                                color: modalSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  _buildFormField(
-                    label: 'Valor da carteira',
-                    description: 'Preço médio em reais',
-                    icon: Icons.payments_outlined,
-                    iconColor: lavenderDark,
-                    controller: priceController,
-                    hint: 'Ex.: 10,00',
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 18 : 24,
+                  vertical: isMobile ? 14 : 18,
+                ),
+                decoration: const BoxDecoration(
+                  color: modalSurface,
+                  border: Border(
+                    top: BorderSide(color: modalBorder),
                   ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'O cálculo considera 20 cigarros por carteira.',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      color: muted,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      OutlinedButton(
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
                         onPressed: () => Navigator.pop(dialogContext),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: primary,
-                          side: const BorderSide(color: border),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 17,
-                          ),
+                          foregroundColor: modalText,
+                          side: const BorderSide(color: modalBorder),
+                          minimumSize: const Size(0, 46),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(11),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          textStyle: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         child: const Text('Cancelar'),
                       ),
-                      FilledButton.icon(
-                        onPressed: () {
-                          final parsedDate = _parseDate(dateController.text);
-                          final parsedTarget = int.tryParse(
-                            targetController.text,
-                          );
-                          final parsedCigarettes = int.tryParse(
-                            cigarettesController.text,
-                          );
-                          final parsedPrice = double.tryParse(
-                            priceController.text.replaceAll(',', '.'),
-                          );
-
-                          if (parsedDate == null ||
-                              parsedTarget == null ||
-                              parsedTarget <= 0) {
-                            ToastService.showWarning(
-                              context,
-                              'Preencha a data (DD/MM/AAAA) e a meta corretamente',
-                            );
-                            return;
-                          }
-
-                          Navigator.pop(dialogContext);
-
-                          _saveGoal(
-                            parsedDate,
-                            parsedTarget,
-                            cigarrosPorDia: parsedCigarettes,
-                            valorCarteira: parsedPrice,
-                          );
-                        },
-                        icon: const Icon(Icons.check, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: saveGoal,
+                        icon: const Icon(
+                          Icons.check,
+                          size: 18,
+                        ),
                         label: const Text('Salvar meta'),
                         style: FilledButton.styleFrom(
-                          backgroundColor: mintDark,
-                          foregroundColor: surface,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 17,
-                          ),
+                          backgroundColor: modalPrimary,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(0, 46),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(11),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          textStyle: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
-        );
-      },
-    ).then((_) {
-      dateController.dispose();
-      targetController.dispose();
-      cigarettesController.dispose();
-      priceController.dispose();
-    });
-  }
+        ),
+      );
+    },
+  ).then((_) {
+    dateController.dispose();
+    targetController.dispose();
+    cigarettesController.dispose();
+    priceController.dispose();
+  });
+}
 
-  Widget _buildFormField({
-    required String label,
-    required String description,
-    required IconData icon,
-    required Color iconColor,
-    required TextEditingController controller,
-    required String hint,
-    required TextInputType keyboardType,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
+
+  
+Widget _buildFormField({
+  required String label,
+  required String description,
+  required IconData icon,
+  required Color iconColor,
+  required TextEditingController controller,
+  required String hint,
+  required TextInputType keyboardType,
+  List<TextInputFormatter>? inputFormatters,
+}) {
+  const fieldBackground = Colors.white;
+  const fieldText = Color(0xFF333333);
+  const fieldSecondary = Color(0xFF667078);
+  const fieldPrimary = Color(0xFF426E8C);
+  const fieldBorder = Color(0xFFE6E5DF);
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: const TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: fieldText,
+        ),
+      ),
+      const SizedBox(height: 5),
+      Text(
+        description,
+        style: const TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 11,
+          color: fieldSecondary,
+        ),
+      ),
+      const SizedBox(height: 10),
+      TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        style: const TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 13,
+          color: fieldText,
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(
             fontFamily: 'Inter',
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: primary,
+            fontSize: 13,
+            color: fieldSecondary,
+          ),
+          prefixIcon: Icon(
+            icon,
+            color: fieldPrimary,
+            size: 19,
+          ),
+          filled: true,
+          fillColor: fieldBackground,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 15,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: fieldBorder),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(
+              color: fieldPrimary,
+              width: 1.5,
+            ),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          description,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 12,
-            color: muted,
-          ),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 14,
-            color: primary,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: muted),
-            prefixIcon: Icon(icon, color: iconColor, size: 20),
-            filled: true,
-            fillColor: const Color(0xFFFAF8F3),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 17,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(11),
-              borderSide: const BorderSide(color: border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(11),
-              borderSide: BorderSide(
-                color: iconColor,
-                width: 1.5,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
   @override
   Widget build(BuildContext context) {

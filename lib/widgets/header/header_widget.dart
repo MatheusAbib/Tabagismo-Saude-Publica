@@ -123,41 +123,45 @@ class _HeaderWidgetState extends State<HeaderWidget> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 768;
-    final isTablet = screenWidth >= 768 && screenWidth < 1200;
-    final horizontalPadding = isMobile ? 16.0 : (isTablet ? 24.0 : 50.0);
+  
+@override
+Widget build(BuildContext context) {
+  final screenWidth = MediaQuery.sizeOf(context).width;
+  final isMobile = screenWidth < 768;
+  final isTablet = screenWidth >= 768 && screenWidth < 1200;
 
-    return Consumer<PollingService>(
-      builder: (context, pollingService, child) {
-        _naoLidas = pollingService.notificacoesNaoLidas;
+  final horizontalPadding =
+      isMobile ? 12.0 : (isTablet ? 24.0 : 50.0);
 
-        return Container(
-          width: double.infinity,
-          padding: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top + 12,
-            left: horizontalPadding,
-            right: horizontalPadding,
-            bottom: 12,
-          ),
-          decoration: const BoxDecoration(
-            color: _background,
-            border: Border(
-              bottom: BorderSide(
-                color: _border,
-                width: 1,
-              ),
+  return Consumer<PollingService>(
+    builder: (context, pollingService, child) {
+      _naoLidas = pollingService.notificacoesNaoLidas;
+
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.only(
+          top: MediaQuery.paddingOf(context).top + (isMobile ? 6 : 12),
+          left: horizontalPadding,
+          right: horizontalPadding,
+          bottom: isMobile ? 6 : 12,
+        ),
+        decoration: const BoxDecoration(
+          color: _background,
+          border: Border(
+            bottom: BorderSide(
+              color: _border,
+              width: 1,
             ),
           ),
-          child: widget.isHome
-              ? _buildHomeHeader(isMobile)
-              : _buildAdminEnfermeiraHeader(isMobile),
-        );
-      },
-    );
-  }
+        ),
+        child: widget.isHome
+            ? _buildHomeHeader(isMobile)
+            : _buildAdminEnfermeiraHeader(isMobile),
+      );
+    },
+  );
+}
+
 
   Widget _buildHomeHeader(bool isMobile) {
     return Row(
@@ -181,77 +185,81 @@ class _HeaderWidgetState extends State<HeaderWidget> {
     );
   }
 
-  Widget _buildLogo() {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: widget.isHome
-            ? () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              }
-            : null,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: _softBlue,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  widget.icon,
-                  color: _primary,
-                  size: 29,
-                ),
+
+Widget _buildLogo() {
+  final isMobile = MediaQuery.sizeOf(context).width < 768;
+
+  return Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: widget.isHome
+          ? () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            }
+          : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: isMobile ? 2 : 3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: isMobile ? 34 : 48,
+              height: isMobile ? 34 : 48,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: _softBlue,
+                shape: BoxShape.circle,
               ),
-              const SizedBox(width: 12),
-              const Flexible(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'DESFUMO',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'BebasNeue',
-                        fontSize: 28,
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: 1,
-                        color: _foreground,
-                        height: 0.95,
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      'Apoio ao Tabagismo',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: _secondary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w400,
-                        fontFamily: 'Inter',
-                        letterSpacing: 1.2,
-                        height: 1.1,
-                      ),
-                    ),
-                  ],
-                ),
+              child: Icon(
+                widget.icon,
+                color: _primary,
+                size: isMobile ? 21 : 29,
               ),
-            ],
-          ),
+            ),
+            SizedBox(width: isMobile ? 8 : 12),
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'DESFUMO',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'BebasNeue',
+                      fontSize: isMobile ? 21 : 28,
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: isMobile ? 0.6 : 1,
+                      color: _foreground,
+                      height: 0.95,
+                    ),
+                  ),
+                  SizedBox(height: isMobile ? 2 : 3),
+                  Text(
+                    'Apoio ao Tabagismo',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _secondary,
+                      fontSize: isMobile ? 9 : 11,
+                      fontWeight: FontWeight.w400,
+                      fontFamily: 'Inter',
+                      letterSpacing: isMobile ? 0.4 : 1.2,
+                      height: 1.1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildBackButton() {
     return Material(
@@ -276,80 +284,85 @@ class _HeaderWidgetState extends State<HeaderWidget> {
     );
   }
 
-  Widget _buildNotificationBell() {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _showNotificationsDialog,
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                border: Border.all(color: _border),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.notifications_none_outlined,
-                color: _primary,
-                size: 21,
-              ),
-            ),
-          ),
-        ),
-        if (_naoLidas > 0)
-          Positioned(
-            right: -5,
-            top: -5,
-            child: Container(
-              constraints: const BoxConstraints(
-                minWidth: 17,
-                minHeight: 17,
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 4,
-                vertical: 2,
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFFC76D60),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _background,
-                  width: 2,
-                ),
-              ),
-              child: Text(
-                _naoLidas > 9 ? '9+' : '$_naoLidas',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  height: 1,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
+  
+Widget _buildNotificationBell() {
+  final isMobile = MediaQuery.sizeOf(context).width < 768;
 
-  Widget _buildHomeMobileMenu() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildNotificationBell(),
-        const SizedBox(width: 10),
-        _buildPopupMenu(
-          isMobile: true,
-          includeSupportGroups: true,
+  return Stack(
+    clipBehavior: Clip.none,
+    children: [
+      Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _showNotificationsDialog,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            width: isMobile ? 34 : 42,
+            height: isMobile ? 34 : 42,
+            decoration: BoxDecoration(
+              border: Border.all(color: _border),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              Icons.notifications_none_outlined,
+              color: _primary,
+              size: isMobile ? 19 : 21,
+            ),
+          ),
         ),
-      ],
-    );
-  }
+      ),
+      if (_naoLidas > 0)
+        Positioned(
+          right: -5,
+          top: -5,
+          child: Container(
+            constraints: const BoxConstraints(
+              minWidth: 17,
+              minHeight: 17,
+            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 4,
+              vertical: 2,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFC76D60),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _background,
+                width: 2,
+              ),
+            ),
+            child: Text(
+              _naoLidas > 9 ? '9+' : '$_naoLidas',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                height: 1,
+              ),
+            ),
+          ),
+        ),
+    ],
+  );
+}
+
+
+Widget _buildHomeMobileMenu() {
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _buildNotificationBell(),
+      const SizedBox(width: 7),
+      _buildPopupMenu(
+        isMobile: true,
+        includeSupportGroups: true,
+      ),
+    ],
+  );
+}
+
 
   Widget _buildHomeDesktopMenu() {
     return Row(
@@ -405,71 +418,73 @@ class _HeaderWidgetState extends State<HeaderWidget> {
     );
   }
 
-  Widget _buildPopupMenu({
-    required bool isMobile,
-    required bool includeSupportGroups,
-  }) {
-    return PopupMenuButton<String>(
-      tooltip: isMobile ? 'Abrir menu' : 'Minha conta',
-      offset: const Offset(0, 50),
-      elevation: 0,
-      color: _background,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: _border),
+
+Widget _buildPopupMenu({
+  required bool isMobile,
+  required bool includeSupportGroups,
+}) {
+  return PopupMenuButton<String>(
+    tooltip: isMobile ? 'Abrir menu' : 'Minha conta',
+    offset: Offset(0, isMobile ? 40 : 50),
+    elevation: 0,
+    color: _background,
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+      side: const BorderSide(color: _border),
+    ),
+    onSelected: _handleMenuSelection,
+    itemBuilder: (context) => _buildMenuItems(
+      includeSupportGroups: includeSupportGroups,
+    ),
+    child: Container(
+      height: isMobile ? 34 : 42,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 8 : 14,
       ),
-      onSelected: _handleMenuSelection,
-      itemBuilder: (context) => _buildMenuItems(
-        includeSupportGroups: includeSupportGroups,
-      ),
-      child: Container(
-        height: 42,
-        padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 10 : 14,
+      decoration: BoxDecoration(
+        color: isMobile ? _softBlue : _background,
+        border: Border.all(
+          color: isMobile ? _softBlue : _border,
         ),
-        decoration: BoxDecoration(
-          color: isMobile ? _softBlue : _background,
-          border: Border.all(
-            color: isMobile ? _softBlue : _border,
-          ),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: isMobile
-            ? const Icon(
-                Icons.menu,
-                color: _primary,
-                size: 22,
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.person_outline,
-                    color: _primary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 9),
-                  Text(
-                    'Olá, $_firstName',
-                    style: const TextStyle(
-                      color: _foreground,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: _secondary,
-                    size: 18,
-                  ),
-                ],
-              ),
+        borderRadius: BorderRadius.circular(10),
       ),
-    );
-  }
+      child: isMobile
+          ? const Icon(
+              Icons.menu,
+              color: _primary,
+              size: 20,
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.person_outline,
+                  color: _primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 9),
+                Text(
+                  'Olá, $_firstName',
+                  style: const TextStyle(
+                    color: _foreground,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: _secondary,
+                  size: 18,
+                ),
+              ],
+            ),
+    ),
+  );
+}
+
 
   List<PopupMenuEntry<String>> _buildMenuItems({
     required bool includeSupportGroups,

@@ -54,7 +54,7 @@ class _SobreScreenState extends State<SobreScreen> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final small = width < 480;
+    final small = width < 768;
     final padding = _paddingFor(width);
 
     return Scaffold(
@@ -63,13 +63,14 @@ class _SobreScreenState extends State<SobreScreen> {
       body: CustomScrollView(
         slivers: [
         
+
 SliverAppBar(
   pinned: true,
   elevation: 0,
   scrolledUnderElevation: 0,
   backgroundColor: const Color(0xFFFFFDF9),
   surfaceTintColor: Colors.transparent,
-  toolbarHeight: small ? 76 : 88,
+  toolbarHeight: small ? 68 : 88,
   titleSpacing: 0,
   automaticallyImplyLeading: false,
   flexibleSpace: Container(
@@ -85,28 +86,24 @@ SliverAppBar(
   ),
   title: Padding(
     padding: EdgeInsets.symmetric(
-      horizontal: width < 768
-          ? 16.0
-          : width < 1200
-              ? 32.0
-              : 50.0,
+      horizontal: small ? 12 : width < 1200 ? 32 : 50,
     ),
     child: Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: EdgeInsets.all(small ? 7 : 10),
           decoration: BoxDecoration(
             color: const Color(0xFFE1EDF6),
             borderRadius: BorderRadius.circular(35),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.smoke_free_outlined,
-            color: Color(0xFF426E8C),
-            size: 32,
+            color: const Color(0xFF426E8C),
+            size: small ? 23 : 32,
           ),
         ),
-        const SizedBox(width: 12),
-        const Column(
+        SizedBox(width: small ? 9 : 12),
+        Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -114,38 +111,54 @@ SliverAppBar(
               'DESFUMO',
               style: TextStyle(
                 fontFamily: 'BebasNeue',
-                fontSize: 28,
+                fontSize: small ? 23 : 28,
                 fontWeight: FontWeight.w400,
-                letterSpacing: 1,
-                color: Color(0xFF333333),
-                height: 0.9,
+                letterSpacing: small ? 0.7 : 1,
+                color: const Color(0xFF333333),
+                height: 0.95,
               ),
             ),
             Text(
               'Apoio ao Tabagismo',
               style: TextStyle(
-                color: Color(0xFF667078),
-                fontSize: 12,
+                color: const Color(0xFF667078),
+                fontSize: small ? 10 : 12,
                 fontWeight: FontWeight.w400,
-                height: 0.9,
-                letterSpacing: 2,
+                height: 1,
+                letterSpacing: small ? 0.7 : 2,
               ),
             ),
           ],
         ),
         const Spacer(),
         if (small)
-          IconButton(
+          TextButton(
             onPressed: () =>
                 _showAuthModal(context, initialTab: 0),
-            tooltip: 'Entrar',
-            icon: const Icon(
-              Icons.login_outlined,
-              color: Color(0xFF426E8C),
-              size: 21,
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF426E8C),
+              backgroundColor: const Color(0xFFE1EDF6),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 11,
+              ),
+              minimumSize: const Size(0, 38),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: const BorderSide(
+                  color: Color(0xFFCADDEB),
+                ),
+              ),
+              textStyle: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
             ),
+            child: const Text('Entrar / Cadastrar'),
           )
-        else
+        else ...[
           TextButton.icon(
             onPressed: () =>
                 _showAuthModal(context, initialTab: 0),
@@ -167,39 +180,39 @@ SliverAppBar(
               ),
             ),
           ),
-        SizedBox(width: small ? 4 : 10),
-        ElevatedButton.icon(
-          onPressed: () =>
-              _showAuthModal(context, initialTab: 1),
-          icon: Icon(
-            Icons.person_add_alt_1_outlined,
-            size: small ? 16 : 18,
-          ),
-          label: Text(
-            small ? 'Cadastrar' : 'Criar minha conta',
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF426E8C),
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: EdgeInsets.symmetric(
-              horizontal: small ? 12 : 18,
-              vertical: small ? 12 : 15,
+          const SizedBox(width: 10),
+          ElevatedButton.icon(
+            onPressed: () =>
+                _showAuthModal(context, initialTab: 1),
+            icon: const Icon(
+              Icons.person_add_alt_1_outlined,
+              size: 18,
             ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            textStyle: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: small ? 11 : 12,
-              fontWeight: FontWeight.w600,
+            label: const Text('Criar minha conta'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF426E8C),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 15,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              textStyle: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        ),
+        ],
       ],
     ),
   ),
 ),
+
 
           SliverToBoxAdapter(
             child: Column(
@@ -435,13 +448,15 @@ SliverAppBar(
     );
   }
 
-  Widget _buildDoctorVisual(bool mobile) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final height = mobile
-            ? (width * 0.95).clamp(310.0, 480.0)
-            : 570.0;
+Widget _buildDoctorVisual(bool mobile) {
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      if (MediaQuery.sizeOf(context).width < 768) {
+        return const SizedBox.shrink();
+      }
+
+      final width = constraints.maxWidth;
+      final height = 570.0;
 
         return SizedBox(
           width: width,
